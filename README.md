@@ -2,6 +2,8 @@
 
 A free, browser-based PDF toolkit inspired by iLovePDF.
 
+Developed by [Filofa Technology](https://filofa.com).
+
 ## Features
 
 - Merge, split, compress, rotate and organize PDFs

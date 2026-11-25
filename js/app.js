@@ -1214,6 +1214,35 @@ INITERS.compare = function(panel){
   panel.insertBefore(actions,panel.querySelector('.status'));
 };
 
+/* ---------- AUTH (demo) ---------- */
+function renderAuth(root,mode){
+  root.innerHTML='';
+  const sec=document.createElement('section');
+  sec.className='tool-page container';
+  sec.style.maxWidth='480px';
+  sec.innerHTML=`
+    <div class="tool-header">
+      <div class="icon"><i class="fa-solid ${mode==='login'?'fa-right-to-bracket':'fa-user-plus'}"></i></div>
+      <div><h1>${mode==='login'?'Login':'Sign up'}</h1><p>${mode==='login'?'Welcome back to Online Converter.':'Create your free Online Converter account.'}</p></div>
+    </div>
+    <div class="panel">
+      <div class="options" style="grid-template-columns:1fr">
+        <div class="field"><label>Email</label><input id="authEmail" type="email" placeholder="you@example.com" /></div>
+        <div class="field"><label>Password</label><input id="authPass" type="password" placeholder="••••••••" /></div>
+      </div>
+      <div class="actions"><button class="btn btn-primary" id="authBtn">${mode==='login'?'Login':'Create account'}</button></div>
+      <div class="status"></div>
+    </div>`;
+  root.appendChild(sec);
+  const panel=sec.querySelector('.panel');
+  sec.querySelector('#authBtn').addEventListener('click',()=>{
+    const email=sec.querySelector('#authEmail').value.trim();
+    const pass=sec.querySelector('#authPass').value;
+    if(!email||!pass){setStatus(panel,'Please fill in email and password.','error');return;}
+    setStatus(panel,'Demo only: authentication backend is not connected. All PDF tools work without an account.','success');
+  });
+}
+
 /* ---------- router ---------- */
 function route(){
   const hash=location.hash||'#/'; const app=document.getElementById('app');
@@ -1221,6 +1250,8 @@ function route(){
   else if(hash==='#/tools') renderTools(app);
   else if(hash.startsWith('#/tool/')) renderTool(app,hash.split('/')[2]);
   else if(hash==='#/about') renderAbout(app);
+  else if(hash==='#/login') renderAuth(app,'login');
+  else if(hash==='#/register') renderAuth(app,'register');
   else renderHome(app);
   window.scrollTo(0,0);
 }
@@ -1229,7 +1260,31 @@ window.addEventListener('DOMContentLoaded',route);
 
 /* menu */
 document.addEventListener('DOMContentLoaded',()=>{
-  const btn=document.getElementById('menuBtn');
-  const nav=document.querySelector('.nav');
-  if(btn&&nav) btn.addEventListener('click',()=>nav.classList.toggle('open'));
+  const menuBtn=document.getElementById('menuBtn');
+  const menu=document.querySelector('.menu');
+  if(menuBtn&&menu){
+    menuBtn.addEventListener('click',e=>{
+      e.stopPropagation();
+      menu.classList.toggle('open');
+    });
+  }
+  document.querySelectorAll('.nav-link,.more-btn').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.preventDefault(); e.stopPropagation();
+      const parent=btn.closest('.nav-has-dropdown');
+      const wasOpen=parent.classList.contains('open');
+      document.querySelectorAll('.nav-has-dropdown.open').forEach(x=>x.classList.remove('open'));
+      if(!wasOpen) parent.classList.add('open');
+    });
+  });
+  document.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-has-dropdown.open').forEach(x=>x.classList.remove('open'));
+    if(menu) menu.classList.remove('open');
+  });
+  document.querySelectorAll('.nav-dropdown a').forEach(a=>{
+    a.addEventListener('click',()=>{
+      document.querySelectorAll('.nav-has-dropdown.open').forEach(x=>x.classList.remove('open'));
+      if(menu) menu.classList.remove('open');
+    });
+  });
 });

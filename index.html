@@ -11,16 +11,108 @@
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <a href="#/" class="logo"><span class="logo-mark"><i class="fa-solid fa-file-pdf"></i></span> Online<span>Converter</span></a>
-      <nav class="nav">
-        <a href="#/">Home</a>
-        <a href="#/tools">All tools</a>
-        <a href="#/about">About</a>
-      </nav>
-      <button class="menu-btn" id="menuBtn" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
-    </div>
+  <header class="header">
+    <nav class="nav-wrap container">
+      <a class="brand" href="#/" title="Online Converter">
+        <span class="brand-mark"><i class="fa-solid fa-file-pdf"></i></span>
+        <span class="brand-text">Online<span>Converter</span></span>
+      </a>
+
+      <div class="menu">
+        <button class="menu-sm" id="menuBtn" aria-label="Open menu">
+          All PDF tools <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <ul class="menu-main">
+          <li class="nav-has-dropdown">
+            <button class="nav-link">Convert PDF <i class="fa-solid fa-chevron-down"></i></button>
+            <div class="nav-dropdown nav-dropdown--convert">
+              <ul class="nav-col">
+                <li class="nav__title">Convert to PDF</li>
+                <li><a href="#/tool/jpg-to-pdf"><i class="fa-solid fa-image"></i>JPG to PDF</a></li>
+                <li><a href="#/tool/word-to-pdf"><i class="fa-solid fa-file-word"></i>WORD to PDF</a></li>
+                <li><a href="#/tool/ppt-to-pdf"><i class="fa-solid fa-file-powerpoint"></i>POWERPOINT to PDF</a></li>
+                <li><a href="#/tool/excel-to-pdf"><i class="fa-solid fa-file-excel"></i>EXCEL to PDF</a></li>
+                <li><a href="#/tool/html-to-pdf"><i class="fa-solid fa-code"></i>HTML to PDF</a></li>
+              </ul>
+              <ul class="nav-col">
+                <li class="nav__title">Convert from PDF</li>
+                <li><a href="#/tool/pdf-to-jpg"><i class="fa-solid fa-image"></i>PDF to JPG</a></li>
+                <li><a href="#/tool/pdf-to-word"><i class="fa-solid fa-file-word"></i>PDF to WORD</a></li>
+                <li><a href="#/tool/pdf-to-ppt"><i class="fa-solid fa-file-powerpoint"></i>PDF to POWERPOINT</a></li>
+                <li><a href="#/tool/pdf-to-excel"><i class="fa-solid fa-file-excel"></i>PDF to EXCEL</a></li>
+                <li><a href="#/tool/pdf-to-pdfa"><i class="fa-solid fa-file-shield"></i>PDF to PDF/A</a></li>
+              </ul>
+            </div>
+          </li>
+          <li class="nav-has-dropdown nav-has-dropdown--full">
+            <button class="nav-link">All PDF tools <i class="fa-solid fa-chevron-down"></i></button>
+            <div class="nav-dropdown nav-dropdown--full">
+              <ul class="nav-col">
+                <li class="nav__title">Organize PDF</li>
+                <li><a href="#/tool/merge"><i class="fa-solid fa-object-group"></i>Merge PDF</a></li>
+                <li><a href="#/tool/split"><i class="fa-solid fa-scissors"></i>Split PDF</a></li>
+                <li><a href="#/tool/organize"><i class="fa-solid fa-layer-group"></i>Organize PDF</a></li>
+                <li><a href="#/tool/scan-to-pdf"><i class="fa-solid fa-camera"></i>Scan to PDF</a></li>
+              </ul>
+              <ul class="nav-col">
+                <li class="nav__title">Optimize PDF</li>
+                <li><a href="#/tool/compress"><i class="fa-solid fa-compress"></i>Compress PDF</a></li>
+                <li><a href="#/tool/repair"><i class="fa-solid fa-wrench"></i>Repair PDF</a></li>
+              </ul>
+              <ul class="nav-col">
+                <li class="nav__title">Convert to PDF</li>
+                <li><a href="#/tool/jpg-to-pdf"><i class="fa-solid fa-image"></i>JPG to PDF</a></li>
+                <li><a href="#/tool/word-to-pdf"><i class="fa-solid fa-file-word"></i>WORD to PDF</a></li>
+                <li><a href="#/tool/ppt-to-pdf"><i class="fa-solid fa-file-powerpoint"></i>POWERPOINT to PDF</a></li>
+                <li><a href="#/tool/excel-to-pdf"><i class="fa-solid fa-file-excel"></i>EXCEL to PDF</a></li>
+                <li><a href="#/tool/html-to-pdf"><i class="fa-solid fa-code"></i>HTML to PDF</a></li>
+              </ul>
+              <ul class="nav-col">
+                <li class="nav__title">Convert from PDF</li>
+                <li><a href="#/tool/pdf-to-jpg"><i class="fa-solid fa-image"></i>PDF to JPG</a></li>
+                <li><a href="#/tool/pdf-to-word"><i class="fa-solid fa-file-word"></i>PDF to WORD</a></li>
+                <li><a href="#/tool/pdf-to-ppt"><i class="fa-solid fa-file-powerpoint"></i>PDF to POWERPOINT</a></li>
+                <li><a href="#/tool/pdf-to-excel"><i class="fa-solid fa-file-excel"></i>PDF to EXCEL</a></li>
+                <li><a href="#/tool/pdf-to-pdfa"><i class="fa-solid fa-file-shield"></i>PDF to PDF/A</a></li>
+              </ul>
+              <ul class="nav-col">
+                <li class="nav__title">Edit PDF</li>
+                <li><a href="#/tool/rotate"><i class="fa-solid fa-rotate"></i>Rotate PDF</a></li>
+                <li><a href="#/tool/page-numbers"><i class="fa-solid fa-list-ol"></i>Add page numbers</a></li>
+                <li><a href="#/tool/watermark"><i class="fa-solid fa-droplet"></i>Add watermark</a></li>
+                <li><a href="#/tool/crop"><i class="fa-solid fa-crop"></i>Crop PDF</a></li>
+                <li><a href="#/tool/edit"><i class="fa-solid fa-pen-to-square"></i>Edit PDF</a></li>
+              </ul>
+              <ul class="nav-col">
+                <li class="nav__title">PDF security</li>
+                <li><a href="#/tool/unlock"><i class="fa-solid fa-lock-open"></i>Unlock PDF</a></li>
+                <li><a href="#/tool/protect"><i class="fa-solid fa-lock"></i>Protect PDF</a></li>
+                <li><a href="#/tool/sign"><i class="fa-solid fa-signature"></i>Sign PDF</a></li>
+                <li><a href="#/tool/compare"><i class="fa-solid fa-code-compare"></i>Compare PDF</a></li>
+              </ul>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="nav-actions">
+        <a href="#/login" class="link-secondary hide-sm">Login</a>
+        <a href="#/register" class="btn btn-sm hide-sm">Sign up</a>
+        <div class="nav-more nav-has-dropdown">
+          <button class="more-btn" aria-label="More"><i class="fa-solid fa-ellipsis"></i></button>
+          <div class="nav-dropdown nav-dropdown--more">
+            <ul class="nav-col">
+              <li class="nav__title">Online Converter</li>
+              <li><a href="#/about"><i class="fa-solid fa-circle-info"></i>About us</a></li>
+              <li><a href="#/tools"><i class="fa-solid fa-grid-2"></i>All tools</a></li>
+              <li><a href="#/login"><i class="fa-solid fa-right-to-bracket"></i>Login</a></li>
+              <li><a href="#/register"><i class="fa-solid fa-user-plus"></i>Sign up</a></li>
+              <li><a href="https://github.com/codexvisual/online-converter" target="_blank" rel="noopener"><i class="fa-brands fa-github"></i>GitHub</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </nav>
   </header>
 
   <main id="app"></main>
@@ -28,7 +120,7 @@
   <footer class="footer">
     <div class="container">
       <p>Online Converter - Free online PDF tools. Files are processed in your browser; nothing is uploaded.</p>
-      <p class="muted">© 2026 Online Converter</p>
+      <p class="muted">© 2026 Online Converter · Developed by <a href="https://filofa.com" target="_blank" rel="noopener" class="footer-link">Filofa Technology</a> · <a href="https://filofa.com" target="_blank" rel="noopener" class="footer-link">filofa.com</a></p>
     </div>
   </footer>
 
