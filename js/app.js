@@ -14,7 +14,7 @@ const TOOLS = [
   {id:'pdf-to-html',name:'PDF to HTML',desc:'Convert PDFs to web pages.',icon:'fa-code',cat:'Convert from PDF',impl:true},
   {id:'word-to-pdf',name:'Word to PDF',desc:'Convert DOCX documents to PDF.',icon:'fa-file-word',cat:'Convert to PDF',impl:true},
   {id:'excel-to-pdf',name:'Excel to PDF',desc:'Convert XLSX spreadsheets to PDF.',icon:'fa-file-excel',cat:'Convert to PDF',impl:true},
-  {id:'ppt-to-pdf',name:'PowerPoint to PDF',desc:'Convert PPTX slides to PDF.',icon:'fa-file-powerpoint',cat:'Convert to PDF',impl:false},
+  {id:'ppt-to-pdf',name:'PowerPoint to PDF',desc:'Convert PPTX slides to PDF.',icon:'fa-file-powerpoint',cat:'Convert to PDF',impl:true},
   {id:'jpg-to-pdf',name:'JPG to PDF',desc:'Convert images to PDF.',icon:'fa-image',cat:'Convert to PDF',impl:true},
   {id:'html-to-pdf',name:'HTML to PDF',desc:'Convert web pages to PDF.',icon:'fa-code',cat:'Convert to PDF',impl:true},
   {id:'scan-to-pdf',name:'Scan to PDF',desc:'Capture scans and save as PDF.',icon:'fa-camera',cat:'Convert to PDF',impl:true},
@@ -941,6 +941,72 @@ INITERS['excel-to-pdf'] = function(panel){
   actions.appendChild(btn);
   panel.insertBefore(actions,panel.querySelector('.status'));
 };
+
+/* ---------- POWERPOINT TO PDF ---------- */
+INITERS['ppt-to-pdf'] = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,i=>{files=[];rerender();}); }
+  rerender();
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
+  btn.addEventListener('click', async()=>{
+    if(!files.length){setStatus(panel,'Select a PPTX first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
+      let pdfBytes=null;
+      try{
+        const {Ream}=await import('https://unpkg.com/reamkit@1.36.1/dist/esm/index.js?module');
+        const doc=Ream.parse(bytes);
+        pdfBytes=await doc.convert('pdf');
+      }catch(err){
+        // Fallback: extract slide text and images with JSZip
+        pdfBytes=await pptxFallbackPdf(bytes);
+      }
+      downloadBlob(new Blob([pdfBytes],{type:'application/pdf'}),'converted.pdf');
+      setStatus(panel,'Converted!','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+async function pptxFallbackPdf(bytes){
+  const {PDFDocument,StandardFonts,rgb}=PDFLib;
+  const zip=await JSZip.loadAsync(bytes);
+  const slideNames=Object.keys(zip.files)
+    .filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n))
+    .sort((a,b)=>parseInt(a.match(/slide(\d+)\.xml/)[1])-parseInt(b.match(/slide(\d+)\.xml/)[1]));
+  const doc=await PDFDocument.create();
+  const font=await doc.embedFont(StandardFonts.Helvetica);
+  const bold=await doc.embedFont(StandardFonts.HelveticaBold);
+  const W=720,H=540;
+  const decode=s=>s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+  for(let si=0;si<slideNames.length;si++){
+    const xml=await zip.file(slideNames[si]).async('string');
+    const texts=[...xml.matchAll(/<a:t>([\s\S]*?)<\/a:t>/g)].map(m=>decode(m[1])).filter(Boolean);
+    const page=doc.addPage([W,H]);
+    page.drawText('Slide '+(si+1),{x:40,y:H-36,size:10,font,color:rgb(0.55,0.55,0.55)});
+    let y=H-80;
+    for(const t of texts){
+      const words=t.split(/\s+/);
+      let line='';
+      for(const w of words){
+        const test=line?line+' '+w:w;
+        if(font.widthOfTextAtSize(test,18)>W-80){ page.drawText(line,{x:40,y,size:18,font:bold,color:rgb(0,0,0)}); y-=26; line=w; }
+        else line=test;
+      }
+      if(line){ page.drawText(line,{x:40,y,size:18,font:bold,color:rgb(0,0,0)}); y-=30; }
+      if(y<60){ break; }
+    }
+  }
+  if(!slideNames.length){ const page=doc.addPage([W,H]); page.drawText('No slides found',{x:40,y:H/2,size:18,font}); }
+  return await doc.save();
+}
 
 /* ---------- HTML TO PDF ---------- */
 INITERS['html-to-pdf'] = function(panel){

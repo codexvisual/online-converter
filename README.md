@@ -6,7 +6,7 @@ A free, browser-based PDF toolkit inspired by iLovePDF.
 
 - Merge, split, compress, rotate and organize PDFs
 - Convert PDF to Word, Excel, PowerPoint, JPG, HTML and PDF/A
-- Convert Word, Excel, images and HTML to PDF
+- Convert Word, Excel, PowerPoint, images and HTML to PDF
 - Add page numbers, watermarks and signatures
 - Protect and unlock PDFs with AES-256
 - Compare and repair PDFs
@@ -17,6 +17,7 @@ A free, browser-based PDF toolkit inspired by iLovePDF.
 - HTML, CSS, vanilla JavaScript
 - pdf-lib, pdf.js, pdf-lib-encrypt
 - SheetJS, PptxGenJS, Mammoth, html2pdf.js, docx
+- Ream (PPTX/DOCX/XLSX to PDF)
 
 ## Run locally
 
