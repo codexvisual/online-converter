@@ -10,20 +10,20 @@
   --shadow:0 8px 24px rgba(0,0,0,.06);
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+html,body{margin:0;padding:0;font-family:Inter,"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
 body{padding-top:60px}
 a{color:inherit;text-decoration:none}
 .container{max-width:1180px;margin:0 auto;padding:0 20px}
 .header{position:fixed;top:0;left:0;right:0;height:60px;background:#fff;border-bottom:1px solid var(--border);z-index:100}
-.nav-wrap{display:flex;align-items:center;height:60px;gap:22px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;white-space:nowrap}
-.brand-mark{background:var(--red);color:#fff;width:34px;height:34px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:17px}
+.nav-wrap{display:flex;align-items:center;height:60px;gap:22px;max-width:none;padding:0 24px;width:100%}
+.brand{display:flex;align-items:center;font-weight:900;font-size:22px;letter-spacing:-.03em;white-space:nowrap;color:#111}
 .brand-text span{color:var(--red)}
+.brand-heart{font-size:20px;padding:0 1px}
 .menu{flex:1;display:flex;align-items:center;min-width:0}
 .menu-sm{display:none}
 .menu-main{display:flex;align-items:center;gap:2px;list-style:none;margin:0;padding:0}
 .nav-has-dropdown{position:relative}
-.nav-link{background:none;border:0;font:inherit;font-weight:800;font-size:12px;letter-spacing:.045em;text-transform:uppercase;color:var(--ink);padding:10px 9px;cursor:pointer;display:flex;align-items:center;gap:6px;border-radius:7px;white-space:nowrap}
+.nav-link{background:none;border:0;font:inherit;font-weight:800;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink);padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:6px;border-radius:7px;white-space:nowrap}
 .nav-link:hover{color:var(--red);background:#fff5f4}
 .nav-link--direct{text-decoration:none}
 .nav-link i{font-size:10px;color:var(--muted)}
