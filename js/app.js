@@ -73,11 +73,48 @@ function renderHome(root){
   hero.className='hero';
   hero.innerHTML=`
     <div class="container">
-      <h1>Every tool you need to work with PDFs</h1>
-      <p>Merge, split, compress, convert, edit and secure PDFs — right in your browser. No uploads.</p>
+      <h1>Every tool you need to work with PDFs in one place</h1>
+      <p>Every tool you need to use PDFs, at your fingertips. All are 100% FREE and easy to use! Merge, split, compress, convert, rotate, unlock and watermark PDFs with just a few clicks.</p>
       <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input id="searchInput" placeholder="Search tools..." /></div>
     </div>`;
   root.appendChild(hero);
+
+  const filters=document.createElement('div');
+  filters.className='tool-filters container';
+  const tags=[
+    {key:'all',label:'All',cats:null},
+    {key:'organize',label:'Organize PDF',cats:['Merge & Split','Organize']},
+    {key:'optimize',label:'Optimize PDF',cats:['Compress']},
+    {key:'convert',label:'Convert PDF',cats:['Convert from PDF','Convert to PDF']},
+    {key:'edit',label:'Edit PDF',cats:['Edit']},
+    {key:'security',label:'PDF Security',cats:['Security']}
+  ];
+  tags.forEach((t,i)=>{
+    const b=document.createElement('button');
+    b.className='tool-tag'+(i===0?' active':'');
+    b.textContent=t.label;
+    b.dataset.cats=t.cats?t.cats.join('|'):'';
+    b.addEventListener('click',()=>{
+      filters.querySelectorAll('.tool-tag').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      const cats=b.dataset.cats?b.dataset.cats.split('|'):null;
+      sec.querySelectorAll('.card').forEach(c=>{
+        const ok=!cats||cats.includes(c.dataset.cat);
+        c.dataset.filtered=ok?'1':'0';
+        c.style.display=(ok&&c.dataset.matched!=='0')?'':'none';
+      });
+      sec.querySelectorAll('.cat-title').forEach(h=>{
+        const grid=h.nextElementSibling;
+        if(!grid)return;
+        const any=[...grid.querySelectorAll('.card')].some(c=>c.dataset.filtered==='1'&&c.dataset.matched!=='0');
+        h.style.display=any?'':'none';
+        grid.style.display=any?'':'none';
+      });
+    });
+    filters.appendChild(b);
+  });
+  root.appendChild(filters);
+
   const sec=document.createElement('section');
   sec.className='section container';
   // group by category
@@ -95,7 +132,16 @@ function renderHome(root){
     const q=input.value.toLowerCase();
     sec.querySelectorAll('.card').forEach(c=>{
       const name=c.dataset.name.toLowerCase();
-      c.style.display=name.includes(q)?'':'none';
+      c.dataset.matched=name.includes(q)?'1':'0';
+      const filtered=c.dataset.filtered!=='0';
+      c.style.display=(c.dataset.matched==='1'&&filtered)?'':'none';
+    });
+    sec.querySelectorAll('.cat-title').forEach(h=>{
+      const grid=h.nextElementSibling;
+      if(!grid)return;
+      const any=[...grid.querySelectorAll('.card')].some(c=>c.style.display!=='none');
+      h.style.display=any?'':'none';
+      grid.style.display=any?'':'none';
     });
   });
 }
@@ -104,6 +150,7 @@ function makeCard(t){
   const card=document.createElement('div');
   card.className='card';
   card.dataset.name=t.name;
+  card.dataset.cat=t.cat;
   card.innerHTML=`<div class="icon"><i class="fa-solid ${t.icon}"></i></div><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.desc)}</p>`;
   card.addEventListener('click',()=>{location.hash='#/tool/'+t.id;});
   return card;
