@@ -1243,6 +1243,24 @@ function renderAuth(root,mode){
   });
 }
 
+/* ---------- INFO PAGES ---------- */
+const INFO = {
+  privacy:{title:'Privacy policy',icon:'fa-shield-halved',body:'Online Converter processes every file locally in your browser. Files are never uploaded to our servers, stored, or shared. We do not require an account to use the tools.'},
+  terms:{title:'Terms & conditions',icon:'fa-file-contract',body:'Online Converter is provided free of charge for personal and commercial use. The service is offered “as is” without warranty. You are responsible for the files you process and for keeping backups.'},
+  contact:{title:'Contact us',icon:'fa-envelope',body:'Questions, feedback or business enquiries? Email us at hello@filofa.com or visit filofa.com. We usually reply within one business day.'},
+  faq:{title:'Frequently asked questions',icon:'fa-circle-question',body:'Are my files uploaded? No — all processing happens in your browser. Is it free? Yes, all tools are free. Do I need an account? No. Which formats are supported? PDF, DOCX, XLSX, PPTX, JPG, PNG and HTML.'},
+  features:{title:'Features',icon:'fa-star',body:'Merge, split, compress, convert, edit, sign, protect and organize PDFs. Convert between PDF and Word, Excel, PowerPoint, JPG, HTML and PDF/A. Everything runs locally in your browser.'},
+  pricing:{title:'Pricing',icon:'fa-tag',body:'Online Converter is 100% free. There are no subscriptions, hidden fees or file limits. Advanced server-side workflows are available through Filofa Technology on request.'}
+};
+function renderInfo(root,key){
+  const info=INFO[key]||INFO.about;
+  root.innerHTML='';
+  const sec=document.createElement('section');
+  sec.className='about container';
+  sec.innerHTML=`<div class="tool-header"><div class="icon"><i class="fa-solid ${info.icon}"></i></div><div><h1>${info.title}</h1><p>Online Converter</p></div></div><p style="max-width:760px">${info.body}</p><div class="actions"><a class="btn btn-primary" href="#/tools"><i class="fa-solid fa-grid-2"></i> Explore all tools</a><a class="btn btn-ghost" href="#/">Back to home</a></div>`;
+  root.appendChild(sec);
+}
+
 /* ---------- router ---------- */
 function route(){
   const hash=location.hash||'#/'; const app=document.getElementById('app');
@@ -1252,6 +1270,7 @@ function route(){
   else if(hash==='#/about') renderAbout(app);
   else if(hash==='#/login') renderAuth(app,'login');
   else if(hash==='#/register') renderAuth(app,'register');
+  else if(INFO[hash.replace('#/','')]) renderInfo(app,hash.replace('#/',''));
   else renderHome(app);
   window.scrollTo(0,0);
 }
