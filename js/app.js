@@ -35,6 +35,7 @@ const TOOLS = [
   {id:'compare',name:'Compare PDF',desc:'Show differences between two PDFs.',icon:'fa-code-compare',cat:'Organize PDF',impl:true},
   {id:'remove-pages',name:'Remove pages',desc:'Delete selected pages from a PDF.',icon:'fa-file-circle-minus',cat:'Organize PDF',impl:true},
   {id:'summarize',name:'PDF Summarize',desc:'Get a quick summary of a PDF document.',icon:'fa-wand-magic-sparkles',cat:'Organize PDF',impl:true},
+  {id:'translate',name:'Translate PDF',desc:'Translate PDF text into another language.',icon:'fa-language',cat:'Organize PDF',impl:true},
   {id:'ocr',name:'OCR PDF',desc:'Make scanned PDFs searchable with OCR.',icon:'fa-scan',cat:'Convert from PDF',impl:true},
   {id:'pdf-to-markdown',name:'PDF to Markdown',desc:'Convert PDF text to clean Markdown.',icon:'fa-file-code',cat:'Convert from PDF',impl:true},
   {id:'redact',name:'Redact PDF',desc:'Permanently hide sensitive content in PDFs.',icon:'fa-eye-slash',cat:'Edit PDF',impl:true},
@@ -91,7 +92,7 @@ const LIB_URLS={
   PptxGenJS:'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
   mammoth:'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js',
   html2pdf:'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
-  Tesseract:'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
+  Tesseract:'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
 };
 const libPromises={};
 function ensureLib(name){
@@ -2181,6 +2182,122 @@ INITERS.ocr = function(panel){
       }
       offerDownload(panel,new Blob([await out.save()],{type:'application/pdf'}),'ocr.pdf');
       setStatus(panel,'OCR complete — PDF is now searchable.','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+/* ---------- TRANSLATE PDF ---------- */
+INITERS.translate = function(panel){
+  let files=[], raw='';
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();extract();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML=`<div class="field"><label>From</label><select id="trFrom">
+      <option value="auto">Auto detect</option><option value="en">English</option><option value="bn">Bengali</option>
+      <option value="hi">Hindi</option><option value="es">Spanish</option><option value="fr">French</option>
+      <option value="de">German</option><option value="ar">Arabic</option><option value="ru">Russian</option>
+    </select></div>
+    <div class="field"><label>To</label><select id="trTo">
+      <option value="bn">Bengali</option><option value="en">English</option><option value="hi">Hindi</option>
+      <option value="es">Spanish</option><option value="fr">French</option><option value="de">German</option>
+      <option value="ar">Arabic</option><option value="ru">Russian</option>
+    </select></div>`;
+  panel.insertBefore(opts,panel.querySelector('.status'));
+
+  const prev=document.createElement('div'); prev.className='translate-preview'; prev.hidden=true;
+  prev.innerHTML='<div class="field"><label>Extracted text</label><textarea id="trText" rows="7" readonly></textarea></div>';
+  panel.insertBefore(prev,panel.querySelector('.status'));
+
+  async function extract(){
+    try{
+      const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await files[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise;
+      const parts=[];
+      for(let n=1;n<=pdf.numPages;n++){
+        const tc=await (await pdf.getPage(n)).getTextContent();
+        parts.push(tc.items.map(i=>i.str).join(' ').replace(/\s+/g,' ').trim());
+      }
+      raw=parts.filter(Boolean).join('\n\n');
+      prev.hidden=!raw;
+      prev.querySelector('#trText').value=raw;
+      setStatus(panel,raw?'Text extracted. Choose a language and translate.':'No readable text found. OCR first if this is a scan.','success');
+    }catch(e){ setStatus(panel,e.message,'error'); }
+  }
+
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-language"></i> Translate PDF';
+  btn.addEventListener('click',async()=>{
+    if(!raw){setStatus(panel,'Upload a PDF with readable text first.','error');return;}
+    const from=panel.querySelector('#trFrom').value;
+    const to=panel.querySelector('#trTo').value;
+    if(from===to){setStatus(panel,'Choose two different languages.','error');return;}
+    try{
+      showProgress(panel,true);
+      setStatus(panel,'Translating…','success');
+      const chunks=[]; let cur='';
+      for(const sentence of raw.split(/(?<=[.!?])\s+|\n+/)){
+        const piece=sentence.trim(); if(!piece) continue;
+        if((cur+' '+piece).length>450 && cur){ chunks.push(cur); cur=piece; }
+        else cur=(cur?cur+' ':'')+piece;
+      }
+      if(cur) chunks.push(cur);
+      const translated=[];
+      for(const [i,chunk] of chunks.entries()){
+        const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(chunk)+'&langpair='+encodeURIComponent((from==='auto'?'en|':from+'|')+to);
+        const r=await fetch(url);
+        if(!r.ok) throw new Error('Translation service unavailable ('+r.status+')');
+        const j=await r.json();
+        translated.push((j.responseData&&j.responseData.translatedText)||chunk);
+        setProgress(panel,(i+1)/(chunks.length+1)*90);
+      }
+      const result=translated.join(' ').replace(/\s+/g,' ').trim();
+
+      const {PDFDocument}=PDFLib;
+      const doc=await PDFDocument.create();
+      const sc=1.5, PW=595, PH=842;
+      const cv=document.createElement('canvas');
+      cv.width=PW*sc; cv.height=PH*sc;
+      const ctx=cv.getContext('2d');
+      const fontFamily='"Noto Sans Bengali","Noto Sans Devanagari","Noto Sans Arabic",Arial,sans-serif';
+      const wrap=(text,maxW)=>{
+        const out=[]; let line='';
+        for(const word of text.split(/\s+/)){
+          const test=line?line+' '+word:word;
+          if(ctx.measureText(test).width>maxW && line){ out.push(line); line=word; }
+          else line=test;
+        }
+        if(line) out.push(line);
+        return out;
+      };
+      const lines=[];
+      for(const part of result.split(/(?<=[.!?])\s+/)) lines.push(...wrap(part.trim(),(PW-90)*sc));
+      let page=doc.addPage([PW,PH]);
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
+      ctx.fillStyle='#111'; ctx.font=(22*sc)+'px '+fontFamily; ctx.textBaseline='top';
+      let y=64*sc;
+      for(const line of lines){
+        if(y>PH*sc-70*sc){
+          const jpg=await doc.embedJpg(cv.toDataURL('image/jpeg',0.85));
+          page.drawImage(jpg,{x:0,y:0,width:PW,height:PH});
+          page=doc.addPage([PW,PH]);
+          ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
+          ctx.fillStyle='#111'; ctx.font=(22*sc)+'px '+fontFamily;
+          y=64*sc;
+        }
+        ctx.fillText(line,45*sc,y);
+        y+=32*sc;
+      }
+      const jpg=await doc.embedJpg(cv.toDataURL('image/jpeg',0.85));
+      page.drawImage(jpg,{x:0,y:0,width:PW,height:PH});
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'translated.pdf');
+      setProgress(panel,100);
+      setStatus(panel,'Translated '+chunks.length+' chunk(s) to '+to.toUpperCase()+'.','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });

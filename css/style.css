@@ -226,6 +226,8 @@ body.is-dragging-card *{cursor:grabbing !important}
 .form-fields{margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding:16px;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
 .form-fields .field input{padding:9px 10px;border:1px solid var(--border);border-radius:7px;font-size:14px}
 .form-fields .field input[type=checkbox]{width:20px;height:20px}
+.translate-preview{margin-top:16px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;padding:14px}
+.translate-preview textarea{width:100%;resize:vertical;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--muted);background:#f9fafb}
 @media (max-width:520px){
   .pdf-editor__bar button{padding:6px 9px;font-size:11px}
   .pdf-editor__nav span{min-width:70px;font-size:12px}
