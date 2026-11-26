@@ -1693,43 +1693,149 @@ INITERS.edit = function(panel){
 
 /* ---------- CROP PDF ---------- */
 INITERS.crop = function(panel){
-  let files=[];
+  let files=[], pdfDoc=null, pageNum=1, total=0, vp=null, scale=1, box=null;
   const list=document.createElement('div'); list.className='file-list';
-  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();loadDoc();}});
   panel.insertBefore(list,panel.querySelector('.status'));
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
-  const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML=`
-    <div class="field"><label>Left</label><input id="cropL" type="number" value="0" /></div>
-    <div class="field"><label>Right</label><input id="cropR" type="number" value="0" /></div>
-    <div class="field"><label>Top</label><input id="cropT" type="number" value="0" /></div>
-    <div class="field"><label>Bottom</label><input id="cropB" type="number" value="0" /></div>`;
-  panel.insertBefore(opts,panel.querySelector('.status'));
+
+  const ed=document.createElement('div'); ed.className='pdf-editor'; ed.hidden=true;
+  ed.innerHTML=`
+    <div class="pdf-editor__bar">
+      <div class="pdf-editor__nav">
+        <button type="button" data-a="p" title="Previous page"><i class="fa-solid fa-chevron-left"></i></button>
+        <span id="cpPage">Page 1</span>
+        <button type="button" data-a="n" title="Next page"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+      <div class="pdf-editor__tools">
+        <label><input id="cpAll" type="checkbox" checked /> Apply to all pages</label>
+        <button type="button" data-a="r"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+      </div>
+    </div>
+    <div class="pdf-editor__stage" id="cpStage">
+      <canvas id="cpCanvas"></canvas>
+      <div class="crop-layer" id="cpLayer"><div class="crop-box" id="cpBox"></div></div>
+    </div>
+    <p class="pdf-editor__tip">Drag the box to move · Drag the white handles to resize</p>`;
+  panel.insertBefore(ed,panel.querySelector('.status'));
+
+  const stage=ed.querySelector('#cpStage'), canvas=ed.querySelector('#cpCanvas');
+  const layer=ed.querySelector('#cpLayer'), cropBox=ed.querySelector('#cpBox');
+  const handles=['nw','n','ne','e','se','s','sw','w'];
+  handles.forEach(h=>{
+    const d=document.createElement('div');
+    d.className='crop-handle crop-handle--'+h; d.dataset.h=h;
+    cropBox.appendChild(d);
+  });
+
+  const paint=()=>{
+    if(!box) return;
+    cropBox.style.left=box.x+'px'; cropBox.style.top=box.y+'px';
+    cropBox.style.width=box.w+'px'; cropBox.style.height=box.h+'px';
+  };
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+
+  async function renderPage(){
+    if(!pdfDoc) return;
+    const page=await pdfDoc.getPage(pageNum);
+    const base=page.getViewport({scale:1});
+    scale=Math.min(1.6,Math.max(0.55,780/base.width));
+    vp=page.getViewport({scale});
+    canvas.width=vp.width; canvas.height=vp.height;
+    canvas.style.width=vp.width+'px'; canvas.style.height=vp.height+'px';
+    stage.style.width=vp.width+'px'; stage.style.height=vp.height+'px';
+    await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+    ed.querySelector('#cpPage').textContent='Page '+pageNum+' / '+total;
+    if(!box || box.page!==pageNum) box={page:pageNum,x:vp.width*0.1,y:vp.height*0.1,w:vp.width*0.8,h:vp.height*0.8};
+    paint();
+  }
+
+  async function loadDoc(){
+    try{
+      pdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(await files[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise;
+      total=pdfDoc.numPages; pageNum=1; box=null; ed.hidden=false;
+      await renderPage();
+      setStatus(panel,'Drag the crop box to select the area.','success');
+    }catch(e){ setStatus(panel,e.message,'error'); }
+  }
+
+  let drag=null;
+  const pos=e=>{
+    const r=stage.getBoundingClientRect();
+    return {x:e.clientX-r.left+stage.scrollLeft, y:e.clientY-r.top+stage.scrollTop};
+  };
+  const onDown=e=>{
+    const h=e.target.dataset && e.target.dataset.h;
+    drag={mode:h||'move', start:pos(e), orig:{...box}};
+    e.preventDefault(); e.stopPropagation();
+  };
+  cropBox.addEventListener('pointerdown',onDown);
+  layer.addEventListener('pointerdown',e=>{
+    if(e.target===layer){
+      const p=pos(e);
+      box={page:pageNum,x:clamp(p.x,0,vp.width-20),y:clamp(p.y,0,vp.height-20),w:20,h:20};
+      drag={mode:'se',start:p,orig:{...box}};
+      paint();
+    }
+  });
+  window.addEventListener('pointermove',e=>{
+    if(!drag||!box) return;
+    const p=pos(e), dx=p.x-drag.start.x, dy=p.y-drag.start.y;
+    const o=drag.orig, m=drag.mode;
+    if(m==='move'){
+      box.x=clamp(o.x+dx,0,vp.width-o.w);
+      box.y=clamp(o.y+dy,0,vp.height-o.h);
+    } else {
+      let x=o.x,y=o.y,w=o.w,h=o.h;
+      if(m.includes('w')){ x=clamp(o.x+dx,0,o.x+o.w-20); w=o.x+o.w-x; }
+      if(m.includes('e')){ w=clamp(o.w+dx,20,vp.width-o.x); }
+      if(m.includes('n')){ y=clamp(o.y+dy,0,o.y+o.h-20); h=o.y+o.h-y; }
+      if(m.includes('s')){ h=clamp(o.h+dy,20,vp.height-o.y); }
+      box.x=x; box.y=y; box.w=w; box.h=h;
+    }
+    paint();
+  });
+  window.addEventListener('pointerup',()=>{ drag=null; });
+
+  ed.querySelectorAll('[data-a]').forEach(b=>b.addEventListener('click',()=>{
+    const a=b.dataset.a;
+    if(a==='p' && pageNum>1){ pageNum--; box=null; renderPage(); }
+    else if(a==='n' && pageNum<total){ pageNum++; box=null; renderPage(); }
+    else if(a==='r'){ box={page:pageNum,x:vp.width*0.1,y:vp.height*0.1,w:vp.width*0.8,h:vp.height*0.8}; paint(); }
+  }));
+
+  rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-crop"></i> Crop PDF';
-  btn.addEventListener('click', async()=>{
+  btn.addEventListener('click',async()=>{
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    if(!box){setStatus(panel,'Select a crop area first.','error');return;}
     try{
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
-      const bytes=new Uint8Array(await files[0].arrayBuffer());
-      const doc=await PDFDocument.load(bytes);
-      const L=parseInt(panel.querySelector('#cropL').value)||0;
-      const R=parseInt(panel.querySelector('#cropR').value)||0;
-      const T=parseInt(panel.querySelector('#cropT').value)||0;
-      const B=parseInt(panel.querySelector('#cropB').value)||0;
-      const total=doc.getPageCount();
-      for(let i=0;i<total;i++){
-        const page=doc.getPage(i);
-        const {width,height}=page.getSize();
-        try{ page.setCropBox(L,B,width-L-R,height-B-T); }
-        catch(e){ page.setSize(width-L-R,height-T-B); }
-        setProgress(panel,(i+1)/total*100);
+      const doc=await PDFDocument.load(new Uint8Array(await files[0].arrayBuffer()));
+      const all=ed.querySelector('#cpAll').checked;
+      const targets=all?[...Array(doc.getPageCount()).keys()]:[pageNum-1];
+      for(const [i,idx] of targets.entries()){
+        if(idx<0||idx>=doc.getPageCount()) continue;
+        const page=doc.getPage(idx);
+        const bx=Number(box.x)||parseFloat(cropBox.style.left)||0;
+        const by=Number(box.y)||parseFloat(cropBox.style.top)||0;
+        const bw=Number(box.w)||parseFloat(cropBox.style.width)||page.getWidth();
+        const bh=Number(box.h)||parseFloat(cropBox.style.height)||page.getHeight();
+        const s=(Number(vp&&vp.width)||canvas.width||1)/Number(page.getWidth()||1);
+        const safe=n=>Number.isFinite(n)?n:0;
+        page.setCropBox(
+          safe(bx/s),
+          safe(page.getHeight()-(by+bh)/s),
+          safe(Math.max(1,bw/s)),
+          safe(Math.max(1,bh/s))
+        );
+        setProgress(panel,(i+1)/targets.length*100);
       }
-      const out=await doc.save();
-      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'cropped.pdf');
-      setStatus(panel,'Cropped!','success');
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'cropped.pdf');
+      setStatus(panel,'Cropped '+targets.length+' page(s)!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
