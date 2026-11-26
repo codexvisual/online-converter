@@ -1058,10 +1058,20 @@ function initImagesToPdf(panel){
   let files=[];
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'image/*',multiple:true,onFiles:f=>{files=files.concat(f);rerender();}});
-  // fix remove
   panel.insertBefore(list,panel.querySelector('.status'));
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML=`
+    <div class="field"><label>Page size</label>
+      <select id="imgSize"><option value="auto">Original image size</option><option value="a4">A4 (210×297mm)</option><option value="letter">Letter (8.5×11in)</option><option value="legal">Legal (8.5×14in)</option></select></div>
+    <div class="field"><label>Orientation</label>
+      <select id="imgOri"><option value="auto">Auto (from image)</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div>
+    <div class="field"><label>Fit</label>
+      <select id="imgFit"><option value="contain">Fit (keep aspect)</option><option value="cover">Fill (crop)</option><option value="stretch">Stretch</option></select></div>
+    <div class="field"><label>Margin</label>
+      <select id="imgMargin"><option value="0">None</option><option value="10">Small (10mm)</option><option value="20">Medium (20mm)</option><option value="40">Large (40mm)</option></select></div>`;
+  panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
   btn.addEventListener('click', async()=>{
@@ -1070,19 +1080,43 @@ function initImagesToPdf(panel){
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
       const doc=await PDFDocument.create();
+      const size=panel.querySelector('#imgSize').value;
+      const ori=panel.querySelector('#imgOri').value;
+      const fit=panel.querySelector('#imgFit').value;
+      const marginMm=parseInt(panel.querySelector('#imgMargin').value)||0;
+      const mm=72/25.4;
+      const pageSize={a4:[595.28,841.89],letter:[612,792],legal:[612,1008]};
       for(let i=0;i<files.length;i++){
         const f=files[i];
         const bytes=new Uint8Array(await f.arrayBuffer());
         let img;
         if(f.type==='image/png') img=await doc.embedPng(bytes);
         else img=await doc.embedJpg(bytes);
-        const page=doc.addPage([img.width,img.height]);
-        page.drawImage(img,{x:0,y:0,width:img.width,height:img.height});
+        let pw=img.width, ph=img.height;
+        if(size!=='auto'){
+          let [pw0,ph0]=pageSize[size];
+          if(ori==='landscape' || (ori==='auto' && img.width>img.height)) [pw0,ph0]=[ph0,pw0];
+          const m=marginMm*mm;
+          const aw=pw0-2*m, ah=ph0-2*m;
+          let dw,dh,dx,dy;
+          if(fit==='stretch'){ dw=aw; dh=ah; dx=m; dy=m; }
+          else {
+            const r=img.width/img.height, ar=aw/ah;
+            if((fit==='contain'&&r>ar)||(fit==='cover'&&r<ar)){ dw=ah*r; dh=ah; }
+            else { dw=aw; dh=aw/r; }
+            dx=m+(aw-dw)/2; dy=m+(ah-dh)/2;
+          }
+          const page=doc.addPage([pw0,ph0]);
+          page.drawImage(img,{x:dx,y:dy,width:dw,height:dh});
+        } else {
+          const page=doc.addPage([pw,ph]);
+          page.drawImage(img,{x:0,y:0,width:pw,height:ph});
+        }
         setProgress(panel,(i+1)/files.length*100);
       }
       const out=await doc.save();
       offerDownload(panel, new Blob([out],{type:'application/pdf'}),'images.pdf');
-      setStatus(panel,'Converted!','success');
+      setStatus(panel,'Converted '+files.length+' image(s)!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
@@ -1090,6 +1124,9 @@ function initImagesToPdf(panel){
   panel.insertBefore(actions,panel.querySelector('.status'));
 }
 INITERS['jpg-to-pdf']=initImagesToPdf;
+INITERS['scan-to-pdf']=initImagesToPdf;
+
+
 INITERS['scan-to-pdf']=initImagesToPdf;
 
 /* ---------- PDF TO WORD ---------- */
