@@ -95,30 +95,97 @@ async function thumbUrl(f){
 }
 function renderFileList(container,files,onChange){
   container.innerHTML='';
+  const multi=files.length>1;
+  let dragFrom=null;
+
+  const clearMarks=()=>container.querySelectorAll('.file-item').forEach(x=>x.classList.remove('dragging','drag-over'));
+
   files.forEach((f,i)=>{
     const item=document.createElement('div');
     item.className='file-item';
+    item.draggable=multi;
+    item.dataset.index=String(i);
+
+    const badge=document.createElement('div');
+    badge.className='file-badge';
+    badge.textContent=String(i+1);
+    item.appendChild(badge);
+
+    const rm=document.createElement('button');
+    rm.className='file-remove'; rm.type='button'; rm.title='Remove file';
+    rm.innerHTML='<i class="fa-solid fa-xmark"></i>';
+    rm.addEventListener('click',e=>{ e.stopPropagation(); files.splice(i,1); onChange(); });
+    item.appendChild(rm);
+
     const thumb=document.createElement('div');
     thumb.className='file-thumb';
-    thumb.innerHTML='<i class="fa-solid '+(f.type.startsWith('image/')?'fa-image':'fa-file-pdf')+'"></i>';
-    thumbUrl(f).then(u=>{ if(u) thumb.innerHTML='<img src="'+u+'" alt="" />'; });
+    const isImg=f.type.startsWith('image/');
+    thumb.innerHTML='<div class="thumb-doc"><span class="tag">'+(isImg?'IMG':'PDF')+'</span><div class="lines"><i style="width:92%"></i><i style="width:74%"></i><i style="width:86%"></i><i style="width:58%"></i></div></div>';
+    thumbUrl(f).then(u=>{ if(u && thumb.isConnected) thumb.innerHTML='<img src="'+u+'" alt="" draggable="false" />'; });
     item.appendChild(thumb);
-    const name=document.createElement('span'); name.className='name'; name.textContent=f.name;
+
+    const info=document.createElement('div');
+    info.className='file-info';
+    const name=document.createElement('span'); name.className='name'; name.textContent=f.name; name.title=f.name;
     const size=document.createElement('span'); size.className='size'; size.textContent=formatBytes(f.size);
-    item.appendChild(name); item.appendChild(size);
-    if(files.length>1){
+    info.appendChild(name); info.appendChild(size); item.appendChild(info);
+
+    if(multi){
       const mv=document.createElement('div'); mv.className='file-move';
-      const up=document.createElement('button'); up.title='Move up'; up.innerHTML='<i class="fa-solid fa-chevron-up"></i>';
-      up.addEventListener('click',()=>{ if(i>0){ [files[i-1],files[i]]=[files[i],files[i-1]]; onChange(); } });
-      const down=document.createElement('button'); down.title='Move down'; down.innerHTML='<i class="fa-solid fa-chevron-down"></i>';
-      down.addEventListener('click',()=>{ if(i<files.length-1){ [files[i+1],files[i]]=[files[i],files[i+1]]; onChange(); } });
-      mv.appendChild(up); mv.appendChild(down); item.appendChild(mv);
+      const up=document.createElement('button'); up.type='button'; up.title='Move left'; up.innerHTML='<i class="fa-solid fa-arrow-left"></i>';
+      up.disabled=i===0;
+      up.addEventListener('click',e=>{ e.stopPropagation(); if(i>0){ [files[i-1],files[i]]=[files[i],files[i-1]]; onChange(); } });
+      const down=document.createElement('button'); down.type='button'; down.title='Move right'; down.innerHTML='<i class="fa-solid fa-arrow-right"></i>';
+      down.disabled=i===files.length-1;
+      down.addEventListener('click',e=>{ e.stopPropagation(); if(i<files.length-1){ [files[i+1],files[i]]=[files[i],files[i+1]]; onChange(); } });
+      const grip=document.createElement('span'); grip.className='grip'; grip.title='Drag to reorder';
+      grip.innerHTML='<i class="fa-solid fa-grip-vertical"></i>';
+      mv.appendChild(up); mv.appendChild(down); mv.appendChild(grip);
+      item.appendChild(mv);
+
+      item.addEventListener('dragstart',e=>{
+        dragFrom=i;
+        item.classList.add('dragging');
+        if(e.dataTransfer){ e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',String(i)); }catch(_){} }
+      });
+      item.addEventListener('dragend',()=>{ dragFrom=null; clearMarks(); });
+      item.addEventListener('dragover',e=>{
+        if(dragFrom===null) return;
+        e.preventDefault();
+        if(e.dataTransfer) e.dataTransfer.dropEffect='move';
+        if(dragFrom===i) return;
+        container.querySelectorAll('.file-item').forEach(x=>x.classList.remove('drag-over'));
+        item.classList.add('drag-over');
+      });
+      item.addEventListener('dragleave',e=>{ if(!item.contains(e.relatedTarget)) item.classList.remove('drag-over'); });
+      item.addEventListener('drop',e=>{
+        if(dragFrom===null) return;
+        e.preventDefault();
+        const from=dragFrom, to=i;
+        dragFrom=null; clearMarks();
+        if(from===to) return;
+        const moved=files.splice(from,1)[0];
+        files.splice(to,0,moved);
+        onChange();
+      });
     }
-    const rm=document.createElement('button'); rm.title='Remove'; rm.innerHTML='<i class="fa-solid fa-xmark"></i>';
-    rm.addEventListener('click',()=>{ files.splice(i,1); onChange(); });
-    item.appendChild(rm);
     container.appendChild(item);
   });
+
+  if(multi){
+    const hint=document.createElement('div');
+    hint.className='file-hint';
+    hint.innerHTML='<i class="fa-solid fa-up-down-left-right"></i> Drag a card with your mouse to change the order';
+    container.appendChild(hint);
+  }
+
+  const panel=container.closest('.panel');
+  const dz=panel && panel.querySelector('.dropzone');
+  if(dz){
+    dz.classList.toggle('compact', files.length>0);
+    const h3=dz.querySelector('h3');
+    if(h3) h3.textContent = files.length ? 'Add more files' : 'Select or drop files';
+  }
 }
 
 /* Router */
