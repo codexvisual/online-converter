@@ -596,17 +596,87 @@ INITERS.compress = function(panel){
 /* ---------- ROTATE ---------- */
 INITERS.rotate = function(panel){
   let files=[];
+  let rotation=0;
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,rerender); }
-  rerender();
-  const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML=`
-    <div class="field"><label>Angle</label>
-      <select id="rotAngle"><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select>
+
+  const studio=document.createElement('div');
+  studio.className='rotate-studio';
+  studio.hidden=true;
+  studio.innerHTML=`
+    <div class="rotate-studio__head"><span>Rotate preview</span><strong id="rotAngleVal">0°</strong></div>
+    <div class="rotate-body">
+      <div class="rotate-stage" id="rotStage" title="Click to turn 90°">
+        <div class="rotate-page" id="rotPage"><img id="rotImg" alt="Page preview" /></div>
+      </div>
+      <div class="rotate-dial" id="rotDial" title="Drag to rotate">
+        <div class="rotate-dial__ring"></div>
+        <div class="rotate-dial__arm" id="rotArm"><div class="rotate-dial__handle"><i class="fa-solid fa-arrows-rotate"></i></div></div>
+        <div class="rotate-dial__center"><i class="fa-solid fa-rotate"></i></div>
+      </div>
     </div>
-    <div class="field"><label>Pages (blank = all)</label><input id="rotPages" placeholder="1,3,5-7" /></div>`;
+    <div class="rotate-quick">
+      <button type="button" data-rot="-90"><i class="fa-solid fa-rotate-left"></i> 90° left</button>
+      <button type="button" data-rot="90"><i class="fa-solid fa-rotate-right"></i> 90° right</button>
+      <button type="button" data-rot="180">180°</button>
+      <button type="button" data-rot="reset"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+    </div>
+    <p class="rotate-tip">Drag the round handle to rotate freely · Click the page for a quick 90° turn</p>`;
+  panel.insertBefore(studio,panel.querySelector('.status'));
+
+  const rotPage=studio.querySelector('#rotPage');
+  const rotImg=studio.querySelector('#rotImg');
+  const rotArm=studio.querySelector('#rotArm');
+  const dial=studio.querySelector('#rotDial');
+  const angleVal=studio.querySelector('#rotAngleVal');
+  const applyRotation=()=>{
+    rotPage.style.transform='rotate('+rotation+'deg)';
+    rotArm.style.transform='rotate('+rotation+'deg)';
+    angleVal.textContent=Math.round(rotation)+'°';
+  };
+
+  let dialDrag=false;
+  const setFromPointer=e=>{
+    const r=dial.getBoundingClientRect();
+    const cx=r.left+r.width/2, cy=r.top+r.height/2;
+    let deg=Math.atan2(e.clientY-cy, e.clientX-cx)*180/Math.PI+90;
+    deg=(deg+360)%360;
+    if(e.shiftKey) deg=Math.round(deg/15)*15;
+    rotation=Math.round(deg);
+    applyRotation();
+  };
+  dial.addEventListener('pointerdown',e=>{
+    dialDrag=true;
+    try{ dial.setPointerCapture(e.pointerId); }catch(_){}
+    setFromPointer(e);
+  });
+  dial.addEventListener('pointermove',e=>{ if(dialDrag) setFromPointer(e); });
+  dial.addEventListener('pointerup',()=>{ dialDrag=false; });
+  dial.addEventListener('pointercancel',()=>{ dialDrag=false; });
+
+  studio.querySelector('#rotStage').addEventListener('click',()=>{ rotation=(rotation+90)%360; applyRotation(); });
+  studio.querySelectorAll('.rotate-quick button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const v=b.dataset.rot;
+      if(v==='reset') rotation=0;
+      else rotation=(rotation+parseInt(v,10)+360)%360;
+      applyRotation();
+    });
+  });
+
+  function rerender(){
+    renderFileList(list,files,rerender);
+    studio.hidden=files.length===0;
+    if(files.length){
+      rotation=0; applyRotation();
+      thumbUrl(files[0]).then(u=>{ if(u && rotImg.isConnected) rotImg.src=u; });
+    }
+  }
+  rerender();
+
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML=`<div class="field"><label>Pages (blank = all)</label><input id="rotPages" placeholder="1,3,5-7" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-rotate"></i> Rotate PDF';
@@ -618,15 +688,14 @@ INITERS.rotate = function(panel){
       const bytes=await files[0].arrayBuffer();
       const doc=await PDFDocument.load(bytes);
       const total=doc.getPageCount();
-      const angle=parseInt(panel.querySelector('#rotAngle').value);
       const pagesInput=panel.querySelector('#rotPages').value.trim();
       let targets;
       if(!pagesInput) targets=[...Array(total).keys()];
       else targets=parseRanges(pagesInput,total).flat().map(n=>n-1);
-      targets.forEach(i=>{ const p=doc.getPage(i); p.setRotation(degrees((p.getRotation().angle+angle)%360)); });
+      targets.forEach(i=>{ const p=doc.getPage(i); p.setRotation(degrees((p.getRotation().angle+rotation)%360)); });
       const out=await doc.save();
       offerDownload(panel, new Blob([out],{type:'application/pdf'}),'rotated.pdf');
-      setStatus(panel,'Rotated successfully!','success');
+      setStatus(panel,'Rotated '+Math.round(rotation)+'° successfully!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
