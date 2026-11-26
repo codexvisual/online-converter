@@ -45,7 +45,7 @@ const TOOLS = [
   {id:'remove-pages',name:'Remove pages',desc:'Delete selected pages from a PDF.',icon:'fa-file-circle-minus',cat:'Organize PDF',impl:true},
   {id:'summarize',name:'PDF Summarize',desc:'Get a quick summary of a PDF document.',icon:'fa-wand-magic-sparkles',cat:'Organize PDF',impl:true},
   {id:'translate',name:'Translate PDF',desc:'Translate PDF text into another language.',icon:'fa-language',cat:'Organize PDF',impl:true},
-  {id:'ocr',name:'OCR PDF',desc:'Make scanned PDFs searchable with OCR.',icon:'fa-scan',cat:'Convert from PDF',impl:true},
+  {id:'ocr',name:'OCR PDF',desc:'Make scanned PDFs searchable with OCR.',icon:'fa-file-circle-check',cat:'Convert from PDF',impl:true},
   {id:'pdf-to-markdown',name:'PDF to Markdown',desc:'Convert PDF text to clean Markdown.',icon:'fa-file-code',cat:'Convert from PDF',impl:true},
   {id:'redact',name:'Redact PDF',desc:'Permanently hide sensitive content in PDFs.',icon:'fa-eye-slash',cat:'Edit PDF',impl:true},
   {id:'pdf-forms',name:'PDF Forms',desc:'Fill and save editable PDF form fields.',icon:'fa-square-check',cat:'Edit PDF',impl:true},
@@ -2779,7 +2779,7 @@ INITERS.ocr = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
-  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-scan"></i> Run OCR';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-circle-check"></i> Run OCR';
   btn.addEventListener('click',async()=>{
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
     try{
