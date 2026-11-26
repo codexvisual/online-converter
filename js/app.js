@@ -970,7 +970,16 @@ INITERS.protect = async function(panel){
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>Password</label><input id="protPwd" type="password" /></div>`;
+    <div class="field"><label>User password (to open)</label><input id="protPwd" type="password" /></div>
+    <div class="field"><label>Owner password (optional)</label><input id="protOwner" type="password" placeholder="defaults to user password" /></div>
+    <div class="field"><label>Permissions</label>
+      <div class="perm-grid">
+        <label><input type="checkbox" id="permPrint" checked /> Print</label>
+        <label><input type="checkbox" id="permCopy" checked /> Copy text</label>
+        <label><input type="checkbox" id="permModify" /> Modify</label>
+        <label><input type="checkbox" id="permAnnotate" checked /> Annotate</label>
+      </div>
+    </div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-lock"></i> Protect PDF';
@@ -983,9 +992,16 @@ INITERS.protect = async function(panel){
       const {configure,lock}=await import('https://unpkg.com/pdf-lib-encrypt@1.0.3/src/index.js');
       configure(window.PDFLib);
       const bytes=new Uint8Array(await files[0].arrayBuffer());
-      const encrypted=await lock(bytes,pwd);
+      const owner=panel.querySelector('#protOwner').value.trim()||pwd;
+      const permissions={
+        printing:panel.querySelector('#permPrint').checked,
+        copying:panel.querySelector('#permCopy').checked,
+        modifying:panel.querySelector('#permModify').checked,
+        annotating:panel.querySelector('#permAnnotate').checked
+      };
+      const encrypted=await lock(bytes,pwd,{ownerPassword:owner,permissions});
       offerDownload(panel, new Blob([encrypted],{type:'application/pdf'}),'protected.pdf');
-      setStatus(panel,'Protected!','success');
+      setStatus(panel,'Protected with permissions!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
@@ -1035,39 +1051,127 @@ INITERS.sign = function(panel){
   panel.insertBefore(list,panel.querySelector('.status'));
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
+
+  const studio=document.createElement('div'); studio.className='sig-studio';
+  studio.innerHTML=`
+    <div class="sig-modes">
+      <button type="button" data-mode="draw" class="active"><i class="fa-solid fa-pen"></i> Draw</button>
+      <button type="button" data-mode="type"><i class="fa-solid fa-keyboard"></i> Type</button>
+      <button type="button" data-mode="image"><i class="fa-solid fa-image"></i> Upload</button>
+    </div>
+    <div class="sig-canvas-wrap" id="sigDraw">
+      <canvas id="sigCanvas" width="420" height="160"></canvas>
+      <div class="sig-canvas-tools">
+        <label>Color <input id="sigColor" type="color" value="#1a3a6b" /></label>
+        <label>Thickness <input id="sigThick" type="range" min="1" max="8" value="2.5" step="0.5" /></label>
+        <button type="button" id="sigClear"><i class="fa-solid fa-eraser"></i> Clear</button>
+      </div>
+    </div>
+    <div class="sig-type" id="sigType" hidden>
+      <input id="sigText" placeholder="Your name" />
+      <select id="sigFont"><option value="cursive">Cursive</option><option value="serif">Serif</option><option value="sans">Sans</option></select>
+    </div>
+    <div class="sig-image" id="sigImage" hidden>
+      <input id="sigFile" type="file" accept="image/*" />
+    </div>
+    <div class="sig-preview"><span>Preview:</span><img id="sigPreview" alt="Signature preview" /></div>`;
+  panel.insertBefore(studio,panel.querySelector('.status'));
+
+  const canvas=studio.querySelector('#sigCanvas');
+  const ctx=canvas.getContext('2d');
+  ctx.strokeStyle='#1a3a6b'; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round';
+  let drawing=false, mode='draw', hasDrawn=false;
+  const startDraw=e=>{drawing=true;const r=canvas.getBoundingClientRect();ctx.beginPath();ctx.moveTo(e.clientX-r.left,e.clientY-r.top);};
+  const moveDraw=e=>{if(!drawing)return;const r=canvas.getBoundingClientRect();ctx.lineTo(e.clientX-r.left,e.clientY-r.top);ctx.stroke();hasDrawn=true;updatePreview();};
+  const endDraw=()=>{drawing=false;};
+  canvas.addEventListener('pointerdown',startDraw);
+  canvas.addEventListener('pointermove',moveDraw);
+  canvas.addEventListener('pointerup',endDraw);
+  canvas.addEventListener('pointerleave',endDraw);
+  studio.querySelector('#sigColor').addEventListener('input',e=>{ctx.strokeStyle=e.target.value;});
+  studio.querySelector('#sigThick').addEventListener('input',e=>{ctx.lineWidth=parseFloat(e.target.value);});
+  studio.querySelector('#sigClear').addEventListener('click',()=>{ctx.clearRect(0,0,canvas.width,canvas.height);hasDrawn=false;updatePreview();});
+  studio.querySelectorAll('.sig-modes button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      studio.querySelectorAll('.sig-modes button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); mode=b.dataset.mode;
+      studio.querySelector('#sigDraw').hidden=mode!=='draw';
+      studio.querySelector('#sigType').hidden=mode!=='type';
+      studio.querySelector('#sigImage').hidden=mode!=='image';
+      updatePreview();
+    });
+  });
+  studio.querySelector('#sigText').addEventListener('input',updatePreview);
+  studio.querySelector('#sigFont').addEventListener('change',updatePreview);
+  studio.querySelector('#sigFile').addEventListener('change',updatePreview);
+
+  function updatePreview(){
+    const img=studio.querySelector('#sigPreview');
+    if(mode==='draw'){
+      if(!hasDrawn){ img.style.display='none'; return; }
+      img.src=canvas.toDataURL('image/png'); img.style.display='block';
+    } else if(mode==='type'){
+      const t=studio.querySelector('#sigText').value.trim();
+      if(!t){ img.style.display='none'; return; }
+      const c=document.createElement('canvas'); c.width=420;c.height=160; const x=c.getContext('2d');
+      const font=studio.querySelector('#sigFont').value;
+      const family=font==='cursive'?'cursive':font==='serif'?'Georgia,serif':'Arial,sans-serif';
+      x.font='48px '+family; x.fillStyle='#1a3a6b'; x.textBaseline='middle'; x.fillText(t,12,80);
+      img.src=c.toDataURL('image/png'); img.style.display='block';
+    } else {
+      const f=studio.querySelector('#sigFile').files[0];
+      if(!f){ img.style.display='none'; return; }
+      img.src=URL.createObjectURL(f); img.style.display='block';
+    }
+  }
+  updatePreview();
+
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>Signature text</label><input id="signText" placeholder="Your name" /></div>
-    <div class="field"><label>Or signature image</label><input id="signImg" type="file" accept="image/*" /></div>`;
+    <div class="field"><label>Position</label>
+      <select id="signPos"><option value="bottom-right">Bottom right</option><option value="bottom-center">Bottom center</option><option value="bottom-left">Bottom left</option><option value="top-right">Top right</option><option value="top-left">Top left</option></select></div>
+    <div class="field"><label>Size</label><select id="signSize"><option value="0.18">Small</option><option value="0.25" selected>Medium</option><option value="0.35">Large</option></select></div>
+    <div class="field"><label>Page</label><select id="signPage"><option value="last">Last page</option><option value="first">First page</option><option value="all">All pages</option></select></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
+
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-signature"></i> Sign PDF';
   btn.addEventListener('click', async()=>{
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    const img=studio.querySelector('#sigPreview');
+    if(img.style.display==='none'){setStatus(panel,'Create a signature first.','error');return;}
     try{
       showProgress(panel,true);
-      const {PDFDocument,StandardFonts,rgb}=PDFLib;
+      const {PDFDocument}=PDFLib;
       const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
-      const last=doc.getPage(doc.getPageCount()-1);
-      const {width,height}=last.getSize();
-      const text=panel.querySelector('#signText').value.trim();
-      const imgFile=panel.querySelector('#signImg').files[0];
-      if(imgFile){
-        const ib=new Uint8Array(await imgFile.arrayBuffer());
-        let img;
-        if(imgFile.type==='image/png') img=await doc.embedPng(ib); else img=await doc.embedJpg(ib);
-        const scale=0.25;
-        const dims=img.scale(scale);
-        last.drawImage(img,{x:width-dims.width-24,y:40,width:dims.width,height:dims.height});
+      const scale=parseFloat(panel.querySelector('#signSize').value)||0.25;
+      const pos=panel.querySelector('#signPos').value;
+      const pageSel=panel.querySelector('#signPage').value;
+      const total=doc.getPageCount();
+      const targets=pageSel==='first'?[0]:pageSel==='all'?[...Array(total).keys()]:[total-1];
+      const src=img.src;
+      const ib=await (await fetch(src)).arrayBuffer();
+      let sig;
+      if(src.startsWith('data:image/png')) sig=await doc.embedPng(new Uint8Array(ib));
+      else if(src.endsWith('.jpg')||src.endsWith('.jpeg')) sig=await doc.embedJpg(new Uint8Array(ib));
+      else sig=await doc.embedPng(new Uint8Array(ib));
+      const dims=sig.scale(scale);
+      for(const i of targets){
+        const page=doc.getPage(i);
+        const {width,height}=page.getSize();
+        const margin=24;
+        let x,y;
+        if(pos.includes('right')) x=width-dims.width-margin;
+        else if(pos.includes('left')) x=margin;
+        else x=(width-dims.width)/2;
+        if(pos.startsWith('top')) y=height-dims.height-margin;
+        else y=margin;
+        page.drawImage(sig,{x,y,width:dims.width,height:dims.height});
+        setProgress(panel,(targets.indexOf(i)+1)/targets.length*100);
       }
-      if(text){
-        const font=await doc.embedFont(StandardFonts.HelveticaOblique);
-        last.drawText(text,{x:24,y:40,size:18,font,color:rgb(0,0,0.6)});
-      }
-      const out=await doc.save();
-      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'signed.pdf');
-      setStatus(panel,'Signed!','success');
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'signed.pdf');
+      setStatus(panel,'Signed '+targets.length+' page(s)!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
@@ -2060,50 +2164,87 @@ INITERS.repair = function(panel){
 /* ---------- COMPARE PDF ---------- */
 INITERS.compare = function(panel){
   let f1=[],f2=[];
-  const d1=document.createElement('div'); d1.className='dropzone'; d1.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i><h3>First PDF</h3>';
-  const i1=document.createElement('input'); i1.type='file'; i1.accept='application/pdf'; i1.style.display='none';
-  d1.appendChild(i1);
-  d1.addEventListener('click',()=>i1.click());
-  i1.addEventListener('change',e=>{f1=[e.target.files[0]]; i1.value='';});
-  const d2=document.createElement('div'); d2.className='dropzone'; d2.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i><h3>Second PDF</h3>';
-  const i2=document.createElement('input'); i2.type='file'; i2.accept='application/pdf'; i2.style.display='none';
-  d2.appendChild(i2);
-  d2.addEventListener('click',()=>i2.click());
-  i2.addEventListener('change',e=>{f2=[e.target.files[0]]; i2.value='';});
-  panel.insertBefore(d1,panel.querySelector('.status'));
-  panel.insertBefore(d2,panel.querySelector('.status'));
+  const wrap=document.createElement('div'); wrap.className='compare-wrap';
+  wrap.innerHTML=`
+    <div class="compare-drop">
+      <div class="dropzone" id="cd1"><i class="fa-solid fa-cloud-arrow-up"></i><h3>First PDF</h3><p>Click or drop</p><input type="file" accept="application/pdf" hidden></div>
+      <div class="dropzone" id="cd2"><i class="fa-solid fa-cloud-arrow-up"></i><h3>Second PDF</h3><p>Click or drop</p><input type="file" accept="application/pdf" hidden></div>
+    </div>
+    <div class="options">
+      <div class="field"><label>View</label><select id="cmpView"><option value="side">Side by side</option><option value="diff">Text diff</option></select></div>
+      <div class="field"><label>Max pages</label><input id="cmpMax" type="number" value="6" min="1" max="20" /></div>
+    </div>`;
+  panel.insertBefore(wrap,panel.querySelector('.status'));
+  const d1=wrap.querySelector('#cd1'), d2=wrap.querySelector('#cd2');
+  const i1=d1.querySelector('input'), i2=d2.querySelector('input');
+  d1.addEventListener('click',()=>i1.click()); d2.addEventListener('click',()=>i2.click());
+  i1.addEventListener('change',e=>{ if(e.target.files[0]){ f1=[e.target.files[0]]; d1.querySelector('h3').textContent=e.target.files[0].name; }});
+  i2.addEventListener('change',e=>{ if(e.target.files[0]){ f2=[e.target.files[0]]; d2.querySelector('h3').textContent=e.target.files[0].name; }});
+
+  const resultBox=document.createElement('div'); resultBox.className='compare-result';
+  panel.insertBefore(resultBox,panel.querySelector('.status'));
+
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-code-compare"></i> Compare';
   btn.addEventListener('click', async()=>{
     if(!f1.length||!f2.length){setStatus(panel,'Select both PDFs first.','error');return;}
     try{
       showProgress(panel,true);
-      async function extract(f){
-        const bytes=new Uint8Array(await f.arrayBuffer());
-        const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+      const [p1,p2]=await Promise.all([pdfjsLib.getDocument({data:new Uint8Array(await f1[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise,
+                                       pdfjsLib.getDocument({data:new Uint8Array(await f2[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise]);
+      const max=parseInt(panel.querySelector('#cmpMax').value)||6;
+      const n=Math.min(max,Math.max(p1.numPages,p2.numPages));
+      const view=panel.querySelector('#cmpView').value;
+      resultBox.innerHTML='';
+      if(view==='side'){
+        const grid=document.createElement('div'); grid.className='compare-grid';
+        for(let i=1;i<=n;i++){
+          const row=document.createElement('div'); row.className='compare-row';
+          const lab=document.createElement('div'); lab.className='compare-row__label'; lab.textContent='Page '+i; row.appendChild(lab);
+          const cell1=document.createElement('div'); cell1.className='compare-cell';
+          const cell2=document.createElement('div'); cell2.className='compare-cell';
+          for(const [cell,pdf,pageNo] of [[cell1,p1,i],[cell2,p2,i]]){
+            if(pageNo<=pdf.numPages){
+              const pg=await pdf.getPage(pageNo);
+              const vp=pg.getViewport({scale:0.65});
+              const c=document.createElement('canvas'); c.width=vp.width;c.height=vp.height;
+              await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+              cell.appendChild(c);
+            } else {
+              cell.innerHTML='<span class="muted">No page</span>';
+            }
+          }
+          row.appendChild(cell1); row.appendChild(cell2);
+          grid.appendChild(row);
+        }
+        resultBox.appendChild(grid);
+      }
+      // text diff
+      async function extract(pdf){
         let t='';
         for(let i=1;i<=pdf.numPages;i++){
-          const page=await pdf.getPage(i);
-          const tc=await page.getTextContent();
+          const tc=await (await pdf.getPage(i)).getTextContent();
           t += tc.items.map(it=>it.str).join(' ')+'\n';
         }
         return t;
       }
-      const a=await extract(f1[0]);
-      const b=await extract(f2[0]);
+      const a=await extract(p1), b=await extract(p2);
       const la=a.split(/\n/), lb=b.split(/\n/);
-      let diff='';
-      const n=Math.max(la.length,lb.length);
-      for(let i=0;i<n;i++){
+      let diff='', changes=0;
+      const nn=Math.max(la.length,lb.length);
+      for(let i=0;i<nn;i++){
         if(la[i]===lb[i]) diff+='  '+(la[i]||'')+'\n';
-        else { if(la[i]) diff+='- '+(la[i]||'')+'\n'; if(lb[i]) diff+='+ '+(lb[i]||'')+'\n'; }
+        else { if(la[i]){ diff+='- '+(la[i]||'')+'\n'; changes++; } if(lb[i]){ diff+='+ '+(lb[i]||'')+'\n'; changes++; } }
       }
-      const pre=document.createElement('pre');
-      pre.style.maxHeight='300px'; pre.style.overflow='auto'; pre.style.background='#f3f4f6'; pre.style.padding='12px'; pre.style.borderRadius='8px';
+      const pre=document.createElement('pre'); pre.className='compare-diff';
       pre.textContent=diff;
-      panel.insertBefore(pre,panel.querySelector('.status'));
+      const summary=document.createElement('div'); summary.className='compare-summary';
+      summary.textContent='Compared '+n+' page(s). '+changes+' changed line(s).';
+      resultBox.appendChild(summary);
+      if(view==='diff') resultBox.appendChild(pre);
+      else { const toggle=document.createElement('button'); toggle.className='btn btn-ghost'; toggle.textContent='Show text diff'; toggle.addEventListener('click',()=>{toggle.remove();resultBox.appendChild(pre);}); resultBox.appendChild(toggle); }
       offerDownload(panel, new Blob([diff],{type:'text/plain'}),'compare.txt');
-      setStatus(panel,'Compared!','success');
+      setStatus(panel,'Compared! '+changes+' changed line(s).','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
