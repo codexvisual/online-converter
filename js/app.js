@@ -96,15 +96,12 @@ async function thumbUrl(f){
 function renderFileList(container,files,onChange){
   container.innerHTML='';
   const multi=files.length>1;
-  let dragFrom=null;
-
-  const clearMarks=()=>container.querySelectorAll('.file-item').forEach(x=>x.classList.remove('dragging','drag-over'));
 
   files.forEach((f,i)=>{
     const item=document.createElement('div');
     item.className='file-item';
-    item.draggable=multi;
     item.dataset.index=String(i);
+    item._file=f;
 
     const badge=document.createElement('div');
     badge.className='file-badge';
@@ -114,14 +111,21 @@ function renderFileList(container,files,onChange){
     const rm=document.createElement('button');
     rm.className='file-remove'; rm.type='button'; rm.title='Remove file';
     rm.innerHTML='<i class="fa-solid fa-xmark"></i>';
-    rm.addEventListener('click',e=>{ e.stopPropagation(); files.splice(i,1); onChange(); });
+    rm.addEventListener('click',e=>{
+      e.stopPropagation();
+      const idx=files.indexOf(f);
+      if(idx>-1) files.splice(idx,1);
+      onChange();
+    });
     item.appendChild(rm);
 
     const thumb=document.createElement('div');
     thumb.className='file-thumb';
+    thumb.title='Click to preview';
     const isImg=f.type.startsWith('image/');
     thumb.innerHTML='<div class="thumb-doc"><span class="tag">'+(isImg?'IMG':'PDF')+'</span><div class="lines"><i style="width:92%"></i><i style="width:74%"></i><i style="width:86%"></i><i style="width:58%"></i></div></div>';
     thumbUrl(f).then(u=>{ if(u && thumb.isConnected) thumb.innerHTML='<img src="'+u+'" alt="" draggable="false" />'; });
+    thumb.addEventListener('click',e=>{ e.stopPropagation(); openFilePreview(f); });
     item.appendChild(thumb);
 
     const info=document.createElement('div');
@@ -132,42 +136,24 @@ function renderFileList(container,files,onChange){
 
     if(multi){
       const mv=document.createElement('div'); mv.className='file-move';
-      const up=document.createElement('button'); up.type='button'; up.title='Move left'; up.innerHTML='<i class="fa-solid fa-arrow-left"></i>';
-      up.disabled=i===0;
-      up.addEventListener('click',e=>{ e.stopPropagation(); if(i>0){ [files[i-1],files[i]]=[files[i],files[i-1]]; onChange(); } });
-      const down=document.createElement('button'); down.type='button'; down.title='Move right'; down.innerHTML='<i class="fa-solid fa-arrow-right"></i>';
-      down.disabled=i===files.length-1;
-      down.addEventListener('click',e=>{ e.stopPropagation(); if(i<files.length-1){ [files[i+1],files[i]]=[files[i],files[i+1]]; onChange(); } });
+      const up=document.createElement('button'); up.type='button'; up.title='Move earlier'; up.innerHTML='<i class="fa-solid fa-chevron-up"></i>';
+      up.disabled=files.indexOf(f)===0;
+      up.addEventListener('click',e=>{
+        e.stopPropagation();
+        const idx=files.indexOf(f);
+        if(idx>0){ [files[idx-1],files[idx]]=[files[idx],files[idx-1]]; onChange(); }
+      });
+      const down=document.createElement('button'); down.type='button'; down.title='Move later'; down.innerHTML='<i class="fa-solid fa-chevron-down"></i>';
+      down.disabled=files.indexOf(f)===files.length-1;
+      down.addEventListener('click',e=>{
+        e.stopPropagation();
+        const idx=files.indexOf(f);
+        if(idx>-1 && idx<files.length-1){ [files[idx+1],files[idx]]=[files[idx],files[idx+1]]; onChange(); }
+      });
       const grip=document.createElement('span'); grip.className='grip'; grip.title='Drag to reorder';
       grip.innerHTML='<i class="fa-solid fa-grip-vertical"></i>';
       mv.appendChild(up); mv.appendChild(down); mv.appendChild(grip);
       item.appendChild(mv);
-
-      item.addEventListener('dragstart',e=>{
-        dragFrom=i;
-        item.classList.add('dragging');
-        if(e.dataTransfer){ e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',String(i)); }catch(_){} }
-      });
-      item.addEventListener('dragend',()=>{ dragFrom=null; clearMarks(); });
-      item.addEventListener('dragover',e=>{
-        if(dragFrom===null) return;
-        e.preventDefault();
-        if(e.dataTransfer) e.dataTransfer.dropEffect='move';
-        if(dragFrom===i) return;
-        container.querySelectorAll('.file-item').forEach(x=>x.classList.remove('drag-over'));
-        item.classList.add('drag-over');
-      });
-      item.addEventListener('dragleave',e=>{ if(!item.contains(e.relatedTarget)) item.classList.remove('drag-over'); });
-      item.addEventListener('drop',e=>{
-        if(dragFrom===null) return;
-        e.preventDefault();
-        const from=dragFrom, to=i;
-        dragFrom=null; clearMarks();
-        if(from===to) return;
-        const moved=files.splice(from,1)[0];
-        files.splice(to,0,moved);
-        onChange();
-      });
     }
     container.appendChild(item);
   });
@@ -175,8 +161,9 @@ function renderFileList(container,files,onChange){
   if(multi){
     const hint=document.createElement('div');
     hint.className='file-hint';
-    hint.innerHTML='<i class="fa-solid fa-up-down-left-right"></i> Drag a card with your mouse to change the order';
+    hint.innerHTML='<i class="fa-solid fa-up-down-left-right"></i> Drag a card up / down with your mouse to change the order';
     container.appendChild(hint);
+    enableCardDrag(container,files,onChange);
   }
 
   const panel=container.closest('.panel');
@@ -185,6 +172,131 @@ function renderFileList(container,files,onChange){
     dz.classList.toggle('compact', files.length>0);
     const h3=dz.querySelector('h3');
     if(h3) h3.textContent = files.length ? 'Add more files' : 'Select or drop files';
+  }
+}
+
+/* pointer based drag sorting (mouse + touch) */
+function enableCardDrag(container,files,onChange){
+  let dragEl=null, ghost=null, startX=0, startY=0, dragging=false, raf=null, lastX=0, lastY=0;
+
+  const beginDrag=()=>{
+    dragging=true;
+    const r=dragEl.getBoundingClientRect();
+    ghost=dragEl.cloneNode(true);
+    ghost.className='file-item file-ghost';
+    ghost.style.width=r.width+'px';
+    ghost.style.height=r.height+'px';
+    ghost.style.left=r.left+'px';
+    ghost.style.top=r.top+'px';
+    document.body.appendChild(ghost);
+    dragEl.classList.add('dragging');
+    document.body.classList.add('is-dragging-card');
+  };
+
+  const onMove=e=>{
+    if(!dragEl) return;
+    if(!dragging){
+      if(Math.abs(e.clientX-startX)<6 && Math.abs(e.clientY-startY)<6) return;
+      beginDrag();
+    }
+    e.preventDefault();
+    lastX=e.clientX; lastY=e.clientY;
+    if(raf) return;
+    raf=requestAnimationFrame(()=>{
+      raf=null;
+      if(!ghost) return;
+      ghost.style.transform='translate('+(lastX-startX)+'px,'+(lastY-startY)+'px) rotate(1.5deg)';
+      const under=document.elementFromPoint(lastX,lastY);
+      const target=under && under.closest ? under.closest('.file-item') : null;
+      if(target && target!==dragEl && target!==ghost && container.contains(target)){
+        const r=target.getBoundingClientRect();
+        if(lastX > r.left + r.width/2) target.after(dragEl); else target.before(dragEl);
+      }
+    });
+  };
+
+  const onUp=()=>{
+    window.removeEventListener('pointermove',onMove);
+    window.removeEventListener('pointerup',onUp);
+    window.removeEventListener('pointercancel',onUp);
+    if(raf){ cancelAnimationFrame(raf); raf=null; }
+    if(ghost){ ghost.remove(); ghost=null; }
+    document.body.classList.remove('is-dragging-card');
+    if(dragEl) dragEl.classList.remove('dragging');
+    if(dragging){
+      const order=[...container.querySelectorAll('.file-item')].map(el=>el._file).filter(Boolean);
+      files.length=0; files.push(...order);
+      dragEl=null; dragging=false;
+      onChange();
+      return;
+    }
+    dragEl=null; dragging=false;
+  };
+
+  container.addEventListener('pointerdown',e=>{
+    const item=e.target.closest('.file-item');
+    if(!item || !container.contains(item)) return;
+    if(e.target.closest('button')) return;
+    if(e.pointerType!=='mouse' && !e.target.closest('.grip')) return;
+    dragEl=item; startX=e.clientX; startY=e.clientY; dragging=false;
+    window.addEventListener('pointermove',onMove,{passive:false});
+    window.addEventListener('pointerup',onUp);
+    window.addEventListener('pointercancel',onUp);
+  });
+}
+
+/* large preview modal */
+let previewOverlay=null;
+function ensurePreviewOverlay(){
+  if(previewOverlay) return previewOverlay;
+  const ov=document.createElement('div');
+  ov.className='preview-overlay';
+  ov.innerHTML='<div class="preview-modal" role="dialog" aria-modal="true"><div class="preview-modal__head"><span class="preview-modal__name"></span><button type="button" class="preview-modal__close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div><div class="preview-modal__body"></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',e=>{
+    if(e.target===ov || e.target.closest('.preview-modal__close')) ov.classList.remove('show');
+  });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') ov.classList.remove('show'); });
+  previewOverlay=ov;
+  return ov;
+}
+async function openFilePreview(f){
+  const ov=ensurePreviewOverlay();
+  const body=ov.querySelector('.preview-modal__body');
+  ov.querySelector('.preview-modal__name').textContent=f.name;
+  body.innerHTML='<div class="preview-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading preview…</div>';
+  ov.classList.add('show');
+  try{
+    if(f.type.startsWith('image/')){
+      const img=document.createElement('img');
+      img.alt=f.name;
+      img.src=URL.createObjectURL(f);
+      await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; });
+      body.innerHTML='';
+      body.appendChild(img);
+      return;
+    }
+    const bytes=new Uint8Array(await f.arrayBuffer());
+    const pdf=await pdfjsLib.getDocument({data:bytes,useWorkerFetch:false,isEvalSupported:false}).promise;
+    const page=await pdf.getPage(1);
+    const targetW=Math.min(720, window.innerWidth-120);
+    const targetH=Math.max(240, window.innerHeight*0.68);
+    const base=page.getViewport({scale:1});
+    const scale=Math.max(0.3, Math.min(targetW/base.width, targetH/base.height, 2));
+    const vp=page.getViewport({scale});
+    const canvas=document.createElement('canvas');
+    canvas.width=vp.width; canvas.height=vp.height;
+    await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+    body.innerHTML='';
+    body.appendChild(canvas);
+    if(pdf.numPages>1){
+      const more=document.createElement('div');
+      more.className='preview-more';
+      more.textContent='Page 1 of '+pdf.numPages;
+      body.appendChild(more);
+    }
+  }catch(e){
+    body.innerHTML='<div class="preview-loading">Preview is not available for this file.</div>';
   }
 }
 
@@ -243,7 +355,7 @@ function renderHome(root){
   CATEGORIES.forEach(cat=>{
     const tools=TOOLS.filter(t=>t.cat===cat);
     if(!tools.length)return;
-    const title=document.createElement('div'); title.className='cat-title'; title.textContent=cat; sec.appendChild(title);
+    const title=document.createElement('div'); title.className='cat-title'; const titleSpan=document.createElement('span'); titleSpan.textContent=cat; title.appendChild(titleSpan); sec.appendChild(title);
     const grid=document.createElement('div'); grid.className='grid';
     tools.forEach(t=>grid.appendChild(makeCard(t)));
     sec.appendChild(grid);
@@ -286,7 +398,7 @@ function renderTools(root){
   CATEGORIES.forEach(cat=>{
     const tools=TOOLS.filter(t=>t.cat===cat);
     if(!tools.length)return;
-    const title=document.createElement('div'); title.className='cat-title'; title.textContent=cat; sec.appendChild(title);
+    const title=document.createElement('div'); title.className='cat-title'; const titleSpan=document.createElement('span'); titleSpan.textContent=cat; title.appendChild(titleSpan); sec.appendChild(title);
     const grid=document.createElement('div'); grid.className='grid';
     tools.forEach(t=>grid.appendChild(makeCard(t)));
     sec.appendChild(grid);
