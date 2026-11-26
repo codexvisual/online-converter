@@ -1,4 +1,8 @@
 /* Online Converter app */
+if(window.pdfjsLib && pdfjsLib.GlobalWorkerOptions){
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
 
 const CATEGORIES = ['Organize PDF','Optimize PDF','Convert to PDF','Convert from PDF','Edit PDF','PDF Security'];
 
@@ -34,7 +38,14 @@ const TOOLS = [
 function $(sel,root=document){return root.querySelector(sel);}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function formatBytes(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(1)+' MB';}
-function downloadBlob(blob,name){ if(window.saveAs) saveAs(blob,name); else { const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u);} }
+function downloadBlob(blob,name){ if(window.saveAs) saveAs(blob,name); else { const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),5000);} }
+window.addEventListener('unhandledrejection',e=>{
+  const panel=document.querySelector('#app .panel');
+  const st=panel && panel.querySelector('.status');
+  const msg=(e.reason && e.reason.message) ? e.reason.message : String(e.reason||'Unexpected error');
+  if(st){ st.textContent='Something went wrong: '+msg; st.className='status show error'; }
+  else console.error('Unhandled error:',msg);
+});
 function offerDownload(panel,blob,name){
   if(!panel){ downloadBlob(blob,name); return; }
   let box=panel.querySelector('.download-box');
@@ -68,6 +79,25 @@ function createDropzone(panel,{accept,multiple,onFiles}){
   return dz;
 }
 
+const LIB_URLS={
+  docx:'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.iife.js',
+  XLSX:'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  PptxGenJS:'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
+  mammoth:'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js',
+  html2pdf:'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
+};
+const libPromises={};
+function ensureLib(name){
+  if(window[name]) return Promise.resolve();
+  if(!libPromises[name]) libPromises[name]=new Promise((resolve,reject)=>{
+    const sc=document.createElement('script');
+    sc.src=LIB_URLS[name]; sc.async=true;
+    sc.onload=()=>resolve();
+    sc.onerror=()=>{ delete libPromises[name]; reject(new Error('Could not load '+name+' library. Check your connection.')); };
+    document.head.appendChild(sc);
+  });
+  return libPromises[name];
+}
 const thumbCache=new WeakMap();
 async function thumbUrl(f){
   if(thumbCache.has(f)) return thumbCache.get(f);
@@ -504,7 +534,7 @@ INITERS.split = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
       const total=doc.getPageCount();
       const mode=panel.querySelector('#splitMode').value;
@@ -579,7 +609,7 @@ INITERS.compress = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const orig=bytes.byteLength;
       const doc=await PDFDocument.load(bytes);
       const out=await doc.save({useObjectStreams:true});
@@ -685,7 +715,7 @@ INITERS.rotate = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument,degrees}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
       const total=doc.getPageCount();
       const pagesInput=panel.querySelector('#rotPages').value.trim();
@@ -711,7 +741,7 @@ INITERS.organize = function(panel){
     files=[f[0]]; order=[];
     try{
       const {PDFDocument}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
       order=doc.getPageIndices().slice();
       renderOrder();
@@ -740,7 +770,7 @@ INITERS.organize = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
       const nd=await PDFDocument.create();
       const pages=await nd.copyPages(doc,order);
@@ -779,7 +809,7 @@ INITERS['page-numbers'] = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument,StandardFonts,rgb}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
       const font=await doc.embedFont(StandardFonts.Helvetica);
       const start=parseInt(panel.querySelector('#pnStart').value)||1;
@@ -831,7 +861,7 @@ INITERS.watermark = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument,StandardFonts,rgb,degrees}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
       const font=await doc.embedFont(StandardFonts.HelveticaBold);
       const text=panel.querySelector('#wmText').value||'WATERMARK';
@@ -943,14 +973,14 @@ INITERS.sign = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument,StandardFonts,rgb}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
       const last=doc.getPage(doc.getPageCount()-1);
       const {width,height}=last.getSize();
       const text=panel.querySelector('#signText').value.trim();
       const imgFile=panel.querySelector('#signImg').files[0];
       if(imgFile){
-        const ib=await imgFile.arrayBuffer();
+        const ib=new Uint8Array(await imgFile.arrayBuffer());
         let img;
         if(imgFile.type==='image/png') img=await doc.embedPng(ib); else img=await doc.embedJpg(ib);
         const scale=0.25;
@@ -989,7 +1019,7 @@ INITERS['pdf-to-jpg'] = function(panel){
     try{
       showProgress(panel,true);
       const scale=parseFloat(panel.querySelector('#jpgScale').value)||2;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
       const zip=new JSZip();
       let singleBlob=null;
@@ -1034,7 +1064,7 @@ function initImagesToPdf(panel){
       const doc=await PDFDocument.create();
       for(let i=0;i<files.length;i++){
         const f=files[i];
-        const bytes=await f.arrayBuffer();
+        const bytes=new Uint8Array(await f.arrayBuffer());
         let img;
         if(f.type==='image/png') img=await doc.embedPng(bytes);
         else img=await doc.embedJpg(bytes);
@@ -1072,7 +1102,7 @@ INITERS['pdf-to-word'] = function(panel){
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
     try{
       showProgress(panel,true);
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
       let fullText='';
       const paragraphs=[];
@@ -1085,6 +1115,7 @@ INITERS['pdf-to-word'] = function(panel){
         setProgress(panel,i/pdf.numPages*100);
       }
       const fmt=panel.querySelector('#wFmt').value;
+      if(fmt==='docx') await ensureLib('docx');
       if(fmt==='txt'){
         offerDownload(panel, new Blob([fullText],{type:'text/plain'}),'converted.txt');
       } else if(window.docx){
@@ -1117,8 +1148,9 @@ INITERS['pdf-to-excel'] = function(panel){
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
     try{
       showProgress(panel,true);
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+      await ensureLib('XLSX');
       const rows=[];
       for(let i=1;i<=pdf.numPages;i++){
         const page=await pdf.getPage(i);
@@ -1154,8 +1186,9 @@ INITERS['pdf-to-ppt'] = function(panel){
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
     try{
       showProgress(panel,true);
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+      await ensureLib('PptxGenJS');
       const pptx=new PptxGenJS();
       for(let i=1;i<=pdf.numPages;i++){
         const page=await pdf.getPage(i);
@@ -1193,7 +1226,7 @@ INITERS['pdf-to-pdfa'] = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
       doc.setTitle(doc.getTitle()||'Document');
       doc.setProducer('Online Converter');
@@ -1221,7 +1254,7 @@ INITERS['pdf-to-html'] = function(panel){
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
     try{
       showProgress(panel,true);
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
       let body='';
       for(let i=1;i<=pdf.numPages;i++){
@@ -1254,7 +1287,8 @@ INITERS['word-to-pdf'] = function(panel){
     if(!files.length){setStatus(panel,'Select a DOCX first.','error');return;}
     try{
       showProgress(panel,true);
-      const ab=await files[0].arrayBuffer();
+      const ab=new Uint8Array(await files[0].arrayBuffer());
+      await ensureLib('mammoth'); await ensureLib('html2pdf');
       const result=await mammoth.convertToHtml({arrayBuffer:ab});
       const opt={margin:10, filename:'converted.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'pt',format:'a4',orientation:'portrait'}};
       await html2pdf().set(opt).from(result.value).save();
@@ -1280,11 +1314,13 @@ INITERS['excel-to-pdf'] = function(panel){
     if(!files.length){setStatus(panel,'Select an XLSX first.','error');return;}
     try{
       showProgress(panel,true);
-      const ab=await files[0].arrayBuffer();
+      const ab=new Uint8Array(await files[0].arrayBuffer());
+      await ensureLib('XLSX'); await ensureLib('html2pdf');
       const wb=XLSX.read(ab,{type:'array'});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const html=XLSX.utils.sheet_to_html(ws);
       const opt={margin:10, filename:'converted.pdf', html2canvas:{scale:2}, jsPDF:{unit:'pt',format:'a4',orientation:'landscape'}};
+      await ensureLib('html2pdf');
       await html2pdf().set(opt).from(html).save();
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
@@ -1373,6 +1409,7 @@ INITERS['html-to-pdf'] = function(panel){
     try{
       showProgress(panel,true);
       const opt={margin:10, filename:'converted.pdf', html2canvas:{scale:2}, jsPDF:{unit:'pt',format:'a4'}};
+      await ensureLib('html2pdf');
       await html2pdf().set(opt).from(html).save();
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
@@ -1668,7 +1705,7 @@ INITERS.crop = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
       const L=parseInt(panel.querySelector('#cropL').value)||0;
       const R=parseInt(panel.querySelector('#cropR').value)||0;
@@ -1707,7 +1744,7 @@ INITERS.repair = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes,{ignoreEncryption:true});
       const out=await doc.save({useObjectStreams:true});
       offerDownload(panel, new Blob([out],{type:'application/pdf'}),'repaired.pdf');
@@ -1741,7 +1778,7 @@ INITERS.compare = function(panel){
     try{
       showProgress(panel,true);
       async function extract(f){
-        const bytes=await f.arrayBuffer();
+        const bytes=new Uint8Array(await f.arrayBuffer());
         const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
         let t='';
         for(let i=1;i<=pdf.numPages;i++){
@@ -1833,11 +1870,15 @@ function route(){
   else renderHome(app);
   window.scrollTo(0,0);
 }
+function onReady(fn){
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',fn);
+  else fn();
+}
 window.addEventListener('hashchange',route);
-window.addEventListener('DOMContentLoaded',route);
+onReady(route);
 
 /* menu */
-document.addEventListener('DOMContentLoaded',()=>{
+onReady(()=>{
   const menuBtn=document.getElementById('menuBtn');
   const menu=document.querySelector('.menu');
   if(menuBtn&&menu){
