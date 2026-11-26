@@ -1384,54 +1384,186 @@ INITERS['html-to-pdf'] = function(panel){
 
 /* ---------- EDIT PDF ---------- */
 INITERS.edit = function(panel){
-  let files=[];
+  let files=[], pdfDoc=null, pageNum=1, totalPages=0, items=[], selected=null, addMode=true;
   const list=document.createElement('div'); list.className='file-list';
-  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];loadDoc(files[0]);rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
   function rerender(){ renderFileList(list,files,rerender); }
+
+  const editor=document.createElement('div');
+  editor.className='pdf-editor'; editor.hidden=true;
+  editor.innerHTML=`
+    <div class="pdf-editor__bar">
+      <div class="pdf-editor__nav">
+        <button type="button" data-act="prev" title="Previous page"><i class="fa-solid fa-chevron-left"></i></button>
+        <span id="edPage">Page 1</span>
+        <button type="button" data-act="next" title="Next page"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+      <div class="pdf-editor__tools">
+        <button type="button" data-act="add" class="active"><i class="fa-solid fa-plus"></i> Add text</button>
+        <label>Size <input id="edSize" type="number" min="8" max="120" value="18" /></label>
+        <label>Color <input id="edColor" type="color" value="#111111" /></label>
+        <select id="edFont" title="Font">
+          <option value="Helvetica">Helvetica</option>
+          <option value="HelveticaBold">Helvetica Bold</option>
+          <option value="TimesRoman">Times</option>
+          <option value="Courier">Courier</option>
+        </select>
+        <button type="button" data-act="del" title="Delete selected"><i class="fa-solid fa-trash"></i></button>
+        <button type="button" data-act="clear" title="Clear all text"><i class="fa-solid fa-eraser"></i></button>
+      </div>
+    </div>
+    <div class="pdf-editor__stage" id="edStage">
+      <canvas id="edCanvas"></canvas>
+      <div class="pdf-editor__layer" id="edLayer"></div>
+    </div>
+    <p class="pdf-editor__tip">Click the page to add text · Drag to move · Double-click to edit · Delete key removes</p>`;
+  panel.insertBefore(editor,panel.querySelector('.status'));
+
+  const stage=editor.querySelector('#edStage');
+  const canvas=editor.querySelector('#edCanvas');
+  const layer=editor.querySelector('#edLayer');
+  const pageLabel=editor.querySelector('#edPage');
+  const sizeInput=editor.querySelector('#edSize');
+  const colorInput=editor.querySelector('#edColor');
+  const fontSelect=editor.querySelector('#edFont');
+  const addBtn=editor.querySelector('[data-act="add"]');
+
+  const select=item=>{
+    selected=item;
+    layer.querySelectorAll('.ed-text').forEach(el=>el.classList.toggle('selected',el._item===item));
+    if(item){
+      sizeInput.value=item.size; colorInput.value=item.color; fontSelect.value=item.font;
+    }
+  };
+
+  function renderItems(){
+    layer.innerHTML='';
+    items.filter(it=>it.page===pageNum).forEach(item=>{
+      const el=document.createElement('div');
+      el.className='ed-text'+(selected===item?' selected':'');
+      el._item=item;
+      el.style.left=item.x+'px'; el.style.top=item.y+'px';
+      el.style.fontSize=item.size+'px'; el.style.color=item.color;
+      el.style.fontFamily=item.font==='Courier'?'monospace':item.font==='TimesRoman'?'Georgia,serif':'Arial,sans-serif';
+      el.style.fontWeight=item.font==='HelveticaBold'?'700':'400';
+      el.textContent=item.text;
+      el.addEventListener('pointerdown',e=>{
+        e.stopPropagation();
+        select(item);
+        if(el.isContentEditable) return;
+        const sx=e.clientX, sy=e.clientY, ox=item.x, oy=item.y;
+        const move=ev=>{ item.x=ox+ev.clientX-sx; item.y=oy+ev.clientY-sy; el.style.left=item.x+'px'; el.style.top=item.y+'px'; };
+        const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); };
+        window.addEventListener('pointermove',move);
+        window.addEventListener('pointerup',up);
+      });
+      el.addEventListener('dblclick',e=>{
+        e.stopPropagation();
+        el.contentEditable='true'; el.focus(); select(item);
+        const range=document.createRange(); range.selectNodeContents(el);
+        const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      });
+      el.addEventListener('input',()=>{ item.text=el.textContent; });
+      el.addEventListener('blur',()=>{ el.contentEditable='false'; });
+      layer.appendChild(el);
+    });
+  }
+
+  async function renderPage(){
+    if(!pdfDoc) return;
+    const page=await pdfDoc.getPage(pageNum);
+    const base=page.getViewport({scale:1});
+    const scale=Math.min(1.7, Math.max(0.55, 780/base.width));
+    const vp=page.getViewport({scale});
+    canvas.width=vp.width; canvas.height=vp.height;
+    canvas.style.width=vp.width+'px'; canvas.style.height=vp.height+'px';
+    stage.style.width=vp.width+'px'; stage.style.height=vp.height+'px';
+    await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+    pageLabel.textContent='Page '+pageNum+' / '+totalPages;
+    renderItems();
+  }
+
+  async function loadDoc(file){
+    try{
+      setStatus(panel,'Loading PDF…','success');
+      const bytes=new Uint8Array(await file.arrayBuffer());
+      pdfDoc=await pdfjsLib.getDocument({data:bytes,useWorkerFetch:false,isEvalSupported:false}).promise;
+      totalPages=pdfDoc.numPages; pageNum=1; items=[]; selected=null;
+      editor.hidden=false;
+      await renderPage();
+      setStatus(panel,'PDF loaded. Click anywhere on the page to add text.','success');
+    }catch(e){ setStatus(panel,'Could not open PDF: '+e.message,'error'); }
+  }
+
+  stage.addEventListener('click',e=>{
+    if(!addMode || e.target.closest('.ed-text')) return;
+    const r=stage.getBoundingClientRect();
+    const item={page:pageNum,x:e.clientX-r.left+stage.scrollLeft,y:e.clientY-r.top+stage.scrollTop,
+      text:'Type here',size:parseInt(sizeInput.value)||18,color:colorInput.value,font:fontSelect.value};
+    items.push(item); select(item); renderItems();
+    const el=layer.querySelector('.ed-text:last-child');
+    if(el){ el.contentEditable='true'; el.focus(); const range=document.createRange(); range.selectNodeContents(el); const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+  });
+
+  editor.querySelectorAll('[data-act]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const act=b.dataset.act;
+      if(act==='prev'){ if(pageNum>1){ pageNum--; selected=null; renderPage(); } }
+      else if(act==='next'){ if(pageNum<totalPages){ pageNum++; selected=null; renderPage(); } }
+      else if(act==='add'){ addMode=true; addBtn.classList.add('active'); }
+      else if(act==='del'){
+        if(selected){ items=items.filter(x=>x!==selected); selected=null; renderItems(); }
+      }
+      else if(act==='clear'){ items=[]; selected=null; renderItems(); }
+    });
+  });
+  [sizeInput,colorInput,fontSelect].forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      if(!selected) return;
+      if(inp===sizeInput) selected.size=parseInt(inp.value)||18;
+      else if(inp===colorInput) selected.color=inp.value;
+      else selected.font=inp.value;
+      renderItems();
+    });
+  });
+  document.addEventListener('keydown',e=>{
+    if(editor.hidden) return;
+    if(e.key==='Delete' && selected && !e.target.isContentEditable){ items=items.filter(x=>x!==selected); selected=null; renderItems(); }
+    if(e.key==='Escape'){ select(null); }
+  });
+
   rerender();
-  const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML=`
-    <div class="field"><label>Text to add</label><input id="editText" /></div>
-    <div class="field"><label>Page (1-based, blank=all)</label><input id="editPage" /></div>
-    <div class="field"><label>X</label><input id="editX" type="number" value="50" /></div>
-    <div class="field"><label>Y</label><input id="editY" type="number" value="50" /></div>
-    <div class="field"><label>Size</label><input id="editSize" type="number" value="16" /></div>
-    <div class="field"><label>Image (optional)</label><input id="editImg" type="file" accept="image/*" /></div>`;
-  panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-pen-to-square"></i> Apply edits';
   btn.addEventListener('click', async()=>{
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    if(!items.length){setStatus(panel,'Add some text on the page first.','error');return;}
     try{
       showProgress(panel,true);
       const {PDFDocument,StandardFonts,rgb}=PDFLib;
-      const bytes=await files[0].arrayBuffer();
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
-      const text=panel.querySelector('#editText').value;
-      const size=parseInt(panel.querySelector('#editSize').value)||16;
-      const x=parseInt(panel.querySelector('#editX').value)||50;
-      const y=parseInt(panel.querySelector('#editY').value)||50;
-      const pageInput=panel.querySelector('#editPage').value.trim();
-      const imgFile=panel.querySelector('#editImg').files[0];
-      const total=doc.getPageCount();
-      const targets=pageInput?pageInput.split(',').map(n=>parseInt(n)-1):[...Array(total).keys()];
-      const font=await doc.embedFont(StandardFonts.Helvetica);
-      for(const i of targets){
-        if(i<0||i>=total) continue;
-        const page=doc.getPage(i);
-        if(text) page.drawText(text,{x,y,size,font,color:rgb(0,0,0)});
-        if(imgFile){
-          const ib=await imgFile.arrayBuffer();
-          let img;
-          if(imgFile.type==='image/png') img=await doc.embedPng(ib); else img=await doc.embedJpg(ib);
-          page.drawImage(img,{x:x+ (text?100:0),y,width:100,height:100});
-        }
-        setProgress(panel,(targets.indexOf(i)+1)/targets.length*100);
+      const fontCache={};
+      const fonts={Helvetica:StandardFonts.Helvetica,HelveticaBold:StandardFonts.HelveticaBold,TimesRoman:StandardFonts.TimesRoman,Courier:StandardFonts.Courier};
+      for(const [idx,item] of items.entries()){
+        const page=doc.getPage(Math.min(Math.max(item.page-1,0),doc.getPageCount()-1));
+        const pw=page.getWidth();
+        const cssPerPoint=Math.max(0.01, canvas.clientWidth/pw);
+        const fontSize=item.size/cssPerPoint;
+        const color=rgb(parseInt(item.color.slice(1,3),16)/255,parseInt(item.color.slice(3,5),16)/255,parseInt(item.color.slice(5,7),16)/255);
+        if(!fontCache[item.font]) fontCache[item.font]=await doc.embedFont(fonts[item.font]||StandardFonts.Helvetica);
+        const x=item.x/cssPerPoint;
+        const lines=String(item.text).split('\n');
+        lines.forEach((line,li)=>{
+          const y=page.getHeight()-(item.y+item.size*0.82+li*item.size*1.18)/cssPerPoint;
+          if(line) page.drawText(line,{x,y,size:fontSize,font:fontCache[item.font],color});
+        });
+        setProgress(panel,(idx+1)/items.length*100);
       }
       const out=await doc.save();
-      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'edited.pdf');
-      setStatus(panel,'Edited!','success');
+      offerDownload(panel,new Blob([out],{type:'application/pdf'}),'edited.pdf');
+      setStatus(panel,'Edited! '+items.length+' text item(s) added.','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
