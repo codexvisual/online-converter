@@ -33,6 +33,12 @@ const TOOLS = [
   {id:'organize',name:'Organize PDF',desc:'Sort, delete and rotate pages.',icon:'fa-layer-group',cat:'Organize PDF',impl:true},
   {id:'repair',name:'Repair PDF',desc:'Recover data from damaged PDF.',icon:'fa-wrench',cat:'Organize PDF',impl:true},
   {id:'compare',name:'Compare PDF',desc:'Show differences between two PDFs.',icon:'fa-code-compare',cat:'Organize PDF',impl:true},
+  {id:'remove-pages',name:'Remove pages',desc:'Delete selected pages from a PDF.',icon:'fa-file-circle-minus',cat:'Organize PDF',impl:true},
+  {id:'summarize',name:'PDF Summarize',desc:'Get a quick summary of a PDF document.',icon:'fa-wand-magic-sparkles',cat:'Organize PDF',impl:true},
+  {id:'ocr',name:'OCR PDF',desc:'Make scanned PDFs searchable with OCR.',icon:'fa-scan',cat:'Convert from PDF',impl:true},
+  {id:'pdf-to-markdown',name:'PDF to Markdown',desc:'Convert PDF text to clean Markdown.',icon:'fa-file-code',cat:'Convert from PDF',impl:true},
+  {id:'redact',name:'Redact PDF',desc:'Permanently hide sensitive content in PDFs.',icon:'fa-eye-slash',cat:'Edit PDF',impl:true},
+  {id:'pdf-forms',name:'PDF Forms',desc:'Fill and save editable PDF form fields.',icon:'fa-square-check',cat:'Edit PDF',impl:true},
 ];
 
 function $(sel,root=document){return root.querySelector(sel);}
@@ -84,7 +90,8 @@ const LIB_URLS={
   XLSX:'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   PptxGenJS:'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
   mammoth:'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js',
-  html2pdf:'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
+  html2pdf:'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
+  Tesseract:'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
 };
 const libPromises={};
 function ensureLib(name){
@@ -1856,6 +1863,330 @@ function renderInfo(root,key){
   sec.innerHTML=`<div class="tool-header"><div class="icon"><i class="fa-solid ${info.icon}"></i></div><div><h1>${info.title}</h1><p>Online Converter</p></div></div><p style="max-width:760px">${info.body}</p><div class="actions"><a class="btn btn-primary" href="#/tools"><i class="fa-solid fa-grid-2"></i> Explore all tools</a><a class="btn btn-ghost" href="#/">Back to home</a></div>`;
   root.appendChild(sec);
 }
+
+/* ---------- REMOVE PAGES ---------- */
+INITERS['remove-pages'] = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML='<div class="field"><label>Pages to remove (e.g. 2,4-6)</label><input id="rmPages" placeholder="1,3,5-7" /></div>';
+  panel.insertBefore(opts,panel.querySelector('.status'));
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-circle-minus"></i> Remove pages';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    const raw=panel.querySelector('#rmPages').value.trim();
+    if(!raw){setStatus(panel,'Enter page numbers to remove.','error');return;}
+    try{
+      showProgress(panel,true);
+      const {PDFDocument}=PDFLib;
+      const doc=await PDFDocument.load(new Uint8Array(await files[0].arrayBuffer()));
+      const total=doc.getPageCount();
+      const pages=parseRanges(raw,total).flat().map(n=>n-1).sort((a,b)=>b-a);
+      if(pages.length>=total){setStatus(panel,'Cannot remove every page.','error');return;}
+      pages.forEach(i=>doc.removePage(i));
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'pages-removed.pdf');
+      setStatus(panel,'Removed '+pages.length+' page(s).','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+/* ---------- PDF TO MARKDOWN ---------- */
+INITERS['pdf-to-markdown'] = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-code"></i> Convert to Markdown';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await files[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise;
+      const out=[];
+      for(let n=1;n<=pdf.numPages;n++){
+        const page=await pdf.getPage(n);
+        const tc=await page.getTextContent();
+        const lines=[]; let lastY=null, cur='';
+        for(const it of tc.items){
+          const y=it.transform[5];
+          if(lastY!==null && Math.abs(y-lastY)>4){ if(cur.trim()) lines.push(cur.trim()); cur=''; }
+          cur+=(cur?' ':'')+it.str;
+          lastY=y;
+        }
+        if(cur.trim()) lines.push(cur.trim());
+        const md=lines.map((l,i)=>{
+          if(i===0) return '# '+l;
+          if(/^[\d\.\)\-]+\s/.test(l) || /^[•\-*]\s/.test(l)) return '- '+l.replace(/^[\d\.\)\-]+\s|^[•\-*]\s/,'');
+          return l;
+        }).join('\n\n');
+        out.push('## Page '+n+'\n\n'+md);
+        setProgress(panel,n/pdf.numPages*100);
+      }
+      offerDownload(panel,new Blob([out.join('\n\n---\n\n')],{type:'text/markdown'}),'converted.md');
+      setStatus(panel,'Converted to Markdown!','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+/* ---------- SUMMARIZE ---------- */
+INITERS.summarize = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML='<div class="field"><label>Sentences in summary</label><input id="sumCount" type="number" value="5" min="1" max="30" /></div>';
+  panel.insertBefore(opts,panel.querySelector('.status'));
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-wand-magic-sparkles"></i> Summarize PDF';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await files[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise;
+      let text='';
+      for(let n=1;n<=pdf.numPages;n++){
+        const tc=await (await pdf.getPage(n)).getTextContent();
+        text+=' '+tc.items.map(i=>i.str).join(' ');
+        setProgress(panel,n/pdf.numPages*70);
+      }
+      const sentences=text.replace(/\s+/g,' ').split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(x=>x.length>25);
+      if(!sentences.length){setStatus(panel,'No readable text found to summarize.','error');return;}
+      const words={};
+      text.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).forEach(w=>{
+        if(w.length>3 && !['this','that','with','from','have','they','which','there','been','were','your','about','would'].includes(w)) words[w]=(words[w]||0)+1;
+      });
+      const scored=sentences.map((s,i)=>({s,i,score:s.toLowerCase().split(/\s+/).reduce((a,w)=>a+(words[w.replace(/[^a-z0-9]/g,'')]||0),0)/(1+Math.log(1+s.length))}));
+      scored.sort((a,b)=>b.score-a.score);
+      const count=Math.min(parseInt(panel.querySelector('#sumCount').value)||5,scored.length);
+      const picked=scored.slice(0,count).sort((a,b)=>a.i-b.i).map(x=>x.s);
+      const summary=picked.join('\n\n');
+      offerDownload(panel,new Blob([summary],{type:'text/plain'}),'summary.txt');
+      setProgress(panel,100);
+      setStatus(panel,'Summary ready ('+count+' sentences).','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+/* ---------- REDACT ---------- */
+INITERS.redact = function(panel){
+  let files=[], boxes=[], pdfDoc=null, pageNum=1, total=0, vp=null;
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];loadDoc();rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  const ed=document.createElement('div'); ed.className='pdf-editor'; ed.hidden=true;
+  ed.innerHTML='<div class="pdf-editor__bar"><div class="pdf-editor__nav"><button type="button" data-a="p"><i class="fa-solid fa-chevron-left"></i></button><span id="rdPage">Page 1</span><button type="button" data-a="n"><i class="fa-solid fa-chevron-right"></i></button></div><div class="pdf-editor__tools"><button type="button" data-a="c"><i class="fa-solid fa-eraser"></i> Clear boxes</button></div></div><div class="pdf-editor__stage" id="rdStage"><canvas id="rdCanvas"></canvas><div class="pdf-editor__layer" id="rdLayer"></div></div><p class="pdf-editor__tip">Drag on the page to draw a black redaction box</p>';
+  panel.insertBefore(ed,panel.querySelector('.status'));
+  const stage=ed.querySelector('#rdStage'), canvas=ed.querySelector('#rdCanvas'), layer=ed.querySelector('#rdLayer');
+  function drawBoxes(){
+    layer.innerHTML='';
+    boxes.filter(b=>b.page===pageNum).forEach(b=>{
+      const el=document.createElement('div'); el.className='redact-box';
+      el.style.left=b.x+'px'; el.style.top=b.y+'px'; el.style.width=b.w+'px'; el.style.height=b.h+'px';
+      layer.appendChild(el);
+    });
+  }
+  async function renderPage(){
+    const page=await pdfDoc.getPage(pageNum);
+    const base=page.getViewport({scale:1});
+    const sc=Math.min(1.6,Math.max(0.55,780/base.width));
+    vp=page.getViewport({scale:sc});
+    canvas.width=vp.width; canvas.height=vp.height;
+    canvas.style.width=vp.width+'px'; canvas.style.height=vp.height+'px';
+    stage.style.width=vp.width+'px'; stage.style.height=vp.height+'px';
+    await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+    ed.querySelector('#rdPage').textContent='Page '+pageNum+' / '+total;
+    drawBoxes();
+  }
+  async function loadDoc(){
+    try{
+      pdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(await files[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise;
+      total=pdfDoc.numPages; pageNum=1; boxes=[]; ed.hidden=false;
+      await renderPage();
+      setStatus(panel,'Drag on the page to mark areas to redact.','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+  }
+  let drawing=null;
+  stage.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.redact-box')) return;
+    const r=stage.getBoundingClientRect();
+    drawing={x:e.clientX-r.left+stage.scrollLeft,y:e.clientY-r.top+stage.scrollTop};
+  });
+  window.addEventListener('pointermove',e=>{
+    if(!drawing) return;
+    const r=stage.getBoundingClientRect();
+    const x=e.clientX-r.left+stage.scrollLeft, y=e.clientY-r.top+stage.scrollTop;
+    drawing.w=Math.abs(x-drawing.x); drawing.h=Math.abs(y-drawing.y);
+    let b=layer.querySelector('.redact-box--live');
+    if(!b){ b=document.createElement('div'); b.className='redact-box redact-box--live'; layer.appendChild(b); }
+    b.style.left=Math.min(drawing.x,x)+'px'; b.style.top=Math.min(drawing.y,y)+'px';
+    b.style.width=drawing.w+'px'; b.style.height=drawing.h+'px';
+  });
+  window.addEventListener('pointerup',()=>{
+    if(!drawing) return;
+    const live=layer.querySelector('.redact-box--live'); if(live) live.remove();
+    if(drawing.w>5 && drawing.h>5){
+      const r=stage.getBoundingClientRect();
+      boxes.push({page:pageNum,x:Math.min(drawing.x,drawing.x+(drawing.w||0)),y:Math.min(drawing.y,drawing.y+(drawing.h||0)),w:drawing.w,h:drawing.h});
+      drawBoxes();
+    }
+    drawing=null;
+  });
+  ed.querySelectorAll('[data-a]').forEach(b=>b.addEventListener('click',()=>{
+    const a=b.dataset.a;
+    if(a==='p' && pageNum>1){pageNum--;renderPage();}
+    else if(a==='n' && pageNum<total){pageNum++;renderPage();}
+    else if(a==='c'){boxes=[];drawBoxes();}
+  }));
+  rerender();
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-eye-slash"></i> Apply redactions';
+  btn.addEventListener('click',async()=>{
+    if(!boxes.length){setStatus(panel,'Draw at least one redaction box.','error');return;}
+    try{
+      showProgress(panel,true);
+      const {PDFDocument}=PDFLib;
+      const doc=await PDFDocument.load(new Uint8Array(await files[0].arrayBuffer()));
+      const scale=vp.width/doc.getPage(0).getWidth();
+      for(const b of boxes){
+        const page=doc.getPage(Math.min(b.page-1,doc.getPageCount()-1));
+        const ph=page.getHeight();
+        page.drawRectangle({x:b.x/scale,y:ph-(b.y+b.h)/scale,width:b.w/scale,height:b.h/scale,color:PDFLib.rgb(0,0,0)});
+      }
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'redacted.pdf');
+      setStatus(panel,'Redacted '+boxes.length+' area(s).','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+/* ---------- PDF FORMS ---------- */
+INITERS['pdf-forms'] = function(panel){
+  let files=[], doc=null, fieldEls=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();loadForm();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const formBox=document.createElement('div'); formBox.className='form-fields'; formBox.hidden=true;
+  panel.insertBefore(formBox,panel.querySelector('.status'));
+  async function loadForm(){
+    formBox.innerHTML='<p class="muted">Reading form fields…</p>';
+    try{
+      const {PDFDocument}=PDFLib;
+      doc=await PDFDocument.load(new Uint8Array(await files[0].arrayBuffer()));
+      const form=doc.getForm();
+      const fields=form.getFields();
+      fieldEls=[]; formBox.innerHTML='';
+      if(!fields.length){ formBox.innerHTML='<p class="muted">This PDF has no fillable form fields.</p>'; formBox.hidden=false; return; }
+      fields.forEach((f,i)=>{
+        const name=f.getName();
+        const wrap=document.createElement('div'); wrap.className='field';
+        const label=document.createElement('label'); label.textContent=name; wrap.appendChild(label);
+        let input;
+        if(f.constructor && f.constructor.name==='PDFCheckBox'){
+          input=document.createElement('input'); input.type='checkbox';
+          try{ input.checked=f.isChecked(); }catch(e){}
+        } else {
+          input=document.createElement('input'); input.type='text';
+          try{ input.value=f.getText()||''; }catch(e){}
+        }
+        input.dataset.index=String(i); wrap.appendChild(input); formBox.appendChild(wrap);
+        fieldEls.push(input);
+      });
+      formBox.hidden=false;
+      setStatus(panel,'Found '+fields.length+' form field(s).','success');
+    }catch(e){ setStatus(panel,e.message,'error'); }
+  }
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-square-check"></i> Save filled form';
+  btn.addEventListener('click',async()=>{
+    if(!doc){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const form=doc.getForm(), fields=form.getFields();
+      fieldEls.forEach((el,i)=>{
+        const f=fields[i];
+        if(el.type==='checkbox'){ el.checked?f.check():f.uncheck(); }
+        else { try{ f.setText(el.value); }catch(e){} }
+      });
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'filled-form.pdf');
+      setStatus(panel,'Form saved!','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+/* ---------- OCR PDF ---------- */
+INITERS.ocr = function(panel){
+  let files=[], extracted=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-scan"></i> Run OCR';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      await ensureLib('Tesseract');
+      setStatus(panel,'OCR is loading… first run may take a moment.','success');
+      const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await files[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise;
+      extracted=[];
+      const canvas=document.createElement('canvas');
+      for(let n=1;n<=pdf.numPages;n++){
+        const page=await pdf.getPage(n);
+        const vp=page.getViewport({scale:1.8});
+        canvas.width=vp.width; canvas.height=vp.height;
+        await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+        const r=await Tesseract.recognize(canvas,'eng');
+        extracted.push({w:vp.width,h:vp.height,text:r.data.text});
+        setProgress(panel,(n+0.5)/(pdf.numPages+1)*100);
+      }
+      const {PDFDocument,StandardFonts}=PDFLib;
+      const out=await PDFDocument.create();
+      const font=await out.embedFont(StandardFonts.Helvetica);
+      for(const [i,pg] of extracted.entries()){
+        const p=out.addPage([pg.w,pg.h]);
+        const jpg=await out.embedJpg(canvas.toDataURL('image/jpeg',0.55));
+        p.drawImage(jpg,{x:0,y:0,width:pg.w,height:pg.h});
+        if(pg.text.trim()) p.drawText(pg.text.replace(/[^\x20-\x7E\n]/g,' ').slice(0,3000),{x:8,y:pg.h-20,size:9,font,opacity:0});
+        setProgress(panel,(i+1)/extracted.length*100);
+      }
+      offerDownload(panel,new Blob([await out.save()],{type:'application/pdf'}),'ocr.pdf');
+      setStatus(panel,'OCR complete — PDF is now searchable.','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
 
 /* ---------- router ---------- */
 function route(){

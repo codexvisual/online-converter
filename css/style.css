@@ -221,6 +221,11 @@ body.is-dragging-card *{cursor:grabbing !important}
 .ed-text.selected{border-color:var(--red);background:rgba(229,50,45,.07);outline:1px solid var(--red)}
 .ed-text[contenteditable=true]{cursor:text;user-select:text;background:#fff;outline:2px solid var(--red)}
 .pdf-editor__tip{text-align:center;color:var(--muted);font-size:12px;margin:0}
+.redact-box{position:absolute;background:rgba(0,0,0,.82);border:2px solid var(--red);border-radius:2px;pointer-events:none}
+.redact-box--live{background:rgba(229,50,45,.3);border:2px dashed var(--red)}
+.form-fields{margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding:16px;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
+.form-fields .field input{padding:9px 10px;border:1px solid var(--border);border-radius:7px;font-size:14px}
+.form-fields .field input[type=checkbox]{width:20px;height:20px}
 @media (max-width:520px){
   .pdf-editor__bar button{padding:6px 9px;font-size:11px}
   .pdf-editor__nav span{min-width:70px;font-size:12px}
