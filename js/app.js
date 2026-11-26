@@ -33,6 +33,24 @@ const TOOLS = [
   {id:'organize',name:'Organize PDF',desc:'Sort, delete and rotate pages.',icon:'fa-layer-group',cat:'Organize PDF',impl:true},
   {id:'repair',name:'Repair PDF',desc:'Recover data from damaged PDF.',icon:'fa-wrench',cat:'Organize PDF',impl:true},
   {id:'compare',name:'Compare PDF',desc:'Show differences between two PDFs.',icon:'fa-code-compare',cat:'Organize PDF',impl:true},
+  {id:'metadata',name:'PDF Metadata',desc:'View and edit PDF title, author, subject and keywords.',icon:'fa-tags',cat:'Edit PDF',impl:true},
+  {id:'flatten',name:'Flatten PDF',desc:'Flatten form fields and annotations into the page.',icon:'fa-layer-minus',cat:'Edit PDF',impl:true},
+  {id:'grayscale',name:'PDF to Grayscale',desc:'Convert a PDF to grayscale (black & white).',icon:'fa-circle-half-stroke',cat:'Edit PDF',impl:true},
+  {id:'pdf-to-text',name:'PDF to Text',desc:'Extract all text from a PDF as a TXT file.',icon:'fa-file-lines',cat:'Convert from PDF',impl:true},
+  {id:'pdf-to-csv',name:'PDF to CSV',desc:'Extract text into a CSV spreadsheet.',icon:'fa-file-csv',cat:'Convert from PDF',impl:true},
+  {id:'add-blank',name:'Add blank pages',desc:'Insert blank pages into a PDF.',icon:'fa-file-circle-plus',cat:'Organize PDF',impl:true},
+  {id:'remove-blank',name:'Remove blank pages',desc:'Detect and delete blank pages automatically.',icon:'fa-file-circle-minus',cat:'Organize PDF',impl:true},
+  {id:'resize-pages',name:'Resize pages',desc:'Resize all pages to A4, Letter, Legal or A3.',icon:'fa-expand',cat:'Edit PDF',impl:true},
+  {id:'header-footer',name:'Header & footer',desc:'Add header and footer text to every page.',icon:'fa-align-center',cat:'Edit PDF',impl:true},
+  {id:'metadata',name:'PDF Metadata',desc:'View and edit PDF title, author, subject and keywords.',icon:'fa-tags',cat:'Edit PDF',impl:true},
+  {id:'flatten',name:'Flatten PDF',desc:'Flatten form fields and annotations into the page.',icon:'fa-layer-minus',cat:'Edit PDF',impl:true},
+  {id:'grayscale',name:'PDF to Grayscale',desc:'Convert a PDF to grayscale (black & white).',icon:'fa-circle-half-stroke',cat:'Edit PDF',impl:true},
+  {id:'pdf-to-text',name:'PDF to Text',desc:'Extract all text from a PDF as a TXT file.',icon:'fa-file-lines',cat:'Convert from PDF',impl:true},
+  {id:'pdf-to-csv',name:'PDF to CSV',desc:'Extract text into a CSV spreadsheet.',icon:'fa-file-csv',cat:'Convert from PDF',impl:true},
+  {id:'add-blank',name:'Add blank pages',desc:'Insert blank pages into a PDF.',icon:'fa-file-circle-plus',cat:'Organize PDF',impl:true},
+  {id:'remove-blank',name:'Remove blank pages',desc:'Detect and delete blank pages automatically.',icon:'fa-file-circle-minus',cat:'Organize PDF',impl:true},
+  {id:'resize-pages',name:'Resize pages',desc:'Resize all pages to A4, Letter, Legal or A3.',icon:'fa-expand',cat:'Edit PDF',impl:true},
+  {id:'header-footer',name:'Header & footer',desc:'Add header and footer text to every page.',icon:'fa-align-center',cat:'Edit PDF',impl:true},
   {id:'remove-pages',name:'Remove pages',desc:'Delete selected pages from a PDF.',icon:'fa-file-circle-minus',cat:'Organize PDF',impl:true},
   {id:'summarize',name:'PDF Summarize',desc:'Get a quick summary of a PDF document.',icon:'fa-wand-magic-sparkles',cat:'Organize PDF',impl:true},
   {id:'translate',name:'Translate PDF',desc:'Translate PDF text into another language.',icon:'fa-language',cat:'Organize PDF',impl:true},
@@ -2814,6 +2832,402 @@ INITERS.translate = function(panel){
       offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'translated.pdf');
       setProgress(panel,100);
       setStatus(panel,'Translated '+chunks.length+' chunk(s) to '+to.toUpperCase()+'.','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+INITERS.metadata = function(panel){
+  let files=[], doc=null;
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];load();rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML=`
+    <div class="field"><label>Title</label><input id="mdTitle" /></div>
+    <div class="field"><label>Author</label><input id="mdAuthor" /></div>
+    <div class="field"><label>Subject</label><input id="mdSubject" /></div>
+    <div class="field"><label>Keywords</label><input id="mdKeywords" placeholder="comma,separated" /></div>
+    <div class="field"><label>Creator</label><input id="mdCreator" /></div>`;
+  panel.insertBefore(opts,panel.querySelector('.status'));
+  async function load(){
+    try{
+      const {PDFDocument}=PDFLib;
+      doc=await PDFDocument.load(new Uint8Array(await files[0].arrayBuffer()));
+      opts.querySelector('#mdTitle').value=doc.getTitle()||'';
+      opts.querySelector('#mdAuthor').value=doc.getAuthor()||'';
+      opts.querySelector('#mdSubject').value=doc.getSubject()||'';
+      opts.querySelector('#mdKeywords').value=(doc.getKeywords()||[]).join(', ');
+      opts.querySelector('#mdCreator').value=doc.getCreator()||'';
+      setStatus(panel,'Metadata loaded. Edit and apply.','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+  }
+  rerender();
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-tags"></i> Save metadata';
+  btn.addEventListener('click',async()=>{
+    if(!doc){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      doc.setTitle(opts.querySelector('#mdTitle').value);
+      doc.setAuthor(opts.querySelector('#mdAuthor').value);
+      doc.setSubject(opts.querySelector('#mdSubject').value);
+      doc.setKeywords(opts.querySelector('#mdKeywords').value.split(',').map(s=>s.trim()).filter(Boolean));
+      doc.setCreator(opts.querySelector('#mdCreator').value);
+      doc.setModificationDate(new Date());
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'metadata.pdf');
+      setStatus(panel,'Metadata saved!','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+INITERS.flatten = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-layer-minus"></i> Flatten PDF';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const {PDFDocument}=PDFLib;
+      const doc=await PDFDocument.load(new Uint8Array(await files[0].arrayBuffer()));
+      try{ doc.getForm().flatten(); }catch(e){}
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'flattened.pdf');
+      setStatus(panel,'Flattened!','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+INITERS.grayscale = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML='<div class="field"><label>Scale</label><select id="gsScale"><option value="1.5">1.5x</option><option value="2" selected>2x</option><option value="3">3x</option></select></div>';
+  panel.insertBefore(opts,panel.querySelector('.status'));
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-circle-half-stroke"></i> Convert to grayscale';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const scale=parseFloat(panel.querySelector('#gsScale').value)||2;
+      const {PDFDocument}=PDFLib;
+      const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await files[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise;
+      const doc=await PDFDocument.create();
+      const cv=document.createElement('canvas');
+      for(let n=1;n<=pdf.numPages;n++){
+        const page=await pdf.getPage(n);
+        const vp=page.getViewport({scale});
+        cv.width=vp.width; cv.height=vp.height;
+        const ctx=cv.getContext('2d');
+        await page.render({canvasContext:ctx,viewport:vp}).promise;
+        const d=ctx.getImageData(0,0,cv.width,cv.height);
+        for(let i=0;i<d.data.length;i+=4){const g=Math.round(d.data[i]*0.299+d.data[i+1]*0.587+d.data[i+2]*0.114);d.data[i]=d.data[i+1]=d.data[i+2]=g;}
+        ctx.putImageData(d,0,0);
+        const blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',0.9));
+        const img=await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+        const p=doc.addPage([vp.width,vp.height]);
+        p.drawImage(img,{x:0,y:0,width:vp.width,height:vp.height});
+        setProgress(panel,n/pdf.numPages*100);
+      }
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'grayscale.pdf');
+      setStatus(panel,'Converted to grayscale!','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+INITERS['pdf-to-text'] = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML='<div class="field"><label>Pages (blank = all)</label><input id="txtPages" placeholder="1,3,5-7" /></div>';
+  panel.insertBefore(opts,panel.querySelector('.status'));
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-lines"></i> Extract text';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await files[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise;
+      const total=pdf.numPages;
+      const raw=panel.querySelector('#txtPages').value.trim();
+      const targets=raw?parseRanges(raw,total).flat().map(n=>n-1):[...Array(total).keys()];
+      const out=[];
+      for(const i of targets){
+        const tc=await (await pdf.getPage(i+1)).getTextContent();
+        out.push('--- Page '+(i+1)+' ---\n'+tc.items.map(it=>it.str).join(' ').replace(/\s+/g,' ').trim());
+        setProgress(panel,(targets.indexOf(i)+1)/targets.length*100);
+      }
+      offerDownload(panel,new Blob([out.join('\n\n')],{type:'text/plain'}),'extracted.txt');
+      setStatus(panel,'Extracted '+targets.length+' page(s)!','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+INITERS['pdf-to-csv'] = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML='<div class="field"><label>Pages (blank = all)</label><input id="csvPages" placeholder="1,3,5-7" /></div><div class="field"><label>Column gap (px)</label><input id="csvGap" type="number" value="18" /></div>';
+  panel.insertBefore(opts,panel.querySelector('.status'));
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-csv"></i> Convert to CSV';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await files[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise;
+      const total=pdf.numPages;
+      const raw=panel.querySelector('#csvPages').value.trim();
+      const targets=raw?parseRanges(raw,total).flat().map(n=>n-1):[...Array(total).keys()];
+      const gap=parseInt(panel.querySelector('#csvGap').value)||18;
+      const rows=[];
+      for(const i of targets){
+        const tc=await (await pdf.getPage(i+1)).getTextContent();
+        const lines=[];
+        for(const it of tc.items){
+          if(!it.str.trim()) continue;
+          const y=it.transform[5], x=it.transform[4];
+          let line=lines.find(l=>Math.abs(l.y-y)<6);
+          if(!line){line={y,items:[]};lines.push(line);}
+          line.items.push({x,text:it.str.trim()});
+        }
+        lines.sort((a,b)=>b.y-a.y);
+        for(const line of lines){
+          line.items.sort((a,b)=>a.x-b.x);
+          const cols=[];
+          for(const it of line.items){
+            if(cols.length && it.x-cols[cols.length-1].x>gap) cols.push(it);
+            else if(!cols.length) cols.push(it);
+            else cols[cols.length-1].text+=' '+it.text;
+          }
+          rows.push(cols.map(c=>'"'+c.text.replace(/"/g,'""')+'"').join(','));
+        }
+        setProgress(panel,(targets.indexOf(i)+1)/targets.length*100);
+      }
+      offerDownload(panel,new Blob([rows.join('\n')],{type:'text/csv'}),'extracted.csv');
+      setStatus(panel,'Converted '+targets.length+' page(s) to CSV!','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+INITERS['add-blank'] = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML=`
+    <div class="field"><label>Position</label><select id="abPos"><option value="end">End</option><option value="start">Start</option><option value="after">After page N</option><option value="before">Before page N</option></select></div>
+    <div class="field"><label>Page number</label><input id="abN" type="number" value="1" min="1" /></div>
+    <div class="field"><label>How many</label><input id="abCount" type="number" value="1" min="1" max="50" /></div>
+    <div class="field"><label>Page size</label><select id="abSize"><option value="same">Same as document</option><option value="a4">A4</option><option value="letter">Letter</option></select></div>`;
+  panel.insertBefore(opts,panel.querySelector('.status'));
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-circle-plus"></i> Add blank pages';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const {PDFDocument}=PDFLib;
+      const doc=await PDFDocument.load(new Uint8Array(await files[0].arrayBuffer()));
+      const pos=panel.querySelector('#abPos').value;
+      const n=parseInt(panel.querySelector('#abN').value)||1;
+      const count=parseInt(panel.querySelector('#abCount').value)||1;
+      const size=panel.querySelector('#abSize').value;
+      const sizes={a4:[595.28,841.89],letter:[612,792]};
+      let pw,ph;
+      if(size==='same'){const p0=doc.getPage(0);pw=p0.getWidth();ph=p0.getHeight();}
+      else [pw,ph]=sizes[size];
+      const total=doc.getPageCount();
+      let idx;
+      if(pos==='start') idx=0;
+      else if(pos==='end') idx=total;
+      else if(pos==='after') idx=Math.min(n,total);
+      else idx=Math.max(0,n-1);
+      for(let i=0;i<count;i++) doc.insertPage(idx+i,[pw,ph]);
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'blank-added.pdf');
+      setStatus(panel,'Added '+count+' blank page(s).','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+INITERS['remove-blank'] = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML='<div class="field"><label>Threshold (0-255, higher = more sensitive)</label><input id="rbThresh" type="number" value="245" min="200" max="255" /></div><div class="field"><label>Min dark pixels to keep</label><input id="rbMin" type="number" value="50" min="0" /></div>';
+  panel.insertBefore(opts,panel.querySelector('.status'));
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-circle-minus"></i> Remove blank pages';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await files[0].arrayBuffer()),useWorkerFetch:false,isEvalSupported:false}).promise;
+      const thresh=parseInt(panel.querySelector('#rbThresh').value)||245;
+      const minDark=parseInt(panel.querySelector('#rbMin').value)||50;
+      const keep=[];
+      const canvas=document.createElement('canvas');
+      for(let n=1;n<=pdf.numPages;n++){
+        const page=await pdf.getPage(n);
+        const vp=page.getViewport({scale:0.5});
+        canvas.width=vp.width; canvas.height=vp.height;
+        const ctx=canvas.getContext('2d');
+        await page.render({canvasContext:ctx,viewport:vp}).promise;
+        const d=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+        let dark=0;
+        for(let i=0;i<d.length;i+=4){ if(d[i]<thresh||d[i+1]<thresh||d[i+2]<thresh) dark++; }
+        if(dark>minDark) keep.push(n-1);
+        setProgress(panel,n/pdf.numPages*100);
+      }
+      const {PDFDocument}=PDFLib;
+      const doc=await PDFDocument.load(new Uint8Array(await files[0].arrayBuffer()));
+      const all=[...Array(doc.getPageCount()).keys()];
+      const remove=all.filter(i=>!keep.includes(i)).sort((a,b)=>b-a);
+      remove.forEach(i=>doc.removePage(i));
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'blank-removed.pdf');
+      setStatus(panel,'Removed '+remove.length+' blank page(s). Kept '+keep.length+'.','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+INITERS['resize-pages'] = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML=`
+    <div class="field"><label>Target size</label><select id="rpSize"><option value="a4">A4 (210×297mm)</option><option value="letter">Letter (8.5×11in)</option><option value="legal">Legal (8.5×14in)</option><option value="a3">A3 (297×420mm)</option></select></div>
+    <div class="field"><label>Fit content</label><select id="rpFit"><option value="contain">Fit (keep aspect)</option><option value="stretch">Stretch to fill</option></select></div>
+    <div class="field"><label>Pages (blank = all)</label><input id="rpPages" placeholder="1,3,5-7" /></div>`;
+  panel.insertBefore(opts,panel.querySelector('.status'));
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-expand"></i> Resize pages';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const {PDFDocument}=PDFLib;
+      const doc=await PDFDocument.load(new Uint8Array(await files[0].arrayBuffer()));
+      const sizes={a4:[595.28,841.89],letter:[612,792],legal:[612,1008],a3:[841.89,1190.55]};
+      const target=sizes[panel.querySelector('#rpSize').value];
+      const fit=panel.querySelector('#rpFit').value;
+      const pagesInput=panel.querySelector('#rpPages').value.trim();
+      const total=doc.getPageCount();
+      const targets=pagesInput?parseRanges(pagesInput,total).flat().map(n=>n-1):[...Array(total).keys()];
+      for(const [k,i] of targets.entries()){
+        const page=doc.getPage(i);
+        const pw=page.getWidth(), ph=page.getHeight();
+        const [nw,nh]=target;
+        if(fit==='stretch'){
+          page.setSize(nw,nh);
+        } else {
+          page.setSize(nw,nh);
+        }
+        setProgress(panel,(k+1)/targets.length*100);
+      }
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'resized.pdf');
+      setStatus(panel,'Resized '+targets.length+' page(s) to '+panel.querySelector('#rpSize').value.toUpperCase()+'.','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
+INITERS['header-footer'] = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML=`
+    <div class="field"><label>Header text</label><input id="hfH" placeholder="Document title" /></div>
+    <div class="field"><label>Footer text</label><input id="hfF" placeholder="Page {n} of {total}" /></div>
+    <div class="field"><label>Font size</label><input id="hfSize" type="number" value="10" /></div>
+    <div class="field"><label>Color</label><select id="hfColor"><option value="0.3,0.3,0.3">Gray</option><option value="0,0,0">Black</option><option value="0.8,0,0">Red</option></select></div>
+    <div class="field"><label>Pages (blank = all)</label><input id="hfPages" placeholder="1,3,5-7" /></div>`;
+  panel.insertBefore(opts,panel.querySelector('.status'));
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-align-center"></i> Add header & footer';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    try{
+      showProgress(panel,true);
+      const {PDFDocument,StandardFonts,rgb}=PDFLib;
+      const doc=await PDFDocument.load(new Uint8Array(await files[0].arrayBuffer()));
+      const font=await doc.embedFont(StandardFonts.Helvetica);
+      const header=panel.querySelector('#hfH').value;
+      const footer=panel.querySelector('#hfF').value;
+      const size=parseInt(panel.querySelector('#hfSize').value)||10;
+      const col=panel.querySelector('#hfColor').value.split(',').map(Number);
+      const pagesInput=panel.querySelector('#hfPages').value.trim();
+      const total=doc.getPageCount();
+      const targets=pagesInput?parseRanges(pagesInput,total).flat().map(n=>n-1):[...Array(total).keys()];
+      for(const [k,i] of targets.entries()){
+        const page=doc.getPage(i);
+        const {width,height}=page.getSize();
+        const txtH=header.replace('{n}',String(i+1)).replace('{total}',String(total));
+        const txtF=footer.replace('{n}',String(i+1)).replace('{total}',String(total));
+        if(txtH) page.drawText(txtH,{x:(width-font.widthOfTextAtSize(txtH,size))/2,y:height-24,size,font,color:rgb(col[0],col[1],col[2])});
+        if(txtF) page.drawText(txtF,{x:(width-font.widthOfTextAtSize(txtF,size))/2,y:12,size,font,color:rgb(col[0],col[1],col[2])});
+        setProgress(panel,(k+1)/targets.length*100);
+      }
+      offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'header-footer.pdf');
+      setStatus(panel,'Done!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
