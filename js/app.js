@@ -1096,45 +1096,119 @@ INITERS['scan-to-pdf']=initImagesToPdf;
 INITERS['pdf-to-word'] = function(panel){
   let files=[];
   const list=document.createElement('div'); list.className='file-list';
-  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();extract();}});
   panel.insertBefore(list,panel.querySelector('.status'));
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
+
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML=`<div class="field"><label>Format</label>
-    <select id="wFmt"><option value="docx">DOCX</option><option value="txt">TXT</option></select></div>`;
+  opts.innerHTML=`
+    <div class="field"><label>Output format</label>
+      <select id="wFmt"><option value="docx">DOCX (Word)</option><option value="txt">Plain text (TXT)</option><option value="md">Markdown (MD)</option></select></div>
+    <div class="field"><label>Layout</label>
+      <select id="wLay"><option value="preserve">Preserve layout (line by line)</option><option value="flow">Flow (paragraphs)</option></select></div>
+    <div class="field"><label>Pages (blank = all)</label><input id="wPages" placeholder="1,3,5-7" /></div>
+    <div class="field"><label>Include page numbers</label><select id="wPn"><option value="no">No</option><option value="yes">Yes</option></select></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
+
+  const preview=document.createElement('div'); preview.className='translate-preview'; preview.hidden=true;
+  preview.innerHTML='<div class="field"><label>Preview (first page)</label><textarea id="wPreview" rows="8" readonly></textarea></div>';
+  panel.insertBefore(preview,panel.querySelector('.status'));
+
+  let cachedPages=[]; // [{lines:[{text,size,font,bold}]}]
+  let fullText='';
+
+  async function extract(){
+    if(!files.length) return;
+    try{
+      setStatus(panel,'Reading PDF…','success');
+      const bytes=new Uint8Array(await files[0].arrayBuffer());
+      const pdf=await pdfjsLib.getDocument({data:bytes,useWorkerFetch:false,isEvalSupported:false}).promise;
+      cachedPages=[];
+      let txt='';
+      const pageInput=panel.querySelector('#wPages').value.trim();
+      const total=pdf.numPages;
+      const targets=pageInput?pageInput.split(',').flatMap(p=>p.includes('-')?range(parseInt(p.split('-')[0]),parseInt(p.split('-')[1])):[parseInt(p)]).map(n=>n-1):[...Array(total).keys()];
+      for(const i of targets){
+        if(i<0||i>=total) continue;
+        const page=await pdf.getPage(i+1);
+        const tc=await page.getTextContent();
+        const lines=extractLines(tc.items);
+        cachedPages.push({page:i+1,lines});
+        txt += '--- Page '+(i+1)+' ---\n'+lines.map(l=>l.text).join('\n')+'\n\n';
+      }
+      fullText=txt;
+      preview.hidden=false;
+      preview.querySelector('#wPreview').value=linesToText(cachedPages[0]||{lines:[]});
+      setStatus(panel,'Extracted '+cachedPages.length+' page(s). Choose options and convert.','success');
+    }catch(e){ setStatus(panel,e.message,'error'); }
+  }
+  function range(a,b){const o=[];for(let i=a;i<=b;i++)o.push(i);return o;}
+  function extractLines(items){
+    const rows=[];
+    for(const it of items){
+      if(!it.str || !it.str.trim()) continue;
+      const y=it.transform[5], x=it.transform[4];
+      const size=Math.max(6,Math.hypot(it.transform[2],it.transform[3])||it.height||10);
+      const bold=/bold/i.test(it.fontName||'');
+      const italic=/italic|oblique/i.test(it.fontName||'');
+      let row=rows.find(r=>Math.abs(r.y-y)<size*0.6);
+      if(!row){ row={y,xMin:x,texts:[],size,bold,italic}; rows.push(row); }
+      else { row.texts.push({x,text:it.str,size,bold,italic}); if(size>row.size) row.size=size; }
+      row.texts.sort((a,b)=>a.x-b.x);
+      row.texts.forEach(t=>row.text=''); // rebuilt below
+    }
+    rows.sort((a,b)=>b.y-a.y);
+    return rows.map(r=>{
+      const txt=r.texts.map(t=>t.text).join(' ').replace(/\s+/g,' ').trim();
+      const sizes=r.texts.map(t=>t.size);
+      const avg=sizes.length?sizes.reduce((a,b)=>a+b,0)/sizes.length:12;
+      const isBold=r.texts.some(t=>t.bold);
+      const isItalic=r.texts.some(t=>t.italic);
+      return {text:txt,size:Math.round(avg),bold:isBold,italic:isItalic};
+    }).filter(l=>l.text);
+  }
+  function linesToText(p){ return (p.lines||[]).map(l=>l.text).join('\n'); }
+
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-word"></i> Convert to Word';
   btn.addEventListener('click', async()=>{
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    if(!cachedPages.length) await extract();
+    if(!cachedPages.length){setStatus(panel,'No text extracted.','error');return;}
     try{
       showProgress(panel,true);
-      const bytes=new Uint8Array(await files[0].arrayBuffer());
-      const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
-      let fullText='';
-      const paragraphs=[];
-      for(let i=1;i<=pdf.numPages;i++){
-        const page=await pdf.getPage(i);
-        const tc=await page.getTextContent();
-        const text=tc.items.map(it=>it.str).join(' ');
-        paragraphs.push(text);
-        fullText += `--- Page ${i} ---\n${text}\n\n`;
-        setProgress(panel,i/pdf.numPages*100);
-      }
       const fmt=panel.querySelector('#wFmt').value;
+      const layout=panel.querySelector('#wLay').value;
+      const pn=panel.querySelector('#wPn').value==='yes';
       if(fmt==='docx') await ensureLib('docx');
       if(fmt==='txt'){
-        offerDownload(panel, new Blob([fullText],{type:'text/plain'}),'converted.txt');
+        offerDownload(panel,new Blob([fullText],{type:'text/plain'}),'converted.txt');
+      } else if(fmt==='md'){
+        const md=cachedPages.map(pg=>'## Page '+pg.page+'\n\n'+pg.lines.map(l=>l.text).join('\n\n')).join('\n\n---\n\n');
+        offerDownload(panel,new Blob([md],{type:'text/markdown'}),'converted.md');
       } else if(window.docx){
-        const {Document,Packer,Paragraph,TextRun}=window.docx;
-        const doc=new Document({sections:[{children:paragraphs.map(t=>new Paragraph({children:[new TextRun(t)]}))}]});
+        const {Document,Packer,Paragraph,TextRun,PageBreak}=window.docx;
+        const children=[];
+        for(const pg of cachedPages){
+          if(pn) children.push(new Paragraph({children:[new TextRun({text:'— Page '+pg.page+' —',italics:true,size:10,color:'808080'})]}));
+          if(layout==='preserve'){
+            for(const l of pg.lines){
+              children.push(new Paragraph({children:[new TextRun({text:l.text||' ',bold:l.bold,italics:l.italic,size:l.size*2})]}));
+            }
+          } else {
+            const para=pg.lines.map(l=>l.text).join(' ').trim();
+            if(para) children.push(new Paragraph({children:[new TextRun(para)]}));
+          }
+          children.push(new Paragraph({children:[new PageBreak()]}));
+        }
+        const doc=new Document({sections:[{children}]});
         const blob=await Packer.toBlob(doc);
-        offerDownload(panel, blob,'converted.docx');
+        offerDownload(panel,blob,'converted.docx');
       } else {
-        offerDownload(panel, new Blob([fullText],{type:'text/plain'}),'converted.txt');
+        offerDownload(panel,new Blob([fullText],{type:'text/plain'}),'converted.txt');
       }
-      setStatus(panel,'Converted!','success');
+      setStatus(panel,'Converted '+cachedPages.length+' page(s)!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
