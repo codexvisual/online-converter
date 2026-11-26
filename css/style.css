@@ -101,7 +101,7 @@ a{color:inherit;text-decoration:none}
 .tool-tag.active{background:#33333b;color:#fff;border-color:#33333b}
 .section{padding:8px 0 56px}
 .section h2{font-size:22px;margin:0 0 16px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,240px);gap:16px;justify-content:center;align-content:start}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;justify-content:center;align-content:start}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 14px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:11px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
 .card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--red)}
 .card .icon{width:52px;height:52px;border-radius:14px;background:#fdecea;color:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px}
@@ -112,7 +112,7 @@ a{color:inherit;text-decoration:none}
 .cat-title span{position:relative;padding-bottom:8px;white-space:nowrap}
 .cat-title span::after{content:'';position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:30px;height:2.5px;border-radius:2px;background:var(--red)}
 @media (max-width:900px){
-  .grid{grid-template-columns:repeat(auto-fit,172px);gap:12px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .card{padding:18px 12px}
   .card .icon{width:46px;height:46px;font-size:20px}
   .cat-title{font-size:11.5px;gap:10px;margin:30px 0 14px}
@@ -494,8 +494,33 @@ html[data-theme="dark"] .to-top{box-shadow:0 10px 24px rgba(0,0,0,.6)}
   .icon-btn{width:34px;height:34px;font-size:14px}
   .to-top{right:14px;bottom:16px;width:40px;height:40px}
 }
-@media (max-width:520px){
-  .hide-sm{display:none !important}
+.footer-brand{display:none}
+.footer-social--mobile{display:none}
+
+/* Footer mobile redesign */
+@media (max-width:640px){
+  .footer-brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:0 0 20px}
+  .footer-brand__logo{height:40px;width:auto;max-width:150px;object-fit:contain}
+  .footer-brand p{margin:0;color:#b9b9c2;font-size:13px;max-width:320px}
+  .footer-social--mobile{display:flex;justify-content:center;gap:12px}
+  .footer-social--mobile a{width:40px;height:40px;font-size:16px}
+  .footer-grid{grid-template-columns:1fr;gap:0}
+  .footer-col{padding:14px 0;border-bottom:1px solid rgba(255,255,255,.1);text-align:center}
+  .footer-col:last-child{border-bottom:0}
+  .footer-title{font-size:12px;margin-bottom:8px}
+  .footer-nav{gap:6px}
+  .footer-nav a{font-size:14px;justify-content:center;min-height:36px;display:flex;align-items:center}
+  .footer-sep{margin:18px 0 14px}
+  .footer-bottom{flex-direction:column;align-items:center;text-align:center;gap:12px}
+  .footer-social{display:none}
+  .footer-lang{width:100%;justify-content:center}
+  .footer-lang select{flex:1;max-width:260px}
+  .footer-copy{padding-right:0;text-align:center}
+  .footer-copy a{display:inline}
+}
+@media (max-width:420px){
+  .footer-nav{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}
+  .footer-nav a{font-size:13px;justify-content:flex-start}
 }
 
 /* ============ Accessibility / i18n / feedback / smart drop ============ */
