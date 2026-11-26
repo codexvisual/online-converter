@@ -119,7 +119,7 @@ a{color:inherit;text-decoration:none}
   .cat-title::before,.cat-title::after{flex:0 0 34px}
 }
 @media (max-width:520px){
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .grid{grid-template-columns:1fr;gap:10px}
   .card{padding:16px 10px;border-radius:13px;gap:9px}
   .card .icon{width:42px;height:42px;font-size:18px;border-radius:11px}
   .card h3{font-size:14px}
@@ -311,23 +311,27 @@ body.is-dragging-card *{cursor:grabbing !important}
 @media (max-width:720px){
   .hero h1{font-size:28px}
 }
-.footer{background:#33333b;color:#fff;margin-top:48px}
-.footer-main{padding:56px 0 30px}
-.footer-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:28px}
-.footer-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:#a7a7b0;margin-bottom:14px}
-.footer-nav{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-.footer-nav a{font-size:14px;color:#e6e6ea;display:inline-flex;align-items:center;gap:8px}
-.footer-nav a:hover{color:#ff6b61}
-.footer-nav i{width:16px;text-align:center;font-size:14px}
-.footer-sep{height:1px;background:rgba(255,255,255,.12);margin:36px 0 22px}
-.footer-bottom{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.footer-lang{display:flex;align-items:center;gap:8px;font-size:13px;color:#c9c9d0}
-.footer-social{display:flex;gap:12px}
-.footer-social a{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
-.footer-social a:hover{background:var(--red)}
-.footer-copy{font-size:13px;color:#b9b9c2;padding-right:56px}
-.footer-copy a{color:#fff;font-weight:600}
-.footer-copy a:hover{color:#ff6b61}
+.footer{background:linear-gradient(180deg,#2b2e36 0%,#1f2328 100%);color:#fff;margin-top:56px;position:relative}
+.footer::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--red),#ff8a80,var(--red))}
+.footer-main{padding:60px 0 28px}
+.footer-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#8b93a1;margin-bottom:16px;position:relative;padding-bottom:8px}
+.footer-title::after{content:'';position:absolute;left:0;bottom:0;width:22px;height:2px;border-radius:2px;background:var(--red)}
+.footer-nav{gap:11px}
+.footer-nav a{font-size:13.5px;color:#d6d8dd;transition:color .15s,transform .15s;display:inline-flex;align-items:center;gap:8px}
+.footer-nav a:hover{color:#ff8a80;transform:translateX(4px)}
+.footer-nav a i{width:16px;text-align:center;font-size:13px;color:#ff6b61}
+.footer-sep{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);margin:34px 0 20px}
+.footer-bottom{padding:4px 0}
+.footer-social a{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:#e6e7ea;font-size:14px;transition:background .15s,color .15s,transform .15s}
+.footer-social a:hover{background:var(--red);color:#fff;border-color:var(--red);transform:translateY(-2px)}
+.footer-lang{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
+.footer-lang select{border:0;background:transparent;color:#e6e7ea;padding:2px 4px;font-size:12px;cursor:pointer}
+.footer-copy{padding-right:56px;font-size:12.5px;color:#9aa3ad}
+.footer-copy a{color:#ff8a80;font-weight:700}
+.footer-copy a:hover{color:#fff}
+
+/* Dark mode footer stays consistent */
+html[data-theme="dark"] .footer{background:linear-gradient(180deg,#141821 0%,#0b0d12 100%)}
 .hidden-link{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media (max-width:900px){
   .footer-grid{grid-template-columns:repeat(3,1fr);gap:22px}
@@ -502,7 +506,7 @@ html[data-theme="dark"] .to-top{box-shadow:0 10px 24px rgba(0,0,0,.6)}
   .footer-brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:0 0 20px}
   .footer-brand__logo{height:40px;width:auto;max-width:150px;object-fit:contain}
   .footer-brand p{margin:0;color:#b9b9c2;font-size:13px;max-width:320px}
-  .footer-social--mobile{display:flex;justify-content:center;gap:12px}
+  .footer-social--mobile{display:flex !important;justify-content:center;gap:12px}
   .footer-social--mobile a{width:40px;height:40px;font-size:16px}
   .footer-grid{grid-template-columns:1fr;gap:0}
   .footer-col{padding:14px 0;border-bottom:1px solid rgba(255,255,255,.1);text-align:center}
