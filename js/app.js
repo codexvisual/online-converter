@@ -529,11 +529,13 @@ INITERS.split = function(panel){
   opts.innerHTML=`
     <div class="field"><label>Mode</label>
       <select id="splitMode">
-        <option value="all">All pages (ZIP)</option>
+        <option value="all">All pages (one PDF per page)</option>
         <option value="ranges">Page ranges</option>
+        <option value="every">Every N pages</option>
       </select>
     </div>
-    <div class="field"><label>Ranges (e.g. 1-3,4,5-7)</label><input id="splitRanges" placeholder="1-3,4" /></div>`;
+    <div class="field"><label>Ranges (e.g. 1-3,4,5-7)</label><input id="splitRanges" placeholder="1-3,4" /></div>
+    <div class="field"><label>Every N pages</label><input id="splitEvery" type="number" value="2" min="1" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-scissors"></i> Split PDF';
@@ -546,7 +548,20 @@ INITERS.split = function(panel){
       const doc=await PDFDocument.load(bytes);
       const total=doc.getPageCount();
       const mode=panel.querySelector('#splitMode').value;
-      if(mode==='all'){
+      if(mode==='every'){
+        const n=parseInt(panel.querySelector('#splitEvery').value)||2;
+        const zip=new JSZip();
+        for(let i=0;i<total;i+=n){
+          const nd=await PDFDocument.create();
+          const pages=await nd.copyPages(doc,[...Array(Math.min(n,total-i)).keys()].map(x=>i+x));
+          pages.forEach(p=>nd.addPage(p));
+          const b=await nd.save();
+          zip.file(`pages_${i+1}-${Math.min(i+n,total)}.pdf`,b);
+          setProgress(panel,(i+n)/total*100);
+        }
+        const blob=await zip.generateAsync({type:'blob'});
+        offerDownload(panel, blob,'split_every.zip');
+      } else if(mode==='all'){
         const zip=new JSZip();
         for(let i=0;i<total;i++){
           const nd=await PDFDocument.create();
@@ -834,11 +849,14 @@ INITERS['page-numbers'] = function(panel){
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
     <div class="field"><label>Position</label>
-      <select id="pnPos"><option value="bottom-center">Bottom center</option><option value="bottom-right">Bottom right</option><option value="top-center">Top center</option></select>
-    </div>
+      <select id="pnPos"><option value="bottom-center">Bottom center</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option><option value="top-center">Top center</option><option value="top-left">Top left</option><option value="top-right">Top right</option></select></div>
+    <div class="field"><label>Format</label>
+      <select id="pnFmt"><option value="arabic">1, 2, 3...</option><option value="roman">I, II, III...</option><option value="letters">A, B, C...</option></select></div>
     <div class="field"><label>Start number</label><input id="pnStart" type="number" value="1" /></div>
     <div class="field"><label>Font size</label><input id="pnSize" type="number" value="12" /></div>
-    <div class="field"><label>Prefix</label><input id="pnPrefix" placeholder="Page " /></div>`;
+    <div class="field"><label>Color</label><select id="pnColor"><option value="0,0,0">Black</option><option value="0.3,0.3,0.3">Gray</option><option value="0.8,0,0">Red</option><option value="0,0,0.7">Blue</option></select></div>
+    <div class="field"><label>Prefix</label><input id="pnPrefix" placeholder="Page " /></div>
+    <div class="field"><label>Pages (blank = all)</label><input id="pnPages" placeholder="1,3,5-7" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-list-ol"></i> Add page numbers';
@@ -854,18 +872,30 @@ INITERS['page-numbers'] = function(panel){
       const size=parseInt(panel.querySelector('#pnSize').value)||12;
       const prefix=panel.querySelector('#pnPrefix').value;
       const pos=panel.querySelector('#pnPos').value;
+      const fmt=panel.querySelector('#pnFmt').value;
+      const col=panel.querySelector('#pnColor').value.split(',').map(Number);
+      const pagesInput=panel.querySelector('#pnPages').value.trim();
       const total=doc.getPageCount();
-      for(let i=0;i<total;i++){
+      const targets=pagesInput?parseRanges(pagesInput,total).flat().map(n=>n-1):[...Array(total).keys()];
+      const toRoman=n=>{const r=['','I','II','III','IV','V','VI','VII','VIII','IX','X'];return r[n]||(n+'');};
+      const toLetters=n=>String.fromCharCode(64+((n-1)%26)+1);
+      for(const [k,i] of targets.entries()){
         const page=doc.getPage(i);
         const {width,height}=page.getSize();
-        const text=prefix+(start+i);
+        const num=start+k;
+        const label=fmt==='roman'?toRoman(num):fmt==='letters'?toLetters(num):String(num);
+        const text=prefix+label;
         const tw=font.widthOfTextAtSize(text,size);
+        const margin=24;
         let x,y;
-        if(pos==='bottom-center'){x=(width-tw)/2;y=24;}
-        else if(pos==='bottom-right'){x=width-tw-24;y=24;}
-        else {x=(width-tw)/2;y=height-30;}
-        page.drawText(text,{x,y,size,font,color:rgb(0,0,0)});
-        setProgress(panel,(i+1)/total*100);
+        if(pos==='bottom-center'){x=(width-tw)/2;y=margin;}
+        else if(pos==='bottom-left'){x=margin;y=margin;}
+        else if(pos==='bottom-right'){x=width-tw-margin;y=margin;}
+        else if(pos==='top-center'){x=(width-tw)/2;y=height-size-margin;}
+        else if(pos==='top-left'){x=margin;y=height-size-margin;}
+        else {x=width-tw-margin;y=height-size-margin;}
+        page.drawText(text,{x,y,size,font,color:rgb(col[0],col[1],col[2])});
+        setProgress(panel,(k+1)/targets.length*100);
       }
       const out=await doc.save();
       offerDownload(panel, new Blob([out],{type:'application/pdf'}),'numbered.pdf');
@@ -889,8 +919,11 @@ INITERS.watermark = function(panel){
   opts.innerHTML=`
     <div class="field"><label>Text</label><input id="wmText" value="CONFIDENTIAL" /></div>
     <div class="field"><label>Font size</label><input id="wmSize" type="number" value="48" /></div>
+    <div class="field"><label>Color</label><select id="wmColor"><option value="0.5,0.5,0.5">Gray</option><option value="0.8,0,0">Red</option><option value="0,0,0.7">Blue</option><option value="0,0,0">Black</option></select></div>
     <div class="field"><label>Opacity (0-1)</label><input id="wmOpacity" type="number" step="0.1" value="0.3" /></div>
-    <div class="field"><label>Rotation</label><input id="wmRot" type="number" value="45" /></div>`;
+    <div class="field"><label>Rotation</label><input id="wmRot" type="number" value="45" /></div>
+    <div class="field"><label>Layer</label><select id="wmLayer"><option value="over">Over content</option><option value="under">Under content</option></select></div>
+    <div class="field"><label>Pages (blank = all)</label><input id="wmPages" placeholder="1,3,5-7" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-droplet"></i> Add watermark';
@@ -906,13 +939,16 @@ INITERS.watermark = function(panel){
       const size=parseInt(panel.querySelector('#wmSize').value)||48;
       const opacity=parseFloat(panel.querySelector('#wmOpacity').value)||0.3;
       const rot=parseInt(panel.querySelector('#wmRot').value)||45;
+      const col=panel.querySelector('#wmColor').value.split(',').map(Number);
+      const pagesInput=panel.querySelector('#wmPages').value.trim();
       const total=doc.getPageCount();
-      for(let i=0;i<total;i++){
+      const targets=pagesInput?parseRanges(pagesInput,total).flat().map(n=>n-1):[...Array(total).keys()];
+      for(const [k,i] of targets.entries()){
         const page=doc.getPage(i);
         const {width,height}=page.getSize();
         const tw=font.widthOfTextAtSize(text,size);
-        page.drawText(text,{x:(width-tw)/2,y:height/2,size,font,color:rgb(0.5,0.5,0.5),opacity,rotate:degrees(rot)});
-        setProgress(panel,(i+1)/total*100);
+        page.drawText(text,{x:(width-tw)/2,y:height/2,size,font,color:rgb(col[0],col[1],col[2]),opacity,rotate:degrees(rot)});
+        setProgress(panel,(k+1)/targets.length*100);
       }
       const out=await doc.save();
       offerDownload(panel, new Blob([out],{type:'application/pdf'}),'watermarked.pdf');
