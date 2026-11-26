@@ -1580,6 +1580,12 @@ INITERS['word-to-pdf'] = function(panel){
   panel.insertBefore(list,panel.querySelector('.status'));
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML=`
+    <div class="field"><label>Page size</label><select id="w2pSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select></div>
+    <div class="field"><label>Orientation</label><select id="w2pOri"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div>
+    <div class="field"><label>Margin (pt)</label><input id="w2pMargin" type="number" value="10" min="0" max="60" /></div>`;
+  panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
   btn.addEventListener('click', async()=>{
@@ -1589,7 +1595,10 @@ INITERS['word-to-pdf'] = function(panel){
       const ab=new Uint8Array(await files[0].arrayBuffer());
       await ensureLib('mammoth'); await ensureLib('html2pdf');
       const result=await mammoth.convertToHtml({arrayBuffer:ab});
-      const opt={margin:10, filename:'converted.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'pt',format:'a4',orientation:'portrait'}};
+      const pageSize=panel.querySelector('#w2pSize').value;
+      const orient=panel.querySelector('#w2pOri').value;
+      const margin=parseInt(panel.querySelector('#w2pMargin').value)||10;
+      const opt={margin, filename:'converted.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'pt',format:pageSize,orientation:orient}};
       await html2pdf().set(opt).from(result.value).save();
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
@@ -1607,6 +1616,12 @@ INITERS['excel-to-pdf'] = function(panel){
   panel.insertBefore(list,panel.querySelector('.status'));
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML=`
+    <div class="field"><label>Page size</label><select id="e2pSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select></div>
+    <div class="field"><label>Orientation</label><select id="e2pOri"><option value="landscape" selected>Landscape</option><option value="portrait">Portrait</option></select></div>
+    <div class="field"><label>Margin (pt)</label><input id="e2pMargin" type="number" value="10" min="0" max="60" /></div>`;
+  panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
   btn.addEventListener('click', async()=>{
@@ -1618,7 +1633,10 @@ INITERS['excel-to-pdf'] = function(panel){
       const wb=XLSX.read(ab,{type:'array'});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const html=XLSX.utils.sheet_to_html(ws);
-      const opt={margin:10, filename:'converted.pdf', html2canvas:{scale:2}, jsPDF:{unit:'pt',format:'a4',orientation:'landscape'}};
+      const pageSize=panel.querySelector('#e2pSize').value;
+      const orient=panel.querySelector('#e2pOri').value;
+      const margin=parseInt(panel.querySelector('#e2pMargin').value)||10;
+      const opt={margin, filename:'converted.pdf', html2canvas:{scale:2}, jsPDF:{unit:'pt',format:pageSize,orientation:orient}};
       await ensureLib('html2pdf');
       await html2pdf().set(opt).from(html).save();
       setStatus(panel,'Converted!','success');
@@ -1698,7 +1716,10 @@ async function pptxFallbackPdf(bytes){
 /* ---------- HTML TO PDF ---------- */
 INITERS['html-to-pdf'] = function(panel){
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML=`<div class="field" style="grid-column:1/-1"><label>HTML content</label><textarea id="htmlIn" style="width:100%;min-height:160px;padding:10px;border:1px solid var(--border);border-radius:10px"></textarea></div>`;
+  opts.innerHTML=`
+    <div class="field" style="grid-column:1/-1"><label>HTML content</label><textarea id="htmlIn" style="width:100%;min-height:160px;padding:10px;border:1px solid var(--border);border-radius:10px"></textarea></div>
+    <div class="field"><label>Page size</label><select id="h2pSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select></div>
+    <div class="field"><label>Margin (pt)</label><input id="h2pMargin" type="number" value="10" min="0" max="60" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
@@ -1707,7 +1728,9 @@ INITERS['html-to-pdf'] = function(panel){
     if(!html){setStatus(panel,'Enter HTML first.','error');return;}
     try{
       showProgress(panel,true);
-      const opt={margin:10, filename:'converted.pdf', html2canvas:{scale:2}, jsPDF:{unit:'pt',format:'a4'}};
+      const pageSize=panel.querySelector('#h2pSize').value;
+      const margin=parseInt(panel.querySelector('#h2pMargin').value)||10;
+      const opt={margin, filename:'converted.pdf', html2canvas:{scale:2}, jsPDF:{unit:'pt',format:pageSize}};
       await ensureLib('html2pdf');
       await html2pdf().set(opt).from(html).save();
       setStatus(panel,'Converted!','success');
