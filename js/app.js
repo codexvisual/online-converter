@@ -1,11 +1,11 @@
 /* Online Converter app */
 
-const CATEGORIES = ['Merge & Split','Compress','Convert from PDF','Convert to PDF','Edit','Security','Organize'];
+const CATEGORIES = ['Organize PDF','Optimize PDF','Convert to PDF','Convert from PDF','Edit PDF','PDF Security'];
 
 const TOOLS = [
-  {id:'merge',name:'Merge PDF',desc:'Combine PDFs in the order you want.',icon:'fa-object-group',cat:'Merge & Split',impl:true},
-  {id:'split',name:'Split PDF',desc:'Separate one page or a whole set for easy conversion.',icon:'fa-scissors',cat:'Merge & Split',impl:true},
-  {id:'compress',name:'Compress PDF',desc:'Reduce file size while optimizing for maximal quality.',icon:'fa-compress',cat:'Compress',impl:true},
+  {id:'merge',name:'Merge PDF',desc:'Combine PDFs in the order you want.',icon:'fa-object-group',cat:'Organize PDF',impl:true},
+  {id:'split',name:'Split PDF',desc:'Separate one page or a whole set for easy conversion.',icon:'fa-scissors',cat:'Organize PDF',impl:true},
+  {id:'compress',name:'Compress PDF',desc:'Reduce file size while optimizing for maximal quality.',icon:'fa-compress',cat:'Optimize PDF',impl:true},
   {id:'pdf-to-word',name:'PDF to Word',desc:'Convert PDFs to editable DOCX documents.',icon:'fa-file-word',cat:'Convert from PDF',impl:true},
   {id:'pdf-to-excel',name:'PDF to Excel',desc:'Convert PDFs to XLSX spreadsheets.',icon:'fa-file-excel',cat:'Convert from PDF',impl:true},
   {id:'pdf-to-ppt',name:'PDF to PowerPoint',desc:'Convert PDFs to PPTX slides.',icon:'fa-file-powerpoint',cat:'Convert from PDF',impl:true},
@@ -18,17 +18,17 @@ const TOOLS = [
   {id:'jpg-to-pdf',name:'JPG to PDF',desc:'Convert images to PDF.',icon:'fa-image',cat:'Convert to PDF',impl:true},
   {id:'html-to-pdf',name:'HTML to PDF',desc:'Convert web pages to PDF.',icon:'fa-code',cat:'Convert to PDF',impl:true},
   {id:'scan-to-pdf',name:'Scan to PDF',desc:'Capture scans and save as PDF.',icon:'fa-camera',cat:'Convert to PDF',impl:true},
-  {id:'edit',name:'Edit PDF',desc:'Add text, images and shapes to your PDF.',icon:'fa-pen-to-square',cat:'Edit',impl:true},
-  {id:'rotate',name:'Rotate PDF',desc:'Rotate PDF pages.',icon:'fa-rotate',cat:'Edit',impl:true},
-  {id:'page-numbers',name:'Page numbers',desc:'Add page numbers to PDFs.',icon:'fa-list-ol',cat:'Edit',impl:true},
-  {id:'watermark',name:'Watermark',desc:'Stamp text or image over PDF pages.',icon:'fa-droplet',cat:'Edit',impl:true},
-  {id:'crop',name:'Crop PDF',desc:'Crop PDF pages.',icon:'fa-crop',cat:'Edit',impl:true},
-  {id:'sign',name:'Sign PDF',desc:'Sign PDF documents.',icon:'fa-signature',cat:'Edit',impl:true},
-  {id:'unlock',name:'Unlock PDF',desc:'Remove PDF password.',icon:'fa-lock-open',cat:'Security',impl:true},
-  {id:'protect',name:'Protect PDF',desc:'Encrypt PDF with a password.',icon:'fa-lock',cat:'Security',impl:true},
-  {id:'organize',name:'Organize PDF',desc:'Sort, delete and rotate pages.',icon:'fa-layer-group',cat:'Organize',impl:true},
-  {id:'repair',name:'Repair PDF',desc:'Recover data from damaged PDF.',icon:'fa-wrench',cat:'Organize',impl:true},
-  {id:'compare',name:'Compare PDF',desc:'Show differences between two PDFs.',icon:'fa-code-compare',cat:'Organize',impl:true},
+  {id:'edit',name:'Edit PDF',desc:'Add text, images and shapes to your PDF.',icon:'fa-pen-to-square',cat:'Edit PDF',impl:true},
+  {id:'rotate',name:'Rotate PDF',desc:'Rotate PDF pages.',icon:'fa-rotate',cat:'Edit PDF',impl:true},
+  {id:'page-numbers',name:'Page numbers',desc:'Add page numbers to PDFs.',icon:'fa-list-ol',cat:'Edit PDF',impl:true},
+  {id:'watermark',name:'Watermark',desc:'Stamp text or image over PDF pages.',icon:'fa-droplet',cat:'Edit PDF',impl:true},
+  {id:'crop',name:'Crop PDF',desc:'Crop PDF pages.',icon:'fa-crop',cat:'Edit PDF',impl:true},
+  {id:'sign',name:'Sign PDF',desc:'Sign PDF documents.',icon:'fa-signature',cat:'Edit PDF',impl:true},
+  {id:'unlock',name:'Unlock PDF',desc:'Remove PDF password.',icon:'fa-lock-open',cat:'PDF Security',impl:true},
+  {id:'protect',name:'Protect PDF',desc:'Encrypt PDF with a password.',icon:'fa-lock',cat:'PDF Security',impl:true},
+  {id:'organize',name:'Organize PDF',desc:'Sort, delete and rotate pages.',icon:'fa-layer-group',cat:'Organize PDF',impl:true},
+  {id:'repair',name:'Repair PDF',desc:'Recover data from damaged PDF.',icon:'fa-wrench',cat:'Organize PDF',impl:true},
+  {id:'compare',name:'Compare PDF',desc:'Show differences between two PDFs.',icon:'fa-code-compare',cat:'Organize PDF',impl:true},
 ];
 
 function $(sel,root=document){return root.querySelector(sel);}
@@ -317,11 +317,11 @@ function renderHome(root){
   filters.className='tool-filters container';
   const tags=[
     {key:'all',label:'All',cats:null},
-    {key:'organize',label:'Organize PDF',cats:['Merge & Split','Organize']},
-    {key:'optimize',label:'Optimize PDF',cats:['Compress']},
+    {key:'organize',label:'Organize PDF',cats:['Organize PDF']},
+    {key:'optimize',label:'Optimize PDF',cats:['Optimize PDF']},
     {key:'convert',label:'Convert PDF',cats:['Convert from PDF','Convert to PDF']},
-    {key:'edit',label:'Edit PDF',cats:['Edit']},
-    {key:'security',label:'PDF Security',cats:['Security']}
+    {key:'edit',label:'Edit PDF',cats:['Edit PDF']},
+    {key:'security',label:'PDF Security',cats:['PDF Security']}
   ];
   tags.forEach((t,i)=>{
     const b=document.createElement('button');

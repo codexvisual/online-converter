@@ -99,7 +99,7 @@ a{color:inherit;text-decoration:none}
 .tool-tag.active{background:#33333b;color:#fff;border-color:#33333b}
 .section{padding:8px 0 56px}
 .section h2{font-size:22px;margin:0 0 16px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,180px);gap:14px;justify-content:center;align-content:start}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,240px);gap:16px;justify-content:center;align-content:start}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 14px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:11px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
 .card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--red)}
 .card .icon{width:52px;height:52px;border-radius:14px;background:#fdecea;color:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px}
