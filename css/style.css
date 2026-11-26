@@ -334,3 +334,45 @@ body.is-dragging-card *{cursor:grabbing !important}
   .footer-grid{grid-template-columns:1fr}
   .footer-bottom{flex-direction:column;align-items:flex-start}
 }
+@media (max-width:640px){
+  .container{padding:0 14px}
+  .topbar-inner,.nav-wrap{height:58px}
+  .header{height:58px}
+  body{padding-top:58px}
+  .hero{padding:44px 0 20px}
+  .hero h1{font-size:26px}
+  .hero p{font-size:15px}
+  .options{grid-template-columns:1fr;gap:10px}
+  .field label{font-size:12px}
+  .field input,.field select,.field textarea{font-size:15px;padding:11px 12px}
+  .actions{flex-direction:column}
+  .actions .btn{width:100%;justify-content:center}
+  .panel{padding:14px}
+  .tool-page{padding:20px 0 40px}
+  .tool-header{flex-direction:column;align-items:flex-start;gap:10px}
+  .tool-header h1{font-size:22px}
+  .tool-header .icon{width:46px;height:46px;font-size:22px}
+  .file-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .file-thumb{height:140px}
+  .file-remove{opacity:1}
+  .rotate-body{flex-direction:column;gap:18px}
+  .rotate-stage{width:200px;height:200px}
+  .rotate-dial{width:120px;height:120px}
+  .pdf-editor__bar{flex-direction:column;align-items:stretch}
+  .pdf-editor__nav,.pdf-editor__tools{justify-content:center}
+  .pdf-editor__stage{overflow-x:auto}
+  .compare-drop{grid-template-columns:1fr}
+  .compare-row{grid-template-columns:1fr}
+  .form-fields{grid-template-columns:1fr}
+  .perm-grid{grid-template-columns:1fr}
+  .sig-studio{padding:12px}
+  .translate-preview textarea{font-size:14px}
+  .redact-box{border-width:2px}
+  .btn,.btn-primary,.btn-ghost{min-height:42px;padding:10px 14px}
+  .menu.open .menu-main{top:58px;max-height:calc(100vh - 58px)}
+  .nav-dropdown--full{top:58px}
+  .footer-main{padding:36px 0 20px}
+  .footer-grid{gap:18px}
+  .tool-filters{gap:8px;padding:0 14px 8px}
+  .tool-tag{padding:7px 12px;font-size:12px}
+}

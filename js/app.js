@@ -917,48 +917,107 @@ INITERS.watermark = function(panel){
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>Text</label><input id="wmText" value="CONFIDENTIAL" /></div>
+    <div class="field"><label>Type</label>
+      <select id="wmType"><option value="text">Text</option><option value="image">Image</option></select></div>
+    <div class="field" id="wmTextWrap"><label>Text</label><input id="wmText" value="CONFIDENTIAL" /></div>
+    <div class="field" id="wmImgWrap" hidden><label>Image</label><input id="wmImg" type="file" accept="image/*" /></div>
+    <div class="field"><label>Position</label>
+      <select id="wmPos"><option value="center">Center</option><option value="top-left">Top left</option><option value="top-center">Top center</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-center">Bottom center</option><option value="bottom-right">Bottom right</option><option value="tile">Tile (repeat)</option></select></div>
     <div class="field"><label>Font size</label><input id="wmSize" type="number" value="48" /></div>
+    <div class="field"><label>Scale (image)</label><input id="wmScale" type="number" step="0.1" value="0.3" /></div>
     <div class="field"><label>Color</label><select id="wmColor"><option value="0.5,0.5,0.5">Gray</option><option value="0.8,0,0">Red</option><option value="0,0,0.7">Blue</option><option value="0,0,0">Black</option></select></div>
     <div class="field"><label>Opacity (0-1)</label><input id="wmOpacity" type="number" step="0.1" value="0.3" /></div>
     <div class="field"><label>Rotation</label><input id="wmRot" type="number" value="45" /></div>
     <div class="field"><label>Layer</label><select id="wmLayer"><option value="over">Over content</option><option value="under">Under content</option></select></div>
     <div class="field"><label>Pages (blank = all)</label><input id="wmPages" placeholder="1,3,5-7" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
+  const typeSel=opts.querySelector('#wmType');
+  typeSel.addEventListener('change',()=>{
+    opts.querySelector('#wmTextWrap').hidden=typeSel.value!=='text';
+    opts.querySelector('#wmImgWrap').hidden=typeSel.value!=='image';
+  });
+
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-droplet"></i> Add watermark';
   btn.addEventListener('click', async()=>{
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    const type=opts.querySelector('#wmType').value;
+    if(type==='text' && !opts.querySelector('#wmText').value.trim()){setStatus(panel,'Enter watermark text.','error');return;}
+    if(type==='image' && !opts.querySelector('#wmImg').files[0]){setStatus(panel,'Select an image.','error');return;}
     try{
       showProgress(panel,true);
       const {PDFDocument,StandardFonts,rgb,degrees}=PDFLib;
       const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
       const font=await doc.embedFont(StandardFonts.HelveticaBold);
-      const text=panel.querySelector('#wmText').value||'WATERMARK';
-      const size=parseInt(panel.querySelector('#wmSize').value)||48;
-      const opacity=parseFloat(panel.querySelector('#wmOpacity').value)||0.3;
-      const rot=parseInt(panel.querySelector('#wmRot').value)||45;
-      const col=panel.querySelector('#wmColor').value.split(',').map(Number);
-      const pagesInput=panel.querySelector('#wmPages').value.trim();
+      const text=opts.querySelector('#wmText').value||'WATERMARK';
+      const size=parseInt(opts.querySelector('#wmSize').value)||48;
+      const opacity=parseFloat(opts.querySelector('#wmOpacity').value)||0.3;
+      const rot=parseInt(opts.querySelector('#wmRot').value)||45;
+      const col=opts.querySelector('#wmColor').value.split(',').map(Number);
+      const pos=opts.querySelector('#wmPos').value;
+      const layer=opts.querySelector('#wmLayer').value;
+      const pagesInput=opts.querySelector('#wmPages').value.trim();
       const total=doc.getPageCount();
       const targets=pagesInput?parseRanges(pagesInput,total).flat().map(n=>n-1):[...Array(total).keys()];
+
+      let img=null;
+      if(type==='image'){
+        const f=opts.querySelector('#wmImg').files[0];
+        const ib=new Uint8Array(await f.arrayBuffer());
+        if(f.type==='image/png') img=await doc.embedPng(ib); else img=await doc.embedJpg(ib);
+      }
+
       for(const [k,i] of targets.entries()){
         const page=doc.getPage(i);
         const {width,height}=page.getSize();
-        const tw=font.widthOfTextAtSize(text,size);
-        page.drawText(text,{x:(width-tw)/2,y:height/2,size,font,color:rgb(col[0],col[1],col[2]),opacity,rotate:degrees(rot)});
+        if(img){
+          const sc=parseFloat(opts.querySelector('#wmScale').value)||0.3;
+          const dims=img.scale(sc);
+          const positions=calcPositions(pos,width,height,dims.width,dims.height);
+          for(const [x,y] of positions){
+            page.drawImage(img,{x,y,width:dims.width,height:dims.height,opacity});
+          }
+        } else {
+          const tw=font.widthOfTextAtSize(text,size);
+          const positions=calcPositions(pos,width,height,tw,size);
+          for(const [x,y] of positions){
+            page.drawText(text,{x,y,size,font,color:rgb(col[0],col[1],col[2]),opacity,rotate:degrees(rot)});
+          }
+        }
         setProgress(panel,(k+1)/targets.length*100);
       }
       const out=await doc.save();
       offerDownload(panel, new Blob([out],{type:'application/pdf'}),'watermarked.pdf');
-      setStatus(panel,'Done!','success');
+      setStatus(panel,'Watermark added to '+targets.length+' page(s)!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
   actions.appendChild(btn);
   panel.insertBefore(actions,panel.querySelector('.status'));
 };
+
+function calcPositions(pos,pw,ph,w,h){
+  const m=24;
+  if(pos==='tile'){
+    const out=[];
+    for(let x=m;x<pw-m;x+=Math.max(w+40,80)){
+      for(let y=m;y<ph-m;y+=Math.max(h+40,60)){
+        out.push([x,y]);
+      }
+    }
+    return out;
+  }
+  let x,y;
+  if(pos==='top-left'){x=m;y=ph-h-m;}
+  else if(pos==='top-center'){x=(pw-w)/2;y=ph-h-m;}
+  else if(pos==='top-right'){x=pw-w-m;y=ph-h-m;}
+  else if(pos==='bottom-left'){x=m;y=m;}
+  else if(pos==='bottom-center'){x=(pw-w)/2;y=m;}
+  else if(pos==='bottom-right'){x=pw-w-m;y=m;}
+  else {x=(pw-w)/2;y=(ph-h)/2;}
+  return [[x,y]];
+}
 
 /* ---------- PROTECT ---------- */
 INITERS.protect = async function(panel){
