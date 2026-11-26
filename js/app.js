@@ -610,19 +610,49 @@ INITERS.compress = function(panel){
   panel.insertBefore(list,panel.querySelector('.status'));
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML=`
+    <div class="field"><label>Compression level</label>
+      <select id="compLvl"><option value="recommended">Recommended (good quality)</option><option value="extreme">Extreme (smallest size)</option><option value="less">Less (keep quality)</option></select></div>
+    <div class="field"><label>Image quality</label>
+      <select id="compQ"><option value="auto">Auto by level</option><option value="0.85">High</option><option value="0.7">Medium</option><option value="0.5">Low</option></select></div>`;
+  panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-compress"></i> Compress PDF';
   btn.addEventListener('click', async()=>{
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
     try{
       showProgress(panel,true);
+      const level=panel.querySelector('#compLvl').value;
+      const qSel=panel.querySelector('#compQ').value;
       const {PDFDocument}=PDFLib;
       const bytes=new Uint8Array(await files[0].arrayBuffer());
       const orig=bytes.byteLength;
-      const doc=await PDFDocument.load(bytes);
-      const out=await doc.save({useObjectStreams:true});
+      let out;
+      if(level==='less'){
+        const doc=await PDFDocument.load(bytes);
+        out=await doc.save({useObjectStreams:true});
+      } else {
+        const q=qSel==='auto'?(level==='extreme'?0.55:0.75):(parseFloat(qSel)||0.75);
+        const sc=level==='extreme'?1.1:1.35;
+        const pdf=await pdfjsLib.getDocument({data:bytes,useWorkerFetch:false,isEvalSupported:false}).promise;
+        const doc=await PDFDocument.create();
+        for(let n=1;n<=pdf.numPages;n++){
+          const page=await pdf.getPage(n);
+          const vp=page.getViewport({scale:sc});
+          const canvas=document.createElement('canvas');
+          canvas.width=vp.width; canvas.height=vp.height;
+          await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+          const blob=await new Promise(res=>canvas.toBlob(res,'image/jpeg',q));
+          const img=await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+          const p=doc.addPage([vp.width,vp.height]);
+          p.drawImage(img,{x:0,y:0,width:vp.width,height:vp.height});
+          setProgress(panel,n/pdf.numPages*95);
+        }
+        out=await doc.save({useObjectStreams:true});
+      }
       offerDownload(panel, new Blob([out],{type:'application/pdf'}),'compressed.pdf');
-      setStatus(panel,`Done. Original ${formatBytes(orig)} → ${formatBytes(out.byteLength)}.`,'success');
+      setStatus(panel,`Done. Original ${formatBytes(orig)} → ${formatBytes(out.byteLength)} (${Math.round((1-out.byteLength/orig)*100)}% smaller).`,'success');
       setProgress(panel,100);
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -1018,7 +1048,11 @@ INITERS['pdf-to-jpg'] = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML=`<div class="field"><label>Scale</label><input id="jpgScale" type="number" step="0.5" value="2" /></div>`;
+  opts.innerHTML=`
+    <div class="field"><label>Format</label><select id="jpgFmt"><option value="jpeg">JPG</option><option value="png">PNG</option></select></div>
+    <div class="field"><label>Quality</label><select id="jpgQ"><option value="0.95">High</option><option value="0.85">Medium</option><option value="0.7">Low</option></select></div>
+    <div class="field"><label>Scale (DPI)</label><select id="jpgScale"><option value="1">1x (72 dpi)</option><option value="1.5">1.5x</option><option value="2" selected>2x (144 dpi)</option><option value="3">3x (216 dpi)</option><option value="4">4x (288 dpi)</option></select></div>
+    <div class="field"><label>Pages (blank = all)</label><input id="jpgPages" placeholder="1,3,5-7" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-image"></i> Convert to JPG';
@@ -1026,24 +1060,30 @@ INITERS['pdf-to-jpg'] = function(panel){
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
     try{
       showProgress(panel,true);
+      const fmt=panel.querySelector('#jpgFmt').value;
+      const q=parseFloat(panel.querySelector('#jpgQ').value)||0.92;
       const scale=parseFloat(panel.querySelector('#jpgScale').value)||2;
+      const mime=fmt==='png'?'image/png':'image/jpeg';
+      const ext=fmt==='png'?'png':'jpg';
       const bytes=new Uint8Array(await files[0].arrayBuffer());
-      const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+      const pdf=await pdfjsLib.getDocument({data:bytes,useWorkerFetch:false,isEvalSupported:false}).promise;
+      const total=pdf.numPages;
+      const raw=panel.querySelector('#jpgPages').value.trim();
+      const targets=raw?parseRanges(raw,total).flat().map(n=>n-1):[...Array(total).keys()];
       const zip=new JSZip();
       let singleBlob=null;
-      for(let i=1;i<=pdf.numPages;i++){
-        const page=await pdf.getPage(i);
+      for(const [k,i] of targets.entries()){
+        const page=await pdf.getPage(i+1);
         const viewport=page.getViewport({scale});
         const canvas=document.createElement('canvas');
         canvas.width=viewport.width; canvas.height=viewport.height;
-        const ctx=canvas.getContext('2d');
-        await page.render({canvasContext:ctx,viewport}).promise;
-        const blob=await new Promise(res=>canvas.toBlob(res,'image/jpeg',0.92));
-        if(pdf.numPages===1) singleBlob=blob;
-        else zip.file(`page_${i}.jpg`,blob);
-        setProgress(panel,i/pdf.numPages*100);
+        await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+        const blob=await new Promise(res=>canvas.toBlob(res,mime,fmt==='png'?undefined:q));
+        if(targets.length===1) singleBlob=blob;
+        else zip.file(`page_${i+1}.${ext}`,blob);
+        setProgress(panel,(k+1)/targets.length*100);
       }
-      if(singleBlob) offerDownload(panel, singleBlob,'page_1.jpg');
+      if(singleBlob) offerDownload(panel, singleBlob,`page_1.${ext}`);
       else { const b=await zip.generateAsync({type:'blob'}); offerDownload(panel, b,'pdf_pages.zip'); }
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
