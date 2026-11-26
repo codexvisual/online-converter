@@ -12,10 +12,17 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Online Converter" />
 <meta name="description" content="Online Converter: merge, split, compress, convert, edit and secure PDF files in your browser. 100% free, private and offline-capable." />
-<script>try{var t=localStorage.getItem('oc-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Online Converter" />
+<meta property="og:title" content="Online Converter — Free PDF Toolkit" />
+<meta property="og:description" content="Every tool you need to work with PDFs in one place. 42 free tools, all processed in your browser." />
+<meta property="og:url" content="https://codexvisual.github.io/online-converter/" />
+<meta property="og:image" content="https://codexvisual.github.io/online-converter/assets/icon-512.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="canonical" href="https://codexvisual.github.io/online-converter/" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Online Converter","description":"Free browser-based PDF toolkit with 42 tools.","url":"https://codexvisual.github.io/online-converter/","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Organization","name":"Filofa Technology","url":"https://filofa.com"}}</script>
+<script>try{var t=localStorage.getItem('oc-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');var l=localStorage.getItem('oc-lang');document.documentElement.setAttribute('lang',l||'en');document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');}catch(e){}</script>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/fontawesome/css/all.min.css" />
 <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -28,14 +35,14 @@
 
       <div class="menu">
         <button class="menu-sm" id="menuBtn" aria-label="Open menu">
-          All PDF tools <i class="fa-solid fa-chevron-down"></i>
+          <span data-i18n="nav_all">All PDF tools</span> <i class="fa-solid fa-chevron-down"></i>
         </button>
         <ul class="menu-main">
-          <li><a class="nav-link nav-link--direct" href="#/tool/merge">Merge PDF</a></li>
-          <li><a class="nav-link nav-link--direct" href="#/tool/split">Split PDF</a></li>
-          <li><a class="nav-link nav-link--direct" href="#/tool/compress">Compress PDF</a></li>
+          <li><a class="nav-link nav-link--direct" href="#/tool/merge" data-i18n="nav_merge">Merge PDF</a></li>
+          <li><a class="nav-link nav-link--direct" href="#/tool/split" data-i18n="nav_split">Split PDF</a></li>
+          <li><a class="nav-link nav-link--direct" href="#/tool/compress" data-i18n="nav_compress">Compress PDF</a></li>
           <li class="nav-has-dropdown">
-            <button class="nav-link">Convert PDF <i class="fa-solid fa-chevron-down"></i></button>
+            <button class="nav-link"><span data-i18n="nav_convert">Convert PDF</span> <i class="fa-solid fa-chevron-down"></i></button>
             <div class="nav-dropdown nav-dropdown--convert">
               <ul class="nav-col">
                 <li class="nav__title">Convert to PDF</li>
@@ -65,7 +72,7 @@
             </div>
           </li>
           <li class="nav-has-dropdown nav-has-dropdown--full">
-            <button class="nav-link">All PDF tools <i class="fa-solid fa-chevron-down"></i></button>
+            <button class="nav-link"><span data-i18n="nav_all">All PDF tools</span> <i class="fa-solid fa-chevron-down"></i></button>
             <div class="nav-dropdown nav-dropdown--full">
               <ul class="nav-col">
                 <li class="nav__title">Organize PDF</li>
@@ -82,6 +89,7 @@
               <ul class="nav-col">
                 <li class="nav__title">Optimize PDF</li>
                 <li><a href="#/tool/compress"><i class="fa-solid fa-compress"></i>Compress PDF</a></li>
+                <li><a href="#/tool/batch"><i class="fa-solid fa-layer-group"></i>Batch process</a></li>
                 <li><a href="#/tool/repair"><i class="fa-solid fa-wrench"></i>Repair PDF</a></li>
               </ul>
               <ul class="nav-col">
@@ -144,8 +152,8 @@
       <div class="nav-actions">
         <button class="icon-btn hide-sm" id="installBtn" aria-label="Install app" title="Install app" style="display:none"><i class="fa-solid fa-download"></i></button>
         <button class="icon-btn theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode"><i class="fa-solid fa-moon"></i></button>
-        <a href="#/login" class="link-secondary hide-sm">Login</a>
-        <a href="#/register" class="btn btn-sm hide-sm">Sign up</a>
+        <a href="#/login" class="link-secondary hide-sm" data-i18n="nav_login">Login</a>
+        <a href="#/register" class="btn btn-sm hide-sm" data-i18n="nav_signup">Sign up</a>
         <div class="nav-more nav-has-dropdown">
           <button class="more-btn" aria-label="More"><i class="fa-solid fa-th"></i></button>
           <div class="nav-dropdown nav-dropdown--more apps-menu">
@@ -178,17 +186,17 @@
       <div class="container">
         <div class="footer-grid">
           <div class="footer-col">
-            <div class="footer-title">Product</div>
+            <div class="footer-title" data-i18n="footer_product">Product</div>
             <ul class="footer-nav">
-              <li><a href="#/">Home</a></li>
+              <li><a href="#/" data-i18n="footer_home">Home</a></li>
               <li><a href="#/tools">All PDF tools</a></li>
-              <li><a href="#/features">Features</a></li>
-              <li><a href="#/pricing">Pricing</a></li>
-              <li><a href="#/faq">FAQ</a></li>
+              <li><a href="#/features" data-i18n="footer_features">Features</a></li>
+              <li><a href="#/pricing" data-i18n="footer_pricing">Pricing</a></li>
+              <li><a href="#/faq" data-i18n="footer_faq">FAQ</a></li>
             </ul>
           </div>
           <div class="footer-col">
-            <div class="footer-title">Resources</div>
+            <div class="footer-title" data-i18n="footer_resources">Resources</div>
             <ul class="footer-nav">
               <li><a href="#/tool/pdf-to-word">PDF to Word</a></li>
               <li><a href="#/tool/pdf-to-excel">PDF to Excel</a></li>
@@ -198,44 +206,52 @@
             </ul>
           </div>
           <div class="footer-col">
-            <div class="footer-title">Solutions</div>
+            <div class="footer-title" data-i18n="footer_solutions">Solutions</div>
             <ul class="footer-nav">
-              <li><a href="#/about">Business</a></li>
-              <li><a href="#/about">Education</a></li>
-              <li><a href="#/about">Developers</a></li>
-              <li><a href="#/about">Integrations</a></li>
+              <li><a href="#/about" data-i18n="footer_business">Business</a></li>
+              <li><a href="#/about" data-i18n="footer_education">Education</a></li>
+              <li><a href="#/about" data-i18n="footer_developers">Developers</a></li>
+              <li><a href="#/about" data-i18n="footer_integrations">Integrations</a></li>
             </ul>
           </div>
           <div class="footer-col">
-            <div class="footer-title">Legal</div>
+            <div class="footer-title" data-i18n="footer_legal">Legal</div>
             <ul class="footer-nav">
-              <li><a href="#/privacy">Security</a></li>
-              <li><a href="#/privacy">Privacy policy</a></li>
-              <li><a href="#/terms">Terms &amp; conditions</a></li>
-              <li><a href="#/privacy">Cookies</a></li>
+              <li><a href="#/privacy" data-i18n="footer_security">Security</a></li>
+              <li><a href="#/privacy" data-i18n="footer_privacy">Privacy policy</a></li>
+              <li><a href="#/terms" data-i18n="footer_terms">Terms &amp; conditions</a></li>
+              <li><a href="#/privacy" data-i18n="footer_cookies">Cookies</a></li>
             </ul>
           </div>
           <div class="footer-col">
-            <div class="footer-title">Company</div>
+            <div class="footer-title" data-i18n="footer_company">Company</div>
             <ul class="footer-nav">
-              <li><a href="#/about">About us</a></li>
-              <li><a href="#/contact">Contact us</a></li>
-              <li><a href="#/about">Blog</a></li>
-              <li><a href="#/about">Press</a></li>
+              <li><a href="#/about" data-i18n="footer_aboutus">About us</a></li>
+              <li><a href="#/contact" data-i18n="footer_contact">Contact us</a></li>
+              <li><a href="#/about" data-i18n="footer_blog">Blog</a></li>
+              <li><a href="#/about" data-i18n="footer_press">Press</a></li>
             </ul>
           </div>
           <div class="footer-col">
             <ul class="footer-nav">
-              <li><a href="#/about"><i class="fa-brands fa-google-play"></i>Google Play</a></li>
-              <li><a href="#/about"><i class="fa-brands fa-apple"></i>App Store</a></li>
-              <li><a href="#/about"><i class="fa-brands fa-windows"></i>Microsoft Store</a></li>
-              <li><a href="#/about"><i class="fa-brands fa-apple"></i>Mac Store</a></li>
+              <li><a href="#/about"><i class="fa-brands fa-google-play"></i data-i18n="footer_googleplay">Google Play</a></li>
+              <li><a href="#/about"><i class="fa-brands fa-apple"></i data-i18n="footer_appstore">App Store</a></li>
+              <li><a href="#/about"><i class="fa-brands fa-windows"></i data-i18n="footer_microsoft">Microsoft Store</a></li>
+              <li><a href="#/about"><i class="fa-brands fa-apple"></i data-i18n="footer_mac">Mac Store</a></li>
             </ul>
           </div>
         </div>
         <div class="footer-sep"></div>
         <div class="footer-bottom">
-          <div class="footer-lang"><i class="fa-solid fa-globe"></i> English <i class="fa-solid fa-chevron-down"></i></div>
+          <label class="footer-lang"><i class="fa-solid fa-globe"></i> <span data-i18n="footer_language">Language</span>
+            <select id="langSelect" aria-label="Language">
+              <option value="en" data-i18n="lang_en">English</option>
+              <option value="bn" data-i18n="lang_bn">বাংলা</option>
+              <option value="es" data-i18n="lang_es">Español</option>
+              <option value="hi" data-i18n="lang_hi">हिन्दी</option>
+              <option value="ar" data-i18n="lang_ar">العربية</option>
+            </select>
+          </label>
           <div class="footer-social">
             <a href="https://github.com/codexvisual/online-converter" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
             <a href="https://twitter.com" target="_blank" rel="noopener" aria-label="X"><i class="fa-brands fa-x-twitter"></i></a>
@@ -253,11 +269,12 @@
   <button class="to-top" id="toTop" aria-label="Back to top" title="Back to top"><i class="fa-solid fa-arrow-up"></i></button>
 
   <!-- Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js" async></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" async></script>
   
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js" defer></script>
-            <script src="js/app.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" async></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js" async></script>
+            <script src="js/i18n.js" defer></script>
+  <script src="js/app.js" defer></script>
 </body>
 </html>

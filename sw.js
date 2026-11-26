@@ -1,24 +1,40 @@
-/* Online Converter — service worker (offline-first shell) */
-const CACHE = 'oc-shell-v2';
+/* Online Converter — service worker (offline-first, caches libraries too) */
+const CACHE = 'oc-shell-v3';
 const CORE = [
-  './',
-  './index.html',
-  './css/style.css',
-  './js/app.js',
+  './', './index.html', './css/style.css', './js/app.js', './js/i18n.js',
   './manifest.json',
-  './assets/logo-small.png',
-  './assets/favicon.png',
-  './assets/icon-192.png',
-  './assets/icon-512.png',
+  './assets/logo-small.png', './assets/favicon.png',
+  './assets/icon-192.png', './assets/icon-512.png',
   './assets/fontawesome/css/all.min.css',
   './assets/fontawesome/webfonts/fa-solid-900.woff2',
-  './assets/fontawesome/webfonts/fa-brands-400.woff2'
+  './assets/fontawesome/webfonts/fa-brands-400.woff2',
+  './assets/fonts/inter-latin.woff2',
+  './assets/vendor/pdf-lib-encrypt.js'
+];
+
+/* Third-party libraries are cached too, so the tools work offline. */
+const LIBS = [
+  'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+  'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+  'https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js',
+  'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.iife.js',
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+  'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
+  'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js',
+  'https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js',
+  'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
+  'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js'
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(CORE)).catch(() => {}).then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await Promise.allSettled(CORE.map((u) => cache.add(u).catch(() => {})));
+    await Promise.allSettled(LIBS.map((u) => cache.add(new Request(u, { mode: 'no-cors' })).catch(() => {})));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {
@@ -32,13 +48,14 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
-
   let url;
   try { url = new URL(req.url); } catch (e) { return; }
-  // Let third-party CDN libraries use the network directly.
-  if (url.origin !== self.location.origin) return;
-
-  // Network-first so users always get the newest app, with offline fallback.
+  if (url.origin !== self.location.origin) {
+    // Offline fallback for third-party libraries.
+    event.respondWith(caches.match(req).then((hit) => hit || fetch(req)));
+    return;
+  }
+  // Network-first for our own files, with offline cache fallback.
   event.respondWith(
     fetch(req)
       .then((res) => {
@@ -48,12 +65,10 @@ self.addEventListener('fetch', (event) => {
         }
         return res;
       })
-      .catch(() =>
-        caches.match(req).then((hit) => {
-          if (hit) return hit;
-          if (req.mode === 'navigate') return caches.match('./index.html');
-          return undefined;
-        })
-      )
+      .catch(() => caches.match(req).then((hit) => {
+        if (hit) return hit;
+        if (req.mode === 'navigate') return caches.match('./index.html');
+        return undefined;
+      }))
   );
 });
