@@ -1,6 +1,6 @@
 /* Online Converter app */
 if(window.pdfjsLib && pdfjsLib.GlobalWorkerOptions){
-  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 }
 
 
@@ -42,15 +42,6 @@ const TOOLS = [
   {id:'remove-blank',name:'Remove blank pages',desc:'Detect and delete blank pages automatically.',icon:'fa-file-circle-minus',cat:'Organize PDF',impl:true},
   {id:'resize-pages',name:'Resize pages',desc:'Resize all pages to A4, Letter, Legal or A3.',icon:'fa-expand',cat:'Edit PDF',impl:true},
   {id:'header-footer',name:'Header & footer',desc:'Add header and footer text to every page.',icon:'fa-align-center',cat:'Edit PDF',impl:true},
-  {id:'metadata',name:'PDF Metadata',desc:'View and edit PDF title, author, subject and keywords.',icon:'fa-tags',cat:'Edit PDF',impl:true},
-  {id:'flatten',name:'Flatten PDF',desc:'Flatten form fields and annotations into the page.',icon:'fa-layer-minus',cat:'Edit PDF',impl:true},
-  {id:'grayscale',name:'PDF to Grayscale',desc:'Convert a PDF to grayscale (black & white).',icon:'fa-circle-half-stroke',cat:'Edit PDF',impl:true},
-  {id:'pdf-to-text',name:'PDF to Text',desc:'Extract all text from a PDF as a TXT file.',icon:'fa-file-lines',cat:'Convert from PDF',impl:true},
-  {id:'pdf-to-csv',name:'PDF to CSV',desc:'Extract text into a CSV spreadsheet.',icon:'fa-file-csv',cat:'Convert from PDF',impl:true},
-  {id:'add-blank',name:'Add blank pages',desc:'Insert blank pages into a PDF.',icon:'fa-file-circle-plus',cat:'Organize PDF',impl:true},
-  {id:'remove-blank',name:'Remove blank pages',desc:'Detect and delete blank pages automatically.',icon:'fa-file-circle-minus',cat:'Organize PDF',impl:true},
-  {id:'resize-pages',name:'Resize pages',desc:'Resize all pages to A4, Letter, Legal or A3.',icon:'fa-expand',cat:'Edit PDF',impl:true},
-  {id:'header-footer',name:'Header & footer',desc:'Add header and footer text to every page.',icon:'fa-align-center',cat:'Edit PDF',impl:true},
   {id:'remove-pages',name:'Remove pages',desc:'Delete selected pages from a PDF.',icon:'fa-file-circle-minus',cat:'Organize PDF',impl:true},
   {id:'summarize',name:'PDF Summarize',desc:'Get a quick summary of a PDF document.',icon:'fa-wand-magic-sparkles',cat:'Organize PDF',impl:true},
   {id:'translate',name:'Translate PDF',desc:'Translate PDF text into another language.',icon:'fa-language',cat:'Organize PDF',impl:true},
@@ -64,6 +55,87 @@ function $(sel,root=document){return root.querySelector(sel);}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function formatBytes(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(1)+' MB';}
 function downloadBlob(blob,name){ if(window.saveAs) saveAs(blob,name); else { const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),5000);} }
+
+/* ---------- Advanced UX: toasts, theme, recents ---------- */
+function toast(message,type='info',ms=3400){
+  let wrap=document.getElementById('toastWrap');
+  if(!wrap){ wrap=document.createElement('div'); wrap.id='toastWrap'; wrap.className='toast-wrap'; wrap.setAttribute('aria-live','polite'); document.body.appendChild(wrap); }
+  const t=document.createElement('div');
+  const icon=type==='success'?'fa-circle-check':type==='error'?'fa-circle-exclamation':type==='warn'?'fa-triangle-exclamation':'fa-circle-info';
+  t.className='toast '+(type||'info');
+  t.innerHTML='<i class="fa-solid '+icon+'"></i><span>'+escapeHtml(message)+'</span>';
+  wrap.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),260); },ms);
+}
+
+const RECENT_KEY='oc-recent';
+function getRecent(){
+  try{ return JSON.parse(localStorage.getItem(RECENT_KEY)||'[]').filter(id=>TOOLS.some(t=>t.id===id)); }
+  catch(e){ return []; }
+}
+function pushRecent(id){
+  try{
+    let r=getRecent().filter(x=>x!==id);
+    r.unshift(id); r=r.slice(0,8);
+    localStorage.setItem(RECENT_KEY,JSON.stringify(r));
+  }catch(e){}
+}
+
+function initTheme(){
+  const root=document.documentElement;
+  const btn=document.getElementById('themeToggle');
+  const meta=document.querySelector('meta[name="theme-color"]');
+  const paint=(mode)=>{
+    if(mode==='dark') root.setAttribute('data-theme','dark'); else root.removeAttribute('data-theme');
+    if(btn) btn.innerHTML='<i class="fa-solid fa-'+(mode==='dark'?'sun':'moon')+'"></i>';
+    if(btn) btn.setAttribute('aria-label',mode==='dark'?'Switch to light mode':'Switch to dark mode');
+    if(meta) meta.setAttribute('content',mode==='dark'?'#0f1115':'#E5322D');
+  };
+  let mode=root.getAttribute('data-theme')==='dark'?'dark':'light';
+  paint(mode);
+  if(btn){
+    btn.addEventListener('click',()=>{
+      mode = mode==='dark' ? 'light' : 'dark';
+      paint(mode);
+      try{ localStorage.setItem('oc-theme',mode); }catch(e){}
+      toast(mode==='dark'?'Dark mode on':'Light mode on','info',1600);
+    });
+  }
+}
+
+function initToTop(){
+  const btn=document.getElementById('toTop');
+  if(!btn) return;
+  const onScroll=()=>btn.classList.toggle('show',window.scrollY>480);
+  window.addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+  btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+}
+
+function initShortcuts(){
+  document.addEventListener('keydown',e=>{
+    const tag=(e.target.tagName||'').toLowerCase();
+    const typing=tag==='input'||tag==='textarea'||tag==='select'||e.target.isContentEditable;
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
+      e.preventDefault();
+      const s=document.getElementById('searchInput')||document.getElementById('appsSearch');
+      if(s){ s.focus(); if(s.select) s.select(); }
+      return;
+    }
+    if(e.key==='Escape'){
+      document.querySelectorAll('.nav-has-dropdown.open').forEach(x=>x.classList.remove('open'));
+      const m=document.querySelector('.menu'); if(m) m.classList.remove('open');
+      const ov=document.querySelector('.preview-overlay'); if(ov) ov.remove();
+      return;
+    }
+    if(e.key==='/'&&!typing){
+      const s=document.getElementById('searchInput');
+      if(s){ e.preventDefault(); s.focus(); }
+    }
+  });
+}
+
 window.addEventListener('unhandledrejection',e=>{
   const panel=document.querySelector('#app .panel');
   const st=panel && panel.querySelector('.status');
@@ -83,6 +155,7 @@ function offerDownload(panel,blob,name){
   a.innerHTML='<i class="fa-solid fa-circle-down"></i> Download '+escapeHtml(name);
   box.appendChild(a);
   a.click();
+  toast('Ready: '+name,'success');
 }
 function setStatus(panel,msg,type){ const el=panel.querySelector('.status'); if(!el)return; el.textContent=msg; el.className='status show '+(type||''); }
 function showProgress(panel,on){ const el=panel.querySelector('.progress'); if(!el)return; el.classList.toggle('show',on); if(!on){const b=el.querySelector('div'); if(b)b.style.width='0%';} }
@@ -98,18 +171,24 @@ function createDropzone(panel,{accept,multiple,onFiles}){
   dz.addEventListener('click',()=>input.click());
   ['dragenter','dragover'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('drag')}));
   ['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('drag')}));
-  dz.addEventListener('drop',e=>{onFiles([...e.dataTransfer.files]);});
-  input.addEventListener('change',e=>{onFiles([...e.target.files]);input.value='';});
+  const handle=(list)=>{
+    if(!list || !list.length) return;
+    const big=list.filter(f=>f.size>150*1024*1024);
+    if(big.length) toast(big.length+' file(s) exceed 150 MB and may be slow to process.','warn',5200);
+    onFiles(list);
+  };
+  dz.addEventListener('drop',e=>{handle([...e.dataTransfer.files]);});
+  input.addEventListener('change',e=>{handle([...e.target.files]);input.value='';});
   if(panel.firstChild) panel.insertBefore(dz, panel.firstChild); else panel.appendChild(dz);
   return dz;
 }
 
 const LIB_URLS={
   docx:'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.iife.js',
-  XLSX:'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  XLSX:'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
   PptxGenJS:'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
   mammoth:'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js',
-  html2pdf:'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
+  html2pdf:'https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js',
   Tesseract:'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
 };
 const libPromises={};
@@ -365,9 +444,22 @@ function renderHome(root){
     <div class="container">
       <h1>Every tool you need to work with PDFs in one place</h1>
       <p>Every tool you need to use PDFs, at your fingertips. All are 100% FREE and easy to use! Merge, split, compress, convert, rotate, unlock and watermark PDFs with just a few clicks.</p>
-      <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input id="searchInput" placeholder="Search tools..." /></div>
+      <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input id="searchInput" placeholder="Search tools... (Ctrl + K)" /></div>
     </div>`;
   root.appendChild(hero);
+
+  const recent=getRecent();
+  if(recent.length){
+    const rsec=document.createElement('section');
+    rsec.className='section container recent-sec';
+    const rt=document.createElement('div'); rt.className='cat-title';
+    const rs=document.createElement('span'); rs.textContent='Recently used'; rt.appendChild(rs);
+    rsec.appendChild(rt);
+    const rgrid=document.createElement('div'); rgrid.className='grid';
+    recent.forEach(id=>{ const t=TOOLS.find(x=>x.id===id); if(t) rgrid.appendChild(makeCard(t)); });
+    rsec.appendChild(rgrid);
+    root.appendChild(rsec);
+  }
 
   const filters=document.createElement('div');
   filters.className='tool-filters container';
@@ -419,10 +511,10 @@ function renderHome(root){
   root.appendChild(sec);
   const input=$('#searchInput');
   input.addEventListener('input',()=>{
-    const q=input.value.toLowerCase();
+    const q=input.value.toLowerCase().trim();
     sec.querySelectorAll('.card').forEach(c=>{
-      const name=c.dataset.name.toLowerCase();
-      c.dataset.matched=name.includes(q)?'1':'0';
+      const hay=(c.dataset.search||c.dataset.name).toLowerCase();
+      c.dataset.matched=(!q||hay.includes(q))?'1':'0';
       const filtered=c.dataset.filtered!=='0';
       c.style.display=(c.dataset.matched==='1'&&filtered)?'':'none';
     });
@@ -440,6 +532,7 @@ function makeCard(t){
   const card=document.createElement('div');
   card.className='card';
   card.dataset.name=t.name;
+  card.dataset.search=(t.name+' '+t.desc+' '+t.cat).toLowerCase();
   card.dataset.cat=t.cat;
   card.innerHTML=`<div class="icon"><i class="fa-solid ${t.icon}"></i></div><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.desc)}</p>`;
   card.addEventListener('click',()=>{location.hash='#/tool/'+t.id;});
@@ -477,6 +570,7 @@ function renderTool(root,id){
   const tool=TOOLS.find(t=>t.id===id);
   root.innerHTML='';
   if(!tool){ root.innerHTML='<div class="container" style="padding:40px">Tool not found.</div>'; return; }
+  pushRecent(id);
   const wrap=document.createElement('section');
   wrap.className='tool-page container';
   const header=document.createElement('div');
@@ -3298,6 +3392,46 @@ onReady(()=>{
       document.querySelectorAll('.apps-menu .app-tile').forEach(tile=>{
         tile.style.display=(!q||tile.textContent.toLowerCase().includes(q))?'':'none';
       });
+    });
+  }
+});
+
+/* advanced UX boot */
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  const b=document.getElementById('installBtn');
+  if(b) b.style.display='inline-flex';
+});
+onReady(()=>{
+  initTheme();
+  initToTop();
+  initShortcuts();
+  const installBtn=document.getElementById('installBtn');
+  if(installBtn){
+    installBtn.addEventListener('click',async()=>{
+      if(!deferredInstallPrompt){
+        toast('Open your browser menu and choose “Install app” to add Online Converter.','info',5200);
+        return;
+      }
+      try{
+        deferredInstallPrompt.prompt();
+        const choice=await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt=null;
+        installBtn.style.display='none';
+        toast(choice && choice.outcome==='accepted'?'Installing Online Converter…':'Install dismissed',choice && choice.outcome==='accepted'?'success':'info');
+      }catch(e){ toast('Could not start installation.','error'); }
+    });
+  }
+  const appsGrid=document.querySelector('.apps-grid');
+  if(appsGrid){
+    const colors=['blue','purple','green','red','orange','yellow','teal','dark','indigo'];
+    appsGrid.innerHTML=TOOLS.map((t,i)=>'<a href="#/tool/'+t.id+'" class="app-tile"><span class="app-icon app-icon--'+colors[i%colors.length]+'"><i class="fa-solid '+t.icon+'"></i></span><span>'+escapeHtml(t.name)+'</span></a>').join('');
+  }
+  if('serviceWorker' in navigator && location.protocol==='https:'){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
     });
   }
 });
