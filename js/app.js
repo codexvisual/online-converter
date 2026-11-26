@@ -35,6 +35,19 @@ function $(sel,root=document){return root.querySelector(sel);}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function formatBytes(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(1)+' MB';}
 function downloadBlob(blob,name){ if(window.saveAs) saveAs(blob,name); else { const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u);} }
+function offerDownload(panel,blob,name){
+  if(!panel){ downloadBlob(blob,name); return; }
+  let box=panel.querySelector('.download-box');
+  if(!box){ box=document.createElement('div'); box.className='download-box'; panel.insertBefore(box,panel.querySelector('.status')); }
+  if(box._url){ URL.revokeObjectURL(box._url); }
+  const url=URL.createObjectURL(blob); box._url=url;
+  box.innerHTML='';
+  const a=document.createElement('a');
+  a.className='download-link'; a.href=url; a.download=name;
+  a.innerHTML='<i class="fa-solid fa-circle-down"></i> Download '+escapeHtml(name);
+  box.appendChild(a);
+  a.click();
+}
 function setStatus(panel,msg,type){ const el=panel.querySelector('.status'); if(!el)return; el.textContent=msg; el.className='status show '+(type||''); }
 function showProgress(panel,on){ const el=panel.querySelector('.progress'); if(!el)return; el.classList.toggle('show',on); if(!on){const b=el.querySelector('div'); if(b)b.style.width='0%';} }
 function setProgress(panel,p){ const el=panel.querySelector('.progress'); if(!el)return; const b=el.querySelector('div'); if(b)b.style.width=Math.min(100,Math.max(0,p))+'%'; }
@@ -55,13 +68,55 @@ function createDropzone(panel,{accept,multiple,onFiles}){
   return dz;
 }
 
-function renderFileList(container,files,onRemove){
+const thumbCache=new WeakMap();
+async function thumbUrl(f){
+  if(thumbCache.has(f)) return thumbCache.get(f);
+  const work=(async()=>{
+    let url=null;
+    try{
+      if(f.type.startsWith('image/')){
+        url=URL.createObjectURL(f);
+      } else if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){
+        const bytes=new Uint8Array(await f.arrayBuffer());
+        const pdf=await pdfjsLib.getDocument({data:bytes,useWorkerFetch:false,isEvalSupported:false}).promise;
+        const page=await pdf.getPage(1);
+        const vp=page.getViewport({scale:0.35});
+        const canvas=document.createElement('canvas');
+        canvas.width=vp.width; canvas.height=vp.height;
+        await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+        url=canvas.toDataURL('image/jpeg',0.7);
+      }
+    }catch(e){ url=null; }
+    return url;
+  })();
+  const url=await Promise.race([work,new Promise(res=>setTimeout(()=>res(null),5000))]);
+  thumbCache.set(f,url);
+  return url;
+}
+function renderFileList(container,files,onChange){
   container.innerHTML='';
   files.forEach((f,i)=>{
     const item=document.createElement('div');
     item.className='file-item';
-    item.innerHTML=`<i class="fa-solid fa-file"></i><span class="name">${escapeHtml(f.name)}</span><span class="size">${formatBytes(f.size)}</span><button title="Remove"><i class="fa-solid fa-xmark"></i></button>`;
-    item.querySelector('button').addEventListener('click',()=>onRemove(i));
+    const thumb=document.createElement('div');
+    thumb.className='file-thumb';
+    thumb.innerHTML='<i class="fa-solid '+(f.type.startsWith('image/')?'fa-image':'fa-file-pdf')+'"></i>';
+    thumbUrl(f).then(u=>{ if(u) thumb.innerHTML='<img src="'+u+'" alt="" />'; });
+    item.appendChild(thumb);
+    const name=document.createElement('span'); name.className='name'; name.textContent=f.name;
+    const size=document.createElement('span'); size.className='size'; size.textContent=formatBytes(f.size);
+    item.appendChild(name); item.appendChild(size);
+    if(files.length>1){
+      const mv=document.createElement('div'); mv.className='file-move';
+      const up=document.createElement('button'); up.title='Move up'; up.innerHTML='<i class="fa-solid fa-chevron-up"></i>';
+      up.addEventListener('click',()=>{ if(i>0){ [files[i-1],files[i]]=[files[i],files[i-1]]; onChange(); } });
+      const down=document.createElement('button'); down.title='Move down'; down.innerHTML='<i class="fa-solid fa-chevron-down"></i>';
+      down.addEventListener('click',()=>{ if(i<files.length-1){ [files[i+1],files[i]]=[files[i],files[i+1]]; onChange(); } });
+      mv.appendChild(up); mv.appendChild(down); item.appendChild(mv);
+    }
+    const rm=document.createElement('button'); rm.title='Remove'; rm.innerHTML='<i class="fa-solid fa-xmark"></i>';
+    rm.addEventListener('click',()=>{ files.splice(i,1); onChange(); });
+    item.appendChild(rm);
     container.appendChild(item);
   });
 }
@@ -218,7 +273,7 @@ INITERS.merge = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:true,onFiles:f=>{files=files.concat(f);rerender();}});
   panel.insertBefore(list, panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-object-group"></i> Merge PDF';
@@ -229,14 +284,14 @@ INITERS.merge = function(panel){
       const {PDFDocument}=PDFLib;
       const merged=await PDFDocument.create();
       for(let i=0;i<files.length;i++){
-        const bytes=await files[i].arrayBuffer();
+        const bytes=new Uint8Array(await files[i].arrayBuffer());
         const doc=await PDFDocument.load(bytes);
         const pages=await merged.copyPages(doc,doc.getPageIndices());
         pages.forEach(p=>merged.addPage(p));
         setProgress(panel,(i+1)/files.length*100);
       }
       const out=await merged.save();
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'merged.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'merged.pdf');
       setStatus(panel,'Merged successfully!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -251,7 +306,7 @@ INITERS.split = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
@@ -285,7 +340,7 @@ INITERS.split = function(panel){
           setProgress(panel,(i+1)/total*100);
         }
         const blob=await zip.generateAsync({type:'blob'});
-        downloadBlob(blob,'split_pages.zip');
+        offerDownload(panel, blob,'split_pages.zip');
       } else {
         const ranges=parseRanges(panel.querySelector('#splitRanges').value,total);
         if(ranges.length===1){
@@ -293,7 +348,7 @@ INITERS.split = function(panel){
           const pages=await nd.copyPages(doc,ranges[0].map(x=>x-1));
           pages.forEach(p=>nd.addPage(p));
           const b=await nd.save();
-          downloadBlob(new Blob([b],{type:'application/pdf'}),'split.pdf');
+          offerDownload(panel, new Blob([b],{type:'application/pdf'}),'split.pdf');
         } else {
           const zip=new JSZip();
           for(let r=0;r<ranges.length;r++){
@@ -304,7 +359,7 @@ INITERS.split = function(panel){
             zip.file(`part_${r+1}.pdf`,b);
           }
           const blob=await zip.generateAsync({type:'blob'});
-          downloadBlob(blob,'split_parts.zip');
+          offerDownload(panel, blob,'split_parts.zip');
         }
       }
       setStatus(panel,'Split complete!','success');
@@ -334,9 +389,9 @@ function parseRanges(str,total){
 INITERS.compress = function(panel){
   let files=[];
   const list=document.createElement('div'); list.className='file-list';
-  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];renderFileList(list,files,i=>{files=[];renderFileList(list,files,()=>{});});}});
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-compress"></i> Compress PDF';
@@ -349,7 +404,7 @@ INITERS.compress = function(panel){
       const orig=bytes.byteLength;
       const doc=await PDFDocument.load(bytes);
       const out=await doc.save({useObjectStreams:true});
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'compressed.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'compressed.pdf');
       setStatus(panel,`Done. Original ${formatBytes(orig)} → ${formatBytes(out.byteLength)}.`,'success');
       setProgress(panel,100);
     }catch(e){setStatus(panel,e.message,'error');}
@@ -365,7 +420,7 @@ INITERS.rotate = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
@@ -391,7 +446,7 @@ INITERS.rotate = function(panel){
       else targets=parseRanges(pagesInput,total).flat().map(n=>n-1);
       targets.forEach(i=>{ const p=doc.getPage(i); p.setRotation(degrees((p.getRotation().angle+angle)%360)); });
       const out=await doc.save();
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'rotated.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'rotated.pdf');
       setStatus(panel,'Rotated successfully!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -415,7 +470,7 @@ INITERS.organize = function(panel){
     }catch(e){setStatus(panel,e.message,'error');}
   }});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const orderBox=document.createElement('div'); orderBox.className='file-list'; panel.insertBefore(orderBox,panel.querySelector('.status'));
   function renderOrder(){
@@ -443,7 +498,7 @@ INITERS.organize = function(panel){
       const pages=await nd.copyPages(doc,order);
       pages.forEach(p=>nd.addPage(p));
       const out=await nd.save();
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'organized.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'organized.pdf');
       setStatus(panel,'Saved!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -458,7 +513,7 @@ INITERS['page-numbers'] = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
@@ -497,7 +552,7 @@ INITERS['page-numbers'] = function(panel){
         setProgress(panel,(i+1)/total*100);
       }
       const out=await doc.save();
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'numbered.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'numbered.pdf');
       setStatus(panel,'Done!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -512,7 +567,7 @@ INITERS.watermark = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
@@ -544,7 +599,7 @@ INITERS.watermark = function(panel){
         setProgress(panel,(i+1)/total*100);
       }
       const out=await doc.save();
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'watermarked.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'watermarked.pdf');
       setStatus(panel,'Done!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -559,7 +614,7 @@ INITERS.protect = async function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
@@ -577,7 +632,7 @@ INITERS.protect = async function(panel){
       configure(window.PDFLib);
       const bytes=new Uint8Array(await files[0].arrayBuffer());
       const encrypted=await lock(bytes,pwd);
-      downloadBlob(new Blob([encrypted],{type:'application/pdf'}),'protected.pdf');
+      offerDownload(panel, new Blob([encrypted],{type:'application/pdf'}),'protected.pdf');
       setStatus(panel,'Protected!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -592,7 +647,7 @@ INITERS.unlock = async function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
@@ -611,7 +666,7 @@ INITERS.unlock = async function(panel){
       const doc=await PDFLib.PDFDocument.load(bytes,{ignoreEncryption:true});
       await unlockInPlace(doc,pwd);
       const out=await doc.save({useObjectStreams:false});
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'unlocked.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'unlocked.pdf');
       setStatus(panel,'Unlocked!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -626,7 +681,7 @@ INITERS.sign = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
@@ -659,7 +714,7 @@ INITERS.sign = function(panel){
         last.drawText(text,{x:24,y:40,size:18,font,color:rgb(0,0,0.6)});
       }
       const out=await doc.save();
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'signed.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'signed.pdf');
       setStatus(panel,'Signed!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -674,7 +729,7 @@ INITERS['pdf-to-jpg'] = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`<div class="field"><label>Scale</label><input id="jpgScale" type="number" step="0.5" value="2" /></div>`;
@@ -702,8 +757,8 @@ INITERS['pdf-to-jpg'] = function(panel){
         else zip.file(`page_${i}.jpg`,blob);
         setProgress(panel,i/pdf.numPages*100);
       }
-      if(singleBlob) downloadBlob(singleBlob,'page_1.jpg');
-      else { const b=await zip.generateAsync({type:'blob'}); downloadBlob(b,'pdf_pages.zip'); }
+      if(singleBlob) offerDownload(panel, singleBlob,'page_1.jpg');
+      else { const b=await zip.generateAsync({type:'blob'}); offerDownload(panel, b,'pdf_pages.zip'); }
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -716,10 +771,10 @@ INITERS['pdf-to-jpg'] = function(panel){
 function initImagesToPdf(panel){
   let files=[];
   const list=document.createElement('div'); list.className='file-list';
-  createDropzone(panel,{accept:'image/*',multiple:true,onFiles:f=>{files=files.concat(f);renderFileList(list,files,i=>{files.splice(i,1);renderFileList(list,files,()=>{});});}});
+  createDropzone(panel,{accept:'image/*',multiple:true,onFiles:f=>{files=files.concat(f);rerender();}});
   // fix remove
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
@@ -740,7 +795,7 @@ function initImagesToPdf(panel){
         setProgress(panel,(i+1)/files.length*100);
       }
       const out=await doc.save();
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'images.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'images.pdf');
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -757,7 +812,7 @@ INITERS['pdf-to-word'] = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{ files.splice(i,1); rerender(); }); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`<div class="field"><label>Format</label>
@@ -783,14 +838,14 @@ INITERS['pdf-to-word'] = function(panel){
       }
       const fmt=panel.querySelector('#wFmt').value;
       if(fmt==='txt'){
-        downloadBlob(new Blob([fullText],{type:'text/plain'}),'converted.txt');
+        offerDownload(panel, new Blob([fullText],{type:'text/plain'}),'converted.txt');
       } else if(window.docx){
         const {Document,Packer,Paragraph,TextRun}=window.docx;
         const doc=new Document({sections:[{children:paragraphs.map(t=>new Paragraph({children:[new TextRun(t)]}))}]});
         const blob=await Packer.toBlob(doc);
-        downloadBlob(blob,'converted.docx');
+        offerDownload(panel, blob,'converted.docx');
       } else {
-        downloadBlob(new Blob([fullText],{type:'text/plain'}),'converted.txt');
+        offerDownload(panel, new Blob([fullText],{type:'text/plain'}),'converted.txt');
       }
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
@@ -806,7 +861,7 @@ INITERS['pdf-to-excel'] = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{files=[];rerender();}); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-excel"></i> Convert to Excel';
@@ -827,7 +882,8 @@ INITERS['pdf-to-excel'] = function(panel){
       const ws=XLSX.utils.aoa_to_sheet(rows);
       const wb=XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb,ws,'PDF');
-      XLSX.writeFile(wb,'converted.xlsx');
+      const xlsxArray=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+      offerDownload(panel,new Blob([xlsxArray],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'converted.xlsx');
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -842,7 +898,7 @@ INITERS['pdf-to-ppt'] = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{files=[];rerender();}); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-powerpoint"></i> Convert to PowerPoint';
@@ -864,7 +920,8 @@ INITERS['pdf-to-ppt'] = function(panel){
         slide.addImage({data:img,x:0,y:0,w:'100%',h:'100%'});
         setProgress(panel,i/pdf.numPages*100);
       }
-      await pptx.writeFile({fileName:'converted.pptx'});
+      const pptxBuf=await pptx.write({outputType:'arraybuffer'});
+      offerDownload(panel,new Blob([pptxBuf],{type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'}),'converted.pptx');
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -879,7 +936,7 @@ INITERS['pdf-to-pdfa'] = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{files=[];rerender();}); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-shield"></i> Convert to PDF/A';
@@ -893,7 +950,7 @@ INITERS['pdf-to-pdfa'] = function(panel){
       doc.setTitle(doc.getTitle()||'Document');
       doc.setProducer('Online Converter');
       const out=await doc.save({useObjectStreams:true});
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'pdfa.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'pdfa.pdf');
       setStatus(panel,'Converted (best-effort PDF/A).','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -908,7 +965,7 @@ INITERS['pdf-to-html'] = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{files=[];rerender();}); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-code"></i> Convert to HTML';
@@ -926,7 +983,7 @@ INITERS['pdf-to-html'] = function(panel){
         setProgress(panel,i/pdf.numPages*100);
       }
       const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Converted</title></head><body>'+body+'</body></html>';
-      downloadBlob(new Blob([html],{type:'text/html'}),'converted.html');
+      offerDownload(panel, new Blob([html],{type:'text/html'}),'converted.html');
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -941,7 +998,7 @@ INITERS['word-to-pdf'] = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{files=[];rerender();}); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
@@ -967,7 +1024,7 @@ INITERS['excel-to-pdf'] = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{files=[];rerender();}); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
@@ -995,7 +1052,7 @@ INITERS['ppt-to-pdf'] = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{files=[];rerender();}); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
@@ -1013,7 +1070,7 @@ INITERS['ppt-to-pdf'] = function(panel){
         // Fallback: extract slide text and images with JSZip
         pdfBytes=await pptxFallbackPdf(bytes);
       }
-      downloadBlob(new Blob([pdfBytes],{type:'application/pdf'}),'converted.pdf');
+      offerDownload(panel, new Blob([pdfBytes],{type:'application/pdf'}),'converted.pdf');
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -1083,7 +1140,7 @@ INITERS.edit = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{files=[];rerender();}); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
@@ -1125,7 +1182,7 @@ INITERS.edit = function(panel){
         setProgress(panel,(targets.indexOf(i)+1)/targets.length*100);
       }
       const out=await doc.save();
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'edited.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'edited.pdf');
       setStatus(panel,'Edited!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -1140,7 +1197,7 @@ INITERS.crop = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{files=[];rerender();}); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
@@ -1171,7 +1228,7 @@ INITERS.crop = function(panel){
         setProgress(panel,(i+1)/total*100);
       }
       const out=await doc.save();
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'cropped.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'cropped.pdf');
       setStatus(panel,'Cropped!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -1186,7 +1243,7 @@ INITERS.repair = function(panel){
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,i=>{files=[];rerender();}); }
+  function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-wrench"></i> Repair PDF';
@@ -1198,7 +1255,7 @@ INITERS.repair = function(panel){
       const bytes=await files[0].arrayBuffer();
       const doc=await PDFDocument.load(bytes,{ignoreEncryption:true});
       const out=await doc.save({useObjectStreams:true});
-      downloadBlob(new Blob([out],{type:'application/pdf'}),'repaired.pdf');
+      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'repaired.pdf');
       setStatus(panel,'Repaired!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -1252,7 +1309,7 @@ INITERS.compare = function(panel){
       pre.style.maxHeight='300px'; pre.style.overflow='auto'; pre.style.background='#f3f4f6'; pre.style.padding='12px'; pre.style.borderRadius='8px';
       pre.textContent=diff;
       panel.insertBefore(pre,panel.querySelector('.status'));
-      downloadBlob(new Blob([diff],{type:'text/plain'}),'compare.txt');
+      offerDownload(panel, new Blob([diff],{type:'text/plain'}),'compare.txt');
       setStatus(panel,'Compared!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -1353,4 +1410,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(menu) menu.classList.remove('open');
     });
   });
+  const appsSearch=document.getElementById('appsSearch');
+  if(appsSearch){
+    appsSearch.addEventListener('input',()=>{
+      const q=appsSearch.value.toLowerCase().trim();
+      document.querySelectorAll('.apps-menu .app-tile').forEach(tile=>{
+        tile.style.display=(!q||tile.textContent.toLowerCase().includes(q))?'':'none';
+      });
+    });
+  }
 });
