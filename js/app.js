@@ -113,6 +113,7 @@ function initTheme(){
   }
 }
 
+
 function initToTop(){
   const btn=document.getElementById('toTop');
   if(!btn) return;
@@ -170,7 +171,7 @@ function initFeedback(){
     wrap.querySelector('#fbDetails').textContent=details;
     const build=()=>'Problem report\n\n'+wrap.querySelector('#fbText').value+'\n\n---\n'+details;
     wrap.querySelector('#fbMail').addEventListener('click',()=>{
-      window.location.href='mailto:hello@filofa.com?subject='+encodeURIComponent('Online Converter problem: '+tool)+'&body='+encodeURIComponent(build());
+      window.location.href='mailto:support@filofa.com?subject='+encodeURIComponent('Online Converter problem: '+tool)+'&body='+encodeURIComponent(build());
     });
     wrap.querySelector('#fbCopy').addEventListener('click',async()=>{
       try{ await navigator.clipboard.writeText(build()); toast('Details copied','success'); }
@@ -220,7 +221,7 @@ function initShortcuts(){
     const typing=tag==='input'||tag==='textarea'||tag==='select'||e.target.isContentEditable;
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
       e.preventDefault();
-      const s=document.getElementById('searchInput')||document.getElementById('appsSearch');
+      const s=document.getElementById('headerSearchInput')||document.getElementById('searchInput')||document.getElementById('appsSearch');
       if(s){ s.focus(); if(s.select) s.select(); }
       return;
     }
@@ -552,7 +553,7 @@ function renderHome(root){
     <div class="container">
       <h1 data-i18n="hero_title">${t('hero_title')}</h1>
       <p data-i18n="hero_desc">${t('hero_desc')}</p>
-      <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input id="searchInput" placeholder="${t('search_tools')}" data-i18n="search_tools" data-i18n-attr="placeholder" /></div>
+      <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input id="searchInput" placeholder="${t('search_tools')}" data-i18n="search_tools" data-i18n-attr="placeholder" /><button class="search-clear" id="searchClear" type="button" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button></div>
     </div>`;
   root.appendChild(hero);
 
@@ -618,13 +619,28 @@ function renderHome(root){
   });
   root.appendChild(sec);
   const input=$('#searchInput');
+  const clearBtn=document.getElementById('searchClear');
+  const countEl=document.createElement('div');
+  countEl.className='search-count';
+  input.parentElement.parentElement.insertBefore(countEl, input.parentElement.nextSibling);
   input.addEventListener('input',()=>{
     const q=input.value.toLowerCase().trim();
+    const tokens=q.split(/\s+/).filter(Boolean);
+    let visible=0;
     sec.querySelectorAll('.card').forEach(c=>{
       const hay=(c.dataset.search||c.dataset.name).toLowerCase();
-      c.dataset.matched=(!q||hay.includes(q))?'1':'0';
+      const matched=tokens.length===0 || tokens.every(tok=>hay.includes(tok));
+      c.dataset.matched=matched?'1':'0';
       const filtered=c.dataset.filtered!=='0';
-      c.style.display=(c.dataset.matched==='1'&&filtered)?'':'none';
+      const show=matched&&filtered;
+      c.style.display=show?'':'none';
+      if(show) visible++;
+      const h3=c.querySelector('h3');
+      if(h3 && !h3.dataset.orig) h3.dataset.orig=h3.textContent;
+      if(q && show && h3 && h3.dataset.orig){
+        const re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');
+        h3.innerHTML=escapeHtml(h3.dataset.orig).replace(re,'<mark>$1</mark>');
+      } else if(h3 && h3.dataset.orig){ h3.textContent=h3.dataset.orig; }
     });
     sec.querySelectorAll('.cat-title').forEach(h=>{
       const grid=h.nextElementSibling;
@@ -633,7 +649,11 @@ function renderHome(root){
       h.style.display=any?'':'none';
       grid.style.display=any?'':'none';
     });
+    if(clearBtn) clearBtn.classList.toggle('show',!!q);
+    countEl.textContent=q? (visible+' tool'+(visible===1?'':'s')+' found') : '';
+    countEl.classList.toggle('show',!!q);
   });
+  if(clearBtn) clearBtn.addEventListener('click',()=>{ input.value=''; input.dispatchEvent(new Event('input')); input.focus(); });
 }
 
 function makeCard(t){
@@ -2963,7 +2983,7 @@ function renderAuth(root,mode){
 const INFO = {
   privacy:{title:'Privacy policy',icon:'fa-shield-halved',body:'Online Converter processes every file locally in your browser. Files are never uploaded to our servers, stored, or shared. The only exception is the optional Translate PDF tool, which asks for your consent before sending extracted text to the free MyMemory translation service — your PDF file itself is never uploaded.'},
   terms:{title:'Terms & conditions',icon:'fa-file-contract',body:'Online Converter is provided free of charge for personal and commercial use. The service is offered “as is” without warranty. You are responsible for the files you process and for keeping backups.'},
-  contact:{title:'Contact us',icon:'fa-envelope',body:'Questions, feedback or business enquiries? Email us at hello@filofa.com or visit filofa.com. We usually reply within one business day.'},
+  contact:{title:'Contact us',icon:'fa-envelope',body:'Questions, feedback or business enquiries? Email us at support@filofa.com or visit filofa.com. We usually reply within one business day.'},
   faq:{title:'Frequently asked questions',icon:'fa-circle-question',body:'Are my files uploaded? No — all processing happens in your browser. Is it free? Yes, all tools are free. Do I need an account? No. Which formats are supported? PDF, DOCX, XLSX, PPTX, JPG, PNG and HTML.'},
   features:{title:'Features',icon:'fa-star',body:'Merge, split, compress, convert, edit, sign, protect and organize PDFs. Convert between PDF and Word, Excel, PowerPoint, JPG, HTML and PDF/A. Everything runs locally in your browser.'},
   pricing:{title:'Pricing',icon:'fa-tag',body:'Online Converter is 100% free. There are no subscriptions, hidden fees or file limits. Advanced server-side workflows are available through Filofa Technology on request.'}
