@@ -1384,7 +1384,8 @@ INITERS['html-to-pdf'] = function(panel){
 
 /* ---------- EDIT PDF ---------- */
 INITERS.edit = function(panel){
-  let files=[], pdfDoc=null, pageNum=1, totalPages=0, items=[], selected=null, addMode=true;
+  let files=[], pdfDoc=null, pageNum=1, totalPages=0, items=[], selected=null, addMode=true, deleted=[];
+  let viewport=null, renderScale=1;
   const list=document.createElement('div'); list.className='file-list';
   createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];loadDoc(files[0]);rerender();}});
   panel.insertBefore(list,panel.querySelector('.status'));
@@ -1417,7 +1418,7 @@ INITERS.edit = function(panel){
       <canvas id="edCanvas"></canvas>
       <div class="pdf-editor__layer" id="edLayer"></div>
     </div>
-    <p class="pdf-editor__tip">Click the page to add text · Drag to move · Double-click to edit · Delete key removes</p>`;
+    <p class="pdf-editor__tip">Click existing text to edit it · Click empty space to add text · Drag to move · Double-click to edit · Delete key removes</p>`;
   panel.insertBefore(editor,panel.querySelector('.status'));
 
   const stage=editor.querySelector('#edStage');
@@ -1432,31 +1433,33 @@ INITERS.edit = function(panel){
   const select=item=>{
     selected=item;
     layer.querySelectorAll('.ed-text').forEach(el=>el.classList.toggle('selected',el._item===item));
-    if(item){
-      sizeInput.value=item.size; colorInput.value=item.color; fontSelect.value=item.font;
-    }
+    if(item){ sizeInput.value=item.size; colorInput.value=item.color; fontSelect.value=item.font; }
   };
+
+  function fontCss(font){
+    if(font==='Courier') return 'monospace';
+    if(font==='TimesRoman') return 'Georgia,serif';
+    return 'Arial,sans-serif';
+  }
 
   function renderItems(){
     layer.innerHTML='';
     items.filter(it=>it.page===pageNum).forEach(item=>{
       const el=document.createElement('div');
-      el.className='ed-text'+(selected===item?' selected':'');
+      el.className='ed-text'+(selected===item?' selected':'')+(item.pdfRect?' ed-text--source':'');
       el._item=item;
       el.style.left=item.x+'px'; el.style.top=item.y+'px';
       el.style.fontSize=item.size+'px'; el.style.color=item.color;
-      el.style.fontFamily=item.font==='Courier'?'monospace':item.font==='TimesRoman'?'Georgia,serif':'Arial,sans-serif';
+      el.style.fontFamily=fontCss(item.font);
       el.style.fontWeight=item.font==='HelveticaBold'?'700':'400';
       el.textContent=item.text;
       el.addEventListener('pointerdown',e=>{
-        e.stopPropagation();
-        select(item);
+        e.stopPropagation(); select(item);
         if(el.isContentEditable) return;
         const sx=e.clientX, sy=e.clientY, ox=item.x, oy=item.y;
-        const move=ev=>{ item.x=ox+ev.clientX-sx; item.y=oy+ev.clientY-sy; el.style.left=item.x+'px'; el.style.top=item.y+'px'; };
+        const move=ev=>{ item.x=ox+ev.clientX-sx; item.y=oy+ev.clientY-sy; item.moved=true; el.style.left=item.x+'px'; el.style.top=item.y+'px'; };
         const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); };
-        window.addEventListener('pointermove',move);
-        window.addEventListener('pointerup',up);
+        window.addEventListener('pointermove',move); window.addEventListener('pointerup',up);
       });
       el.addEventListener('dblclick',e=>{
         e.stopPropagation();
@@ -1464,23 +1467,50 @@ INITERS.edit = function(panel){
         const range=document.createRange(); range.selectNodeContents(el);
         const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
       });
-      el.addEventListener('input',()=>{ item.text=el.textContent; });
+      el.addEventListener('input',()=>{ item.text=el.textContent; item.changed=true; });
       el.addEventListener('blur',()=>{ el.contentEditable='false'; });
       layer.appendChild(el);
     });
+  }
+
+  async function extractText(page){
+    try{
+      const tc=await page.getTextContent();
+      const list=[];
+      for(const it of tc.items){
+        if(!it.str || !it.str.trim()) continue;
+        let m;
+        try{ m=pdfjsLib.Util.transform(viewport.transform,it.transform); }
+        catch(e){ m=[1,0,0,1,it.transform[4]*renderScale,viewport.height-it.transform[5]*renderScale]; }
+        const sizeCss=Math.max(6,Math.min(120,Math.hypot(m[2],m[3])||(it.height||12)*renderScale));
+        const wCss=(it.width||0)*renderScale;
+        list.push({
+          page:pageNum,
+          x:m[4], y:m[5]-sizeCss*0.86, origX:m[4], origY:m[5]-sizeCss*0.86,
+          size:sizeCss, color:'#111111', font:'Helvetica',
+          text:it.str.trim(),
+          pdfRect:{x:it.transform[4],y:it.transform[5],w:it.width||0,h:it.height||sizeCss/renderScale,size:Math.hypot(it.transform[2],it.transform[3])||it.height||sizeCss/renderScale},
+          changed:false, source:true
+        });
+      }
+      return list;
+    }catch(e){ return []; }
   }
 
   async function renderPage(){
     if(!pdfDoc) return;
     const page=await pdfDoc.getPage(pageNum);
     const base=page.getViewport({scale:1});
-    const scale=Math.min(1.7, Math.max(0.55, 780/base.width));
-    const vp=page.getViewport({scale});
+    renderScale=Math.min(1.7,Math.max(0.55,780/base.width));
+    viewport=page.getViewport({scale:renderScale});
+    const vp=viewport;
     canvas.width=vp.width; canvas.height=vp.height;
     canvas.style.width=vp.width+'px'; canvas.style.height=vp.height+'px';
     stage.style.width=vp.width+'px'; stage.style.height=vp.height+'px';
     await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
     pageLabel.textContent='Page '+pageNum+' / '+totalPages;
+    const existing=await extractText(page);
+    items=items.filter(it=>!it.source||it.page!==pageNum).concat(existing);
     renderItems();
   }
 
@@ -1489,10 +1519,10 @@ INITERS.edit = function(panel){
       setStatus(panel,'Loading PDF…','success');
       const bytes=new Uint8Array(await file.arrayBuffer());
       pdfDoc=await pdfjsLib.getDocument({data:bytes,useWorkerFetch:false,isEvalSupported:false}).promise;
-      totalPages=pdfDoc.numPages; pageNum=1; items=[]; selected=null;
+      totalPages=pdfDoc.numPages; pageNum=1; items=[]; deleted=[]; selected=null;
       editor.hidden=false;
       await renderPage();
-      setStatus(panel,'PDF loaded. Click anywhere on the page to add text.','success');
+      setStatus(panel,'PDF loaded. Click any text to edit it, or click empty space to add new text.','success');
     }catch(e){ setStatus(panel,'Could not open PDF: '+e.message,'error'); }
   }
 
@@ -1500,7 +1530,7 @@ INITERS.edit = function(panel){
     if(!addMode || e.target.closest('.ed-text')) return;
     const r=stage.getBoundingClientRect();
     const item={page:pageNum,x:e.clientX-r.left+stage.scrollLeft,y:e.clientY-r.top+stage.scrollTop,
-      text:'Type here',size:parseInt(sizeInput.value)||18,color:colorInput.value,font:fontSelect.value};
+      text:'Type here',size:parseInt(sizeInput.value)||18,color:colorInput.value,font:fontSelect.value,changed:true};
     items.push(item); select(item); renderItems();
     const el=layer.querySelector('.ed-text:last-child');
     if(el){ el.contentEditable='true'; el.focus(); const range=document.createRange(); range.selectNodeContents(el); const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
@@ -1513,9 +1543,9 @@ INITERS.edit = function(panel){
       else if(act==='next'){ if(pageNum<totalPages){ pageNum++; selected=null; renderPage(); } }
       else if(act==='add'){ addMode=true; addBtn.classList.add('active'); }
       else if(act==='del'){
-        if(selected){ items=items.filter(x=>x!==selected); selected=null; renderItems(); }
+        if(selected){ if(selected.source) deleted.push(selected); items=items.filter(x=>x!==selected); selected=null; renderItems(); }
       }
-      else if(act==='clear'){ items=[]; selected=null; renderItems(); }
+      else if(act==='clear'){ deleted.push(...items.filter(x=>x.source)); items=[]; selected=null; renderItems(); }
     });
   });
   [sizeInput,colorInput,fontSelect].forEach(inp=>{
@@ -1524,46 +1554,91 @@ INITERS.edit = function(panel){
       if(inp===sizeInput) selected.size=parseInt(inp.value)||18;
       else if(inp===colorInput) selected.color=inp.value;
       else selected.font=inp.value;
+      selected.changed=true;
       renderItems();
     });
   });
   document.addEventListener('keydown',e=>{
     if(editor.hidden) return;
-    if(e.key==='Delete' && selected && !e.target.isContentEditable){ items=items.filter(x=>x!==selected); selected=null; renderItems(); }
-    if(e.key==='Escape'){ select(null); }
+    if(e.key==='Delete' && selected && !e.target.isContentEditable){ if(selected.source) deleted.push(selected); items=items.filter(x=>x!==selected); selected=null; renderItems(); }
+    if(e.key==='Escape') select(null);
   });
+
+  const sampleColor=(x,y,w,h,dark)=>{
+    try{
+      const ctx=canvas.getContext('2d');
+      const rx=Math.max(0,Math.round(x)), ry=Math.max(0,Math.round(y));
+      const rw=Math.max(1,Math.min(canvas.width-rx,Math.round(w)));
+      const rh=Math.max(1,Math.min(canvas.height-ry,Math.round(h)));
+      const d=ctx.getImageData(rx,ry,rw,rh).data;
+      let best=null, bestLum=dark?999:-1;
+      for(let i=0;i<d.length;i+=4){
+        const lum=(d[i]+d[i+1]+d[i+2])/3;
+        if((dark&&lum<bestLum)||(!dark&&lum>bestLum)){ bestLum=lum; best=[d[i],d[i+1],d[i+2]]; }
+      }
+      if(best) return PDFLib.rgb(best[0]/255,best[1]/255,best[2]/255);
+    }catch(e){}
+    return dark?PDFLib.rgb(0,0,0):PDFLib.rgb(1,1,1);
+  };
+  const rgbFromHex=h=>PDFLib.rgb(parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255);
 
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-pen-to-square"></i> Apply edits';
   btn.addEventListener('click', async()=>{
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
-    if(!items.length){setStatus(panel,'Add some text on the page first.','error');return;}
+    if(!items.length){setStatus(panel,'No text to apply.','error');return;}
     try{
       showProgress(panel,true);
       const {PDFDocument,StandardFonts,rgb}=PDFLib;
       const bytes=new Uint8Array(await files[0].arrayBuffer());
       const doc=await PDFDocument.load(bytes);
-      const fontCache={};
-      const fonts={Helvetica:StandardFonts.Helvetica,HelveticaBold:StandardFonts.HelveticaBold,TimesRoman:StandardFonts.TimesRoman,Courier:StandardFonts.Courier};
-      for(const [idx,item] of items.entries()){
+      const fontMap={Helvetica:StandardFonts.Helvetica,HelveticaBold:StandardFonts.HelveticaBold,TimesRoman:StandardFonts.TimesRoman,Courier:StandardFonts.Courier};
+      const cache={};
+      const getFont=async name=>{ if(!cache[name]) cache[name]=await doc.embedFont(fontMap[name]||StandardFonts.Helvetica); return cache[name]; };
+
+      const toDraw=[], toRedact=[];
+      for(const item of items){
+        if(item.source && !item.changed && !item.moved) continue;
+        toDraw.push(item);
+        if(item.pdfRect) toRedact.push(item);
+      }
+      for(const item of deleted) if(item.pdfRect) toRedact.push(item);
+
+      for(const item of toRedact){
+        const page=doc.getPage(Math.min(Math.max(item.page-1,0),doc.getPageCount()-1));
+        const r=item.pdfRect;
+        const sx=item.origX!==undefined?item.origX:item.x;
+        const sy=item.origY!==undefined?item.origY:item.y;
+        const bg=sampleColor(sx-2,sy-2,r.w*renderScale+6,r.h*renderScale+6,false);
+        page.drawRectangle({x:Math.max(0,r.x-1.5),y:Math.max(0,r.y-r.h*0.25),width:r.w+3,height:r.h*1.35,color:bg});
+      }
+      for(const [idx,item] of toDraw.entries()){
         const page=doc.getPage(Math.min(Math.max(item.page-1,0),doc.getPageCount()-1));
         const pw=page.getWidth();
-        const cssPerPoint=Math.max(0.01, canvas.clientWidth/pw);
-        const fontSize=item.size/cssPerPoint;
-        const color=rgb(parseInt(item.color.slice(1,3),16)/255,parseInt(item.color.slice(3,5),16)/255,parseInt(item.color.slice(5,7),16)/255);
-        if(!fontCache[item.font]) fontCache[item.font]=await doc.embedFont(fonts[item.font]||StandardFonts.Helvetica);
-        const x=item.x/cssPerPoint;
-        const lines=String(item.text).split('\n');
-        lines.forEach((line,li)=>{
-          const y=page.getHeight()-(item.y+item.size*0.82+li*item.size*1.18)/cssPerPoint;
-          if(line) page.drawText(line,{x,y,size:fontSize,font:fontCache[item.font],color});
-        });
-        setProgress(panel,(idx+1)/items.length*100);
+        const font=await getFont(item.font);
+        const color=rgbFromHex(item.color);
+        if(item.pdfRect){
+          const r=item.pdfRect;
+          const lines=String(item.text).split('\n');
+          lines.forEach((line,li)=>{
+            if(line) page.drawText(line,{x:r.x,y:r.y-li*r.size*1.18,size:r.size,font,color});
+          });
+        } else {
+          const cssPerPoint=Math.max(0.01,canvas.clientWidth/pw);
+          const fontSize=item.size/cssPerPoint;
+          const x=item.x/cssPerPoint;
+          const lines=String(item.text).split('\n');
+          lines.forEach((line,li)=>{
+            const y=page.getHeight()-(item.y+item.size*0.82+li*item.size*1.18)/cssPerPoint;
+            if(line) page.drawText(line,{x,y,size:fontSize,font,color});
+          });
+        }
+        setProgress(panel,(idx+1)/Math.max(1,toDraw.length)*100);
       }
       const out=await doc.save();
       offerDownload(panel,new Blob([out],{type:'application/pdf'}),'edited.pdf');
-      setStatus(panel,'Edited! '+items.length+' text item(s) added.','success');
+      setStatus(panel,'Edited! '+items.length+' text item(s) applied.','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });

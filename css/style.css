@@ -217,6 +217,7 @@ body.is-dragging-card *{cursor:grabbing !important}
 .pdf-editor__layer{position:absolute;inset:0}
 .ed-text{position:absolute;white-space:pre;cursor:move;padding:1px 3px;border:1px solid transparent;border-radius:3px;font-family:Arial,sans-serif;line-height:1.15;user-select:none}
 .ed-text:hover{border-color:rgba(229,50,45,.45)}
+.ed-text--source{border-bottom:1px dashed rgba(229,50,45,.45)}
 .ed-text.selected{border-color:var(--red);background:rgba(229,50,45,.07);outline:1px solid var(--red)}
 .ed-text[contenteditable=true]{cursor:text;user-select:text;background:#fff;outline:2px solid var(--red)}
 .pdf-editor__tip{text-align:center;color:var(--muted);font-size:12px;margin:0}
