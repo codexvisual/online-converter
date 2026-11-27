@@ -6,8 +6,8 @@ Developed by [Filofa Technology](https://filofa.com).
 
 ## Features
 
-- 57 tools across 8 categories: Organize, Optimize, Convert to/from, Edit, Security, Intelligence and Image tools
-- Image tools: compress, resize, crop, convert, edit, upscale, remove background, watermark, meme, rotate, HTML-to-image and region blur
+- 66 tools across 8 categories: Organize, Optimize, Convert to/from, Edit, Security, Intelligence and Image tools
+- Image tools: compress, resize, crop, convert, edit, upscale, background removal, watermark, meme, rotate, HTML-to-image, region blur, Base64, colour picker, metadata, SVG optimizer, format detection, borders, favicons and contact sheets
 - Merge, split, extract, compress, rotate, crop, organize and repair PDFs
 - Convert PDF to Word, Excel, PowerPoint, JPG, HTML, PDF/A, text, CSV, Markdown, OCR and translation
 - Convert Word, Excel, PowerPoint, images and HTML to PDF
