@@ -10,8 +10,8 @@ if(window.pdfjsLib && pdfjsLib.GlobalWorkerOptions){
 }
 
 
-const CATEGORIES = ['Organize PDF','Optimize PDF','Convert to PDF','Convert from PDF','Edit PDF','PDF Security'];
-const CAT_I18N = {'Organize PDF':'cat_organize','Optimize PDF':'cat_optimize','Convert to PDF':'cat_convert_to','Convert from PDF':'cat_convert_from','Edit PDF':'cat_edit','PDF Security':'cat_security'};
+const CATEGORIES = ['Organize PDF','Optimize PDF','Convert to PDF','Convert from PDF','Edit PDF','PDF Security','PDF Intelligence'];
+const CAT_I18N = {'Organize PDF':'cat_organize','Optimize PDF':'cat_optimize','Convert to PDF':'cat_convert_to','Convert from PDF':'cat_convert_from','Edit PDF':'cat_edit','PDF Security':'cat_security','PDF Intelligence':'cat_intelligence'};
 function catLabel(cat){ return t(CAT_I18N[cat]||'filter_all'); }
 
 const TOOLS = [
@@ -30,18 +30,18 @@ const TOOLS = [
   {id:'ppt-to-pdf',name:'PowerPoint to PDF',desc:'Convert PPTX slides to PDF.',icon:'fa-file-powerpoint',cat:'Convert to PDF',impl:true},
   {id:'jpg-to-pdf',name:'JPG to PDF',desc:'Convert images to PDF.',icon:'fa-image',cat:'Convert to PDF',impl:true},
   {id:'html-to-pdf',name:'HTML to PDF',desc:'Convert web pages to PDF.',icon:'fa-code',cat:'Convert to PDF',impl:true},
-  {id:'scan-to-pdf',name:'Scan to PDF',desc:'Capture scans and save as PDF.',icon:'fa-camera',cat:'Convert to PDF',impl:true},
+  {id:'scan-to-pdf',name:'Scan to PDF',desc:'Capture scans and save as PDF.',icon:'fa-camera',cat:'Organize PDF',impl:true},
   {id:'edit',name:'Edit PDF',desc:'Add text, images and shapes to your PDF.',icon:'fa-pen-to-square',cat:'Edit PDF',impl:true},
   {id:'rotate',name:'Rotate PDF',desc:'Rotate PDF pages.',icon:'fa-rotate',cat:'Edit PDF',impl:true},
   {id:'page-numbers',name:'Page numbers',desc:'Add page numbers to PDFs.',icon:'fa-list-ol',cat:'Edit PDF',impl:true},
   {id:'watermark',name:'Watermark',desc:'Stamp text or image over PDF pages.',icon:'fa-droplet',cat:'Edit PDF',impl:true},
   {id:'crop',name:'Crop PDF',desc:'Crop PDF pages.',icon:'fa-crop',cat:'Edit PDF',impl:true},
-  {id:'sign',name:'Sign PDF',desc:'Sign PDF documents.',icon:'fa-signature',cat:'Edit PDF',impl:true},
+  {id:'sign',name:'Sign PDF',desc:'Sign PDF documents.',icon:'fa-signature',cat:'PDF Security',impl:true},
   {id:'unlock',name:'Unlock PDF',desc:'Remove PDF password.',icon:'fa-lock-open',cat:'PDF Security',impl:true},
   {id:'protect',name:'Protect PDF',desc:'Encrypt PDF with a password.',icon:'fa-lock',cat:'PDF Security',impl:true},
   {id:'organize',name:'Organize PDF',desc:'Sort, delete and rotate pages.',icon:'fa-layer-group',cat:'Organize PDF',impl:true},
-  {id:'repair',name:'Repair PDF',desc:'Recover data from damaged PDF.',icon:'fa-wrench',cat:'Organize PDF',impl:true},
-  {id:'compare',name:'Compare PDF',desc:'Show differences between two PDFs.',icon:'fa-code-compare',cat:'Organize PDF',impl:true},
+  {id:'repair',name:'Repair PDF',desc:'Recover data from damaged PDF.',icon:'fa-wrench',cat:'Optimize PDF',impl:true},
+  {id:'compare',name:'Compare PDF',desc:'Show differences between two PDFs.',icon:'fa-code-compare',cat:'PDF Security',impl:true},
   {id:'metadata',name:'PDF Metadata',desc:'View and edit PDF title, author, subject and keywords.',icon:'fa-tags',cat:'Edit PDF',impl:true},
   {id:'flatten',name:'Flatten PDF',desc:'Flatten form fields and annotations into the page.',icon:'fa-clone',cat:'Edit PDF',impl:true},
   {id:'grayscale',name:'PDF to Grayscale',desc:'Convert a PDF to grayscale (black & white).',icon:'fa-circle-half-stroke',cat:'Edit PDF',impl:true},
@@ -53,11 +53,11 @@ const TOOLS = [
   {id:'header-footer',name:'Header & footer',desc:'Add header and footer text to every page.',icon:'fa-align-center',cat:'Edit PDF',impl:true},
   {id:'remove-pages',name:'Remove pages',desc:'Delete selected pages from a PDF.',icon:'fa-file-circle-minus',cat:'Organize PDF',impl:true},
   {id:'extract-pages',name:'Extract pages',desc:'Save selected pages as a new PDF.',icon:'fa-file-export',cat:'Organize PDF',impl:true},
-  {id:'summarize',name:'PDF Summarize',desc:'Get a quick summary of a PDF document.',icon:'fa-wand-magic-sparkles',cat:'Organize PDF',impl:true},
-  {id:'translate',name:'Translate PDF',desc:'Translate PDF text into another language.',icon:'fa-language',cat:'Organize PDF',impl:true},
-  {id:'ocr',name:'OCR PDF',desc:'Make scanned PDFs searchable with OCR.',icon:'fa-file-circle-check',cat:'Convert from PDF',impl:true},
-  {id:'pdf-to-markdown',name:'PDF to Markdown',desc:'Convert PDF text to clean Markdown.',icon:'fa-file-code',cat:'Convert from PDF',impl:true},
-  {id:'redact',name:'Redact PDF',desc:'Permanently hide sensitive content in PDFs.',icon:'fa-eye-slash',cat:'Edit PDF',impl:true},
+  {id:'summarize',name:'PDF Summarize',desc:'Get a quick summary of a PDF document.',icon:'fa-wand-magic-sparkles',cat:'PDF Intelligence',impl:true},
+  {id:'translate',name:'Translate PDF',desc:'Translate PDF text into another language.',icon:'fa-language',cat:'PDF Intelligence',impl:true},
+  {id:'ocr',name:'OCR PDF',desc:'Make scanned PDFs searchable with OCR.',icon:'fa-file-circle-check',cat:'Optimize PDF',impl:true},
+  {id:'pdf-to-markdown',name:'PDF to Markdown',desc:'Convert PDF text to clean Markdown.',icon:'fa-file-code',cat:'PDF Intelligence',impl:true},
+  {id:'redact',name:'Redact PDF',desc:'Permanently hide sensitive content in PDFs.',icon:'fa-eye-slash',cat:'PDF Security',impl:true},
   {id:'pdf-forms',name:'PDF Forms',desc:'Fill and save editable PDF form fields.',icon:'fa-square-check',cat:'Edit PDF',impl:true},
 ];
 
@@ -800,7 +800,8 @@ function renderHome(root){
     {key:'optimize',label:'cat_optimize',cats:['Optimize PDF']},
     {key:'convert',label:'nav_convert',cats:['Convert from PDF','Convert to PDF']},
     {key:'edit',label:'cat_edit',cats:['Edit PDF']},
-    {key:'security',label:'cat_security',cats:['PDF Security']}
+    {key:'security',label:'cat_security',cats:['PDF Security']},
+    {key:'intelligence',label:'cat_intelligence',cats:['PDF Intelligence']}
   ];
   tags.forEach((tag,i)=>{
     const b=document.createElement('button');
@@ -4428,6 +4429,14 @@ INITERS['header-footer'] = function(panel){
 };
 
 /* ---------- router ---------- */
+function syncNavActive(){
+  const m=(location.hash||'').match(/^#\/tool\/([^/?#]+)/);
+  const id=m?m[1]:'';
+  document.querySelectorAll('.nav-link--direct').forEach(a=>{
+    if(id&&a.getAttribute('href')==='#/tool/'+id) a.setAttribute('aria-current','page');
+    else a.removeAttribute('aria-current');
+  });
+}
 function route(){
   const hash=location.hash||'#/'; const app=document.getElementById('app');
   if(hash==='#/'||hash==='#') renderHome(app);
@@ -4438,6 +4447,7 @@ function route(){
   else if(hash==='#/register') renderAuth(app,'register');
   else if(INFO[hash.replace('#/','')]) renderInfo(app,hash.replace('#/',''));
   else renderHome(app);
+  syncNavActive();
   window.scrollTo(0,0);
 }
 function onReady(fn){

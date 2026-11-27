@@ -6,7 +6,7 @@ Developed by [Filofa Technology](https://filofa.com).
 
 ## Features
 
-- 44 PDF tools across Organize, Optimize, Convert, Edit and Security
+- 44 PDF tools across 7 categories: Organize, Optimize, Convert to/from, Edit, Security and Intelligence
 - Merge, split, extract, compress, rotate, crop, organize and repair PDFs
 - Convert PDF to Word, Excel, PowerPoint, JPG, HTML, PDF/A, text, CSV, Markdown, OCR and translation
 - Convert Word, Excel, PowerPoint, images and HTML to PDF
@@ -16,12 +16,13 @@ Developed by [Filofa Technology](https://filofa.com).
 
 ## Advanced UX
 
-- **Dark mode** toggle, saved to `localStorage`, applied before page paint
+- **Dark mode** toggle, saved to `localStorage`, applied before page paint; follows your OS preference until you choose manually
 - **Installable PWA** with manifest, icons and an offline service worker
 - **Toast notifications** for downloads and warnings
 - **Recently used tools** section on the home page
 - **Smart search** with relevance ranking, synonyms, typo tolerance, live highlighting and keyboard navigation
-- **Standardized modern cards** with equal heights and responsive 3/2/1 layouts
+- **Standardized modern cards** with equal heights, category accents and a responsive 4/3/2/2 grid
+- **Tool breadcrumbs**, animated progress feedback and keyboard-activated cards (Enter/Space)
 - **Keyboard shortcuts**: `Ctrl/Cmd + K` focuses search, `/` focuses search, `Esc` closes menus
 - **Back to top** button and large mobile touch targets
 - Self-hosted Font Awesome icons so the UI works offline too
