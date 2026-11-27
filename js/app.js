@@ -841,6 +841,7 @@ function renderHome(root){
       <h1 data-i18n="hero_title">${t('hero_title')}</h1>
       <p data-i18n="hero_desc">${t('hero_desc')}</p>
       <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input id="searchInput" placeholder="${t('search_tools')}" data-i18n="search_tools" data-i18n-attr="placeholder" /><button class="search-clear" id="searchClear" type="button" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button></div>
+      <a class="hero-studio" href="#/studio"><i class="fa-solid fa-layer-group"></i> Open Image Studio <span>— all 22 image tools in one workspace</span> <i class="fa-solid fa-arrow-right"></i></a>
       <div class="hero-chips">
         <span class="hero-chip"><i class="fa-solid fa-bolt"></i><span data-i18n="hero_chip_free">${t('hero_chip_free')}</span></span>
         <span class="hero-chip hero-chip--green"><i class="fa-solid fa-shield-halved"></i><span data-i18n="hero_chip_private">${t('hero_chip_private')}</span></span>
@@ -4544,6 +4545,11 @@ function route(){
   const menuEl=document.querySelector('.menu'); if(menuEl) menuEl.classList.remove('open');
   if(hash==='#/'||hash==='#') renderHome(app);
   else if(hash==='#/tools') renderTools(app);
+  else if(hash==='#/studio'||hash.startsWith('#/studio/')){
+    const sid=hash.startsWith('#/studio/')?hash.split('/')[2].split('?')[0]:'';
+    if(window.OCSTUDIO) window.OCSTUDIO.render(app,sid);
+    else window.addEventListener('load',()=>{ if(window.OCSTUDIO) window.OCSTUDIO.render(app,sid); },{once:true});
+  }
   else if(hash.startsWith('#/tool/')) renderTool(app,hash.split('/')[2]);
   else if(hash==='#/about') renderAbout(app);
   else if(hash==='#/login') renderAuth(app,'login');

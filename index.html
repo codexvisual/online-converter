@@ -25,6 +25,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="stylesheet" href="assets/fontawesome/css/all.min.css" />
 <link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/studio.css" />
 </head>
 <body>
   <button class="skip-link" id="skipLink" type="button">Skip to tools</button>
@@ -63,6 +64,7 @@
               </ul>
             </div>
           </li>
+          <li><a class="nav-link nav-link--direct nav-link--studio" href="#/studio" title="All-in-one image editor"><i class="fa-solid fa-layer-group"></i> Image Studio</a></li>
           <li class="nav-has-dropdown nav-has-dropdown--full">
             <button class="nav-link"><span data-i18n="nav_other">All Tools</span> <i class="fa-solid fa-chevron-down"></i></button>
             <div class="nav-dropdown nav-dropdown--full">
@@ -160,6 +162,7 @@
                 </ul>
                 <ul class="nav-col">
                   <li class="nav__title">Image Create</li>
+                  <li><a href="#/studio"><i class="fa-solid fa-layer-group"></i>Image Studio (all 22)</a></li>
                   <li><a href="#/tool/html-to-image"><i class="fa-solid fa-code"></i>HTML to IMAGE</a></li>
                   <li><a href="#/tool/blur-face"><i class="fa-solid fa-eye-slash"></i>Blur face</a></li>
                   <li><a href="#/tool/image-base64"><i class="fa-solid fa-code"></i>Image to Base64</a></li>
@@ -332,5 +335,6 @@
   <script src="js/app.js" defer></script>
   <script src="js/image-tools.js" defer></script>
   <script src="js/image-utils.js" defer></script>
+  <script src="js/image-studio.js" defer></script>
 </body>
 </html>
