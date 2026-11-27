@@ -1044,7 +1044,7 @@ function renderTool(root,id){
   wrap.className='tool-page container';
   const header=document.createElement('div');
   header.className='tool-header';
-  header.innerHTML=`<div class="icon"><i class="fa-solid ${tool.icon}"></i></div><div class="tool-header__text"><nav class="tool-crumb" aria-label="Breadcrumb"><a href="#/" data-i18n="footer_home">${t('footer_home')}</a><i class="fa-solid fa-chevron-right"></i><a href="#/tools" data-i18n="all_tools">${t('all_tools')}</a><i class="fa-solid fa-chevron-right"></i><span>${catLabel(tool.cat)}</span></nav><h1>${escapeHtml(tool.name)}</h1><p>${escapeHtml(tool.desc)}</p></div>`;
+  header.innerHTML=`<div class="icon"><i class="fa-solid ${tool.icon}"></i></div><div class="tool-header__text"><nav class="tool-crumb" aria-label="Breadcrumb"><a href="#/" data-i18n="footer_home">${t('footer_home')}</a><i class="fa-solid fa-chevron-right"></i><a href="#/tools" data-i18n="all_tools">${t('all_tools')}</a><i class="fa-solid fa-chevron-right"></i><span data-i18n="${CAT_I18N[tool.cat]||'filter_all'}">${catLabel(tool.cat)}</span></nav><h1>${escapeHtml(tool.name)}</h1><p>${escapeHtml(tool.desc)}</p></div>`;
   wrap.appendChild(header);
   const panel=document.createElement('div');
   panel.className='panel';
