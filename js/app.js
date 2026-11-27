@@ -947,6 +947,7 @@ function renderHome(root){
         b.innerHTML='<span class="search-result__icon"><i class="fa-solid '+(tool?tool.icon:'fa-wand-magic-sparkles')+'"></i></span>'
           +'<span class="search-result__text"><strong>'+escapeHtml(c.dataset.title||'')+'</strong><small>'+escapeHtml(c.dataset.cat||'')+' · '+escapeHtml(c.dataset.desc||'')+'</small></span>'
           +'<i class="fa-solid fa-arrow-up-right search-result__go"></i>';
+        paintIcon(b.querySelector('.search-result__icon'),c.dataset.toolId,c.dataset.cat);
         b.addEventListener('click',()=>{ location.hash='#/tool/'+c.dataset.toolId; resultsEl.classList.remove('show'); input.blur(); });
         resultsEl.appendChild(b);
       });
@@ -1036,6 +1037,22 @@ function renderHome(root){
   if(clearBtn) clearBtn.addEventListener('click',()=>{ input.value=''; applySearch(); input.focus(); });
 }
 
+const ICON_PALETTES=[
+ ['#ff8a80','#e5322d','#b71c1c'],['#ffb199','#f4511e','#bf360c'],['#ffcc80','#f57c00','#e65100'],['#ffe082','#d97706','#a16207'],
+ ['#93c5fd','#2563eb','#1e3a8a'],['#7dd3fc','#0284c7','#075985'],['#67e8f9','#0891b2','#164e63'],['#6ee7b7','#0d9488','#115e59'],
+ ['#c4b5fd','#7c3aed','#4c1d95'],['#d8b4fe','#9333ea','#6b21a8'],['#6ee7b7','#059669','#065f46'],['#a7f3d0','#16a34a','#14532d'],
+ ['#a5b4fc','#4f46e5','#312e81'],['#f0abfc','#c026d3','#86198f'],['#f9a8d4','#db2777','#9d174d'],['#fda4af','#e11d48','#881337'],
+ ['#cbd5e1','#475569','#1e293b'],['#bef264','#65a30d','#3f6212']
+];
+const ICON_BASE={'Organize PDF':0,'Optimize PDF':2,'Convert to PDF':4,'Convert from PDF':6,'Edit PDF':8,'PDF Security':10,'PDF Intelligence':12,'Image Tools':14};
+function iconHash(s){let h=0;for(let i=0;i<(s||'').length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
+function paintIcon(el,id,cat){
+  if(!el)return;
+  const base=ICON_BASE[cat]; if(base===undefined)return;
+  const p=ICON_PALETTES[(base+(iconHash(id)%3))%ICON_PALETTES.length];
+  el.style.setProperty('--ic1',p[0]);el.style.setProperty('--ic2',p[1]);el.style.setProperty('--ic3',p[2]);
+}
+
 function makeCard(t){
   const card=document.createElement('div');
   card.className='card';
@@ -1048,6 +1065,7 @@ function makeCard(t){
   card.dataset.search=(t.name+' '+t.desc+' '+t.cat).toLowerCase();
   card.dataset.cat=t.cat;
   card.innerHTML=`<div class="icon"><i class="fa-solid ${t.icon}"></i></div><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.desc)}</p>`;
+  paintIcon(card.querySelector('.icon'),t.id,t.cat);
   const open=()=>{location.hash='#/tool/'+t.id;};
   card.addEventListener('click',open);
   card.addEventListener('keydown',e=>{
@@ -1093,6 +1111,7 @@ function renderTool(root,id){
   const header=document.createElement('div');
   header.className='tool-header';
   header.innerHTML=`<div class="icon"><i class="fa-solid ${tool.icon}"></i></div><div class="tool-header__text"><nav class="tool-crumb" aria-label="Breadcrumb"><a href="#/" data-i18n="footer_home">${t('footer_home')}</a><i class="fa-solid fa-chevron-right"></i><a href="#/tools" data-i18n="all_tools">${t('all_tools')}</a><i class="fa-solid fa-chevron-right"></i><span data-i18n="${CAT_I18N[tool.cat]||'filter_all'}">${catLabel(tool.cat)}</span></nav><h1>${escapeHtml(tool.name)}</h1><p>${escapeHtml(tool.desc)}</p></div>`;
+  paintIcon(header.querySelector('.icon'),tool.id,tool.cat);
   wrap.appendChild(header);
   const panel=document.createElement('div');
   panel.className='panel';
@@ -4614,7 +4633,12 @@ onReady(()=>{
   const appsGrid=document.querySelector('.apps-grid');
   if(appsGrid){
     const colors=['blue','purple','green','red','orange','yellow','teal','dark','indigo'];
-    appsGrid.innerHTML=TOOLS.map((t,i)=>'<a href="#/tool/'+t.id+'" class="app-tile"><span class="app-icon app-icon--'+colors[i%colors.length]+'"><i class="fa-solid '+t.icon+'"></i></span><span>'+escapeHtml(t.name)+'</span></a>').join('');
+    appsGrid.innerHTML=TOOLS.map((t,i)=>'<a href="#/tool/'+t.id+'" class="app-tile"><span class="app-icon"><i class="fa-solid '+t.icon+'"></i></span><span>'+escapeHtml(t.name)+'</span></a>').join('');
+    appsGrid.querySelectorAll('.app-tile').forEach(tile=>{
+      const id=(tile.getAttribute('href')||'').split('/').pop();
+      const t=TOOLS.find(x=>x.id===id);
+      if(t) paintIcon(tile.querySelector('.app-icon'),t.id,t.cat);
+    });
   }
   if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){
     window.addEventListener('load',()=>{
