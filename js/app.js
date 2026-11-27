@@ -4437,6 +4437,16 @@ function syncNavActive(){
     else a.removeAttribute('aria-current');
   });
 }
+function syncTitle(hash){
+  const base='Online Converter — Free PDF Toolkit';
+  const m=(hash||'').match(/^#\/tool\/([^/?#]+)/);
+  const key=(hash||'').replace('#/','');
+  let name='';
+  if(m){ const tool=TOOLS.find(x=>x.id===m[1]); if(tool) name=tool.name; }
+  else if(hash==='#/tools') name=t('all_tools');
+  else if(INFO[key]) name=INFO[key].title;
+  document.title=name?name+' · '+base:base;
+}
 function route(){
   const hash=location.hash||'#/'; const app=document.getElementById('app');
   if(hash==='#/'||hash==='#') renderHome(app);
@@ -4448,6 +4458,7 @@ function route(){
   else if(INFO[hash.replace('#/','')]) renderInfo(app,hash.replace('#/',''));
   else renderHome(app);
   syncNavActive();
+  syncTitle(hash);
   window.scrollTo(0,0);
 }
 function onReady(fn){
@@ -4520,6 +4531,11 @@ onReady(()=>{
   initTheme();
   initToTop();
   initHeaderScroll();
+  const skipLink=document.getElementById('skipLink');
+  if(skipLink) skipLink.addEventListener('click',()=>{
+    const app=document.getElementById('app');
+    if(app){ app.focus(); app.scrollIntoView({block:'start',behavior:'smooth'}); }
+  });
   initShortcuts();
   initAccessibility();
   initFeedback();
