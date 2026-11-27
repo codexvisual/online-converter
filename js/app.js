@@ -124,6 +124,14 @@ function initToTop(){
   btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
 }
 
+function initHeaderScroll(){
+  const header=document.querySelector('.header');
+  if(!header) return;
+  const onScroll=()=>header.classList.toggle('is-scrolled',window.scrollY>6);
+  window.addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+}
+
 function initAccessibility(){
   document.querySelectorAll('.icon-btn,.more-btn,.file-remove,.preview-modal__close,.to-top').forEach(b=>{
     if(!b.getAttribute('aria-label')) b.setAttribute('aria-label',b.title||'Action');
@@ -762,6 +770,12 @@ function renderHome(root){
       <h1 data-i18n="hero_title">${t('hero_title')}</h1>
       <p data-i18n="hero_desc">${t('hero_desc')}</p>
       <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input id="searchInput" placeholder="${t('search_tools')}" data-i18n="search_tools" data-i18n-attr="placeholder" /><button class="search-clear" id="searchClear" type="button" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="hero-chips">
+        <span class="hero-chip"><i class="fa-solid fa-bolt"></i><span data-i18n="hero_chip_free">${t('hero_chip_free')}</span></span>
+        <span class="hero-chip hero-chip--green"><i class="fa-solid fa-shield-halved"></i><span data-i18n="hero_chip_private">${t('hero_chip_private')}</span></span>
+        <span class="hero-chip hero-chip--blue"><i class="fa-solid fa-wifi"></i><span data-i18n="hero_chip_offline">${t('hero_chip_offline')}</span></span>
+        <span class="hero-chip hero-chip--violet"><i class="fa-solid fa-layer-group"></i><span data-i18n="hero_chip_tools">${t('hero_chip_tools')}</span></span>
+      </div>
     </div>`;
   root.appendChild(hero);
 
@@ -986,7 +1000,11 @@ function makeCard(t){
   card.dataset.search=(t.name+' '+t.desc+' '+t.cat).toLowerCase();
   card.dataset.cat=t.cat;
   card.innerHTML=`<div class="icon"><i class="fa-solid ${t.icon}"></i></div><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.desc)}</p>`;
-  card.addEventListener('click',()=>{location.hash='#/tool/'+t.id;});
+  const open=()=>{location.hash='#/tool/'+t.id;};
+  card.addEventListener('click',open);
+  card.addEventListener('keydown',e=>{
+    if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); open(); }
+  });
   return card;
 }
 
@@ -1026,14 +1044,14 @@ function renderTool(root,id){
   wrap.className='tool-page container';
   const header=document.createElement('div');
   header.className='tool-header';
-  header.innerHTML=`<div class="icon"><i class="fa-solid ${tool.icon}"></i></div><div><h1>${escapeHtml(tool.name)}</h1><p>${escapeHtml(tool.desc)}</p></div>`;
+  header.innerHTML=`<div class="icon"><i class="fa-solid ${tool.icon}"></i></div><div class="tool-header__text"><nav class="tool-crumb" aria-label="Breadcrumb"><a href="#/" data-i18n="footer_home">${t('footer_home')}</a><i class="fa-solid fa-chevron-right"></i><a href="#/tools" data-i18n="all_tools">${t('all_tools')}</a><i class="fa-solid fa-chevron-right"></i><span>${catLabel(tool.cat)}</span></nav><h1>${escapeHtml(tool.name)}</h1><p>${escapeHtml(tool.desc)}</p></div>`;
   wrap.appendChild(header);
   const panel=document.createElement('div');
   panel.className='panel';
   wrap.appendChild(panel);
   root.appendChild(wrap);
 
-  const status=document.createElement('div'); status.className='status'; panel.appendChild(status);
+  const status=document.createElement('div'); status.className='status'; status.setAttribute('role','status'); status.setAttribute('aria-live','polite'); panel.appendChild(status);
   // progress added by init maybe; ensure
   const progress=document.createElement('div'); progress.className='progress'; progress.innerHTML='<div></div>'; panel.appendChild(progress);
 
@@ -4491,6 +4509,7 @@ window.addEventListener('beforeinstallprompt',e=>{
 onReady(()=>{
   initTheme();
   initToTop();
+  initHeaderScroll();
   initShortcuts();
   initAccessibility();
   initFeedback();
