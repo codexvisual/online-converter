@@ -128,7 +128,7 @@ INITERS['image-metadata']=function(panel){
           let dims='—';try{const im=await decodeAny(f);dims=im.width+' × '+im.height;}catch(e){}
           rows.push('<tr><td>'+esc(f.name)+'</td><td>'+esc(f.type||magic(new Uint8Array(await f.slice(0,12).arrayBuffer())))+'</td><td>'+fmt(f.size)+'</td><td>'+dims+'</td></tr>');
         }
-        result.innerHTML='<table class="util-table"><thead><tr><th>File</th><th>Type</th><th>Size</th><th>Dimensions</th></tr></thead><tbody>'+rows.join('')+'</tbody></table><div class="file-hint">Re-encoding through canvas removes embedded EXIF/IPTC metadata.</div>';
+        result.innerHTML='<div class="table-wrap"><table class="util-table"><thead><tr><th>File</th><th>Type</th><th>Size</th><th>Dimensions</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div><div class="file-hint">Re-encoding through canvas removes embedded EXIF/IPTC metadata.</div>';
       })();
     },
     process:async(files,get,panel)=>{
@@ -172,7 +172,7 @@ INITERS['image-format-detector']=function(panel){
         const kind=magic(head);
         rows.push('<tr><td>'+esc(f.name)+'</td><td>'+esc(f.type||'—')+'</td><td><strong>'+kind+'</strong></td><td>'+(kind!=='Unknown'&&f.type&&kind.toLowerCase().indexOf(f.type.split('/')[1])<0?'⚠ mismatch':'✓')+'</td></tr>');
       }
-      result.innerHTML='<table class="util-table"><thead><tr><th>File</th><th>Declared</th><th>Detected</th><th>Check</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
+      result.innerHTML='<div class="table-wrap"><table class="util-table"><thead><tr><th>File</th><th>Declared</th><th>Detected</th><th>Check</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
       return 'Detected '+files.length+' file(s).';
     }});
 };

@@ -511,7 +511,17 @@ html[data-theme="dark"] .file-rotation{background:#2a1b1b;color:#ff8a80}
   .hero{padding:44px 0 20px}
   .options{grid-template-columns:1fr;gap:10px}
   .field label{font-size:12px}
-  .field input,.field select,.field textarea{font-size:15px;padding:11px 12px}
+  .field input,.field select,.field textarea,.util-result textarea{font-size:16px;padding:11px 12px}
+  .live-bar{gap:5px;padding:8px}
+  .live-tool{min-width:36px;height:36px;font-size:13px}
+  .live-label{font-size:9px}
+  .live-dims{width:100%;margin-left:0;text-align:right;font-size:10.5px}
+  .live-stage{max-height:52vh;padding:8px}
+  .live-split-handle i{width:34px;height:34px}
+  .quad{grid-template-columns:1fr 1fr}
+  .palette-chip{width:36px;height:36px}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .util-table{font-size:11px;white-space:nowrap}
   .actions{flex-direction:column}
   .actions .btn{width:100%;justify-content:center}
   .panel{padding:14px}
@@ -712,6 +722,11 @@ html[data-theme="dark"] .to-top{box-shadow:0 10px 24px rgba(0,0,0,.6)}
 .blur-region{position:absolute;border:2px solid var(--red);background:rgba(229,50,45,.18);pointer-events:none}
 .blur-region--live{border-style:dashed}
 .chip-count{font-variant-numeric:tabular-nums}
+.options>*{min-width:0;max-width:100%}
+.field>*{min-width:0;max-width:100%}
+.field input[type=file]{width:100%;font-size:12px}
+.preset-row{max-width:100%}
+.preset-btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .live-box{margin-top:14px;border:1px solid var(--border);border-radius:16px;background:var(--card);overflow:hidden}
 .live-stage{position:relative;overflow:auto;max-height:440px;background:repeating-conic-gradient(#f1f2f4 0% 25%,#fff 0% 50%) 50%/18px 18px;padding:10px;display:flex;justify-content:center}
 .live-inner{position:relative;flex:0 0 auto;--split:50%;transform-origin:top center}
@@ -753,6 +768,7 @@ html[data-theme="dark"] .to-top{box-shadow:0 10px 24px rgba(0,0,0,.6)}
 .palette{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .palette-chip{width:30px;height:30px;border-radius:8px;border:2px solid var(--border);cursor:pointer}
 .util-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.table-wrap{width:100%;overflow-x:auto}
 .util-table th,.util-table td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;overflow-wrap:anywhere}
 .util-table th{color:var(--muted);font-weight:800;text-transform:uppercase;font-size:10px;letter-spacing:.08em}
 html[data-theme="dark"] .picker-canvas,html[data-theme="dark"] .util-table td{border-color:var(--border)}

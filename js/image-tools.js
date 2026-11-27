@@ -96,11 +96,11 @@ function makeLive(panel,extra,cfg){
   inner.appendChild(orig); inner.appendChild(cv); inner.appendChild(handle); stage.appendChild(inner);
   const bar=document.createElement('div'); bar.className='live-bar';
   bar.innerHTML='<span class="live-label"><i class="fa-solid fa-bolt"></i> LIVE</span>'+
-    '<button type="button" class="live-tool" data-act="undo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>'+
-    '<button type="button" class="live-tool" data-act="redo" title="Redo (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>'+
-    '<button type="button" class="live-tool" data-act="reset" title="Reset all"><i class="fa-solid fa-eraser"></i></button>'+
-    '<button type="button" class="live-tool" data-act="compare" title="Before / after"><i class="fa-solid fa-arrows-left-right"></i></button>'+
-    '<span class="live-zoom"><button type="button" class="live-tool" data-act="zoomout">−</button><span class="zoom-label">100%</span><button type="button" class="live-tool" data-act="zoomin">+</button></span>'+
+    '<button type="button" class="live-tool" data-act="undo" aria-label="Undo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>'+
+    '<button type="button" class="live-tool" data-act="redo" aria-label="Redo" title="Redo (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>'+
+    '<button type="button" class="live-tool" data-act="reset" aria-label="Reset all adjustments" title="Reset all"><i class="fa-solid fa-eraser"></i></button>'+
+    '<button type="button" class="live-tool" data-act="compare" aria-label="Compare before and after" title="Before / after"><i class="fa-solid fa-arrows-left-right"></i></button>'+
+    '<span class="live-zoom"><button type="button" class="live-tool" data-act="zoomout" aria-label="Zoom out">−</button><span class="zoom-label">100%</span><button type="button" class="live-tool" data-act="zoomin" aria-label="Zoom in">+</button></span>'+
     '<span class="live-dims"></span>';
   box.appendChild(stage); box.appendChild(bar);
   extra.innerHTML=''; extra.appendChild(box);
