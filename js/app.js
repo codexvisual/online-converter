@@ -10,8 +10,8 @@ if(window.pdfjsLib && pdfjsLib.GlobalWorkerOptions){
 }
 
 
-const CATEGORIES = ['Organize PDF','Optimize PDF','Convert to PDF','Convert from PDF','Edit PDF','PDF Security','PDF Intelligence'];
-const CAT_I18N = {'Organize PDF':'cat_organize','Optimize PDF':'cat_optimize','Convert to PDF':'cat_convert_to','Convert from PDF':'cat_convert_from','Edit PDF':'cat_edit','PDF Security':'cat_security','PDF Intelligence':'cat_intelligence'};
+const CATEGORIES = ['Organize PDF','Optimize PDF','Convert to PDF','Convert from PDF','Edit PDF','PDF Security','PDF Intelligence','Image Tools'];
+const CAT_I18N = {'Organize PDF':'cat_organize','Optimize PDF':'cat_optimize','Convert to PDF':'cat_convert_to','Convert from PDF':'cat_convert_from','Edit PDF':'cat_edit','PDF Security':'cat_security','PDF Intelligence':'cat_intelligence','Image Tools':'cat_image'};
 function catLabel(cat){ return t(CAT_I18N[cat]||'filter_all'); }
 
 const TOOLS = [
@@ -59,6 +59,19 @@ const TOOLS = [
   {id:'pdf-to-markdown',name:'PDF to Markdown',desc:'Convert PDF text to clean Markdown.',icon:'fa-file-code',cat:'PDF Intelligence',impl:true},
   {id:'redact',name:'Redact PDF',desc:'Permanently hide sensitive content in PDFs.',icon:'fa-eye-slash',cat:'PDF Security',impl:true},
   {id:'pdf-forms',name:'PDF Forms',desc:'Fill and save editable PDF form fields.',icon:'fa-square-check',cat:'Edit PDF',impl:true},
+  {id:'image-compress',name:'Compress IMAGE',desc:'Compress JPG, PNG, SVG and GIF images while saving space and maintaining quality.',icon:'fa-compress',cat:'Image Tools',impl:true},
+  {id:'image-resize',name:'Resize IMAGE',desc:'Define dimensions by percent or pixel and resize your images.',icon:'fa-expand',cat:'Image Tools',impl:true},
+  {id:'image-crop',name:'Crop IMAGE',desc:'Crop images with a visual rectangle editor or exact pixels.',icon:'fa-crop',cat:'Image Tools',impl:true},
+  {id:'image-to-jpg',name:'Convert to JPG',desc:'Turn PNG, GIF, TIF, PSD, SVG, WEBP, HEIC and RAW images into JPG.',icon:'fa-file-image',cat:'Image Tools',impl:true},
+  {id:'jpg-to-image',name:'Convert from JPG',desc:'Turn JPG images into PNG or animated GIF.',icon:'fa-images',cat:'Image Tools',impl:true},
+  {id:'photo-editor',name:'Photo editor',desc:'Spice up pictures with filters, text, frames and stickers.',icon:'fa-pen-to-square',cat:'Image Tools',impl:true},
+  {id:'image-upscale',name:'Upscale Image',desc:'Enlarge images with high-quality resampling while keeping detail.',icon:'fa-maximize',cat:'Image Tools',impl:true},
+  {id:'remove-bg',name:'Remove background',desc:'Remove plain image backgrounds instantly and save a transparent PNG.',icon:'fa-wand-magic-sparkles',cat:'Image Tools',impl:true},
+  {id:'image-watermark',name:'Watermark IMAGE',desc:'Stamp text or an image over your pictures with custom opacity and position.',icon:'fa-droplet',cat:'Image Tools',impl:true},
+  {id:'meme-generator',name:'Meme generator',desc:'Caption meme images or your own pictures in seconds.',icon:'fa-face-laugh',cat:'Image Tools',impl:true},
+  {id:'image-rotate',name:'Rotate IMAGE',desc:'Rotate many images at once by 90, 180 or 270 degrees.',icon:'fa-rotate',cat:'Image Tools',impl:true},
+  {id:'html-to-image',name:'HTML to IMAGE',desc:'Convert HTML snippets into JPG, PNG or SVG images.',icon:'fa-code',cat:'Image Tools',impl:true},
+  {id:'blur-face',name:'Blur face',desc:'Blur faces, licence plates or any selected region to hide private information.',icon:'fa-eye-slash',cat:'Image Tools',impl:true},
 ];
 
 function $(sel,root=document){return root.querySelector(sel);}
@@ -276,7 +289,7 @@ function setStatus(panel,msg,type){ const el=panel.querySelector('.status'); if(
 function showProgress(panel,on){ const el=panel.querySelector('.progress'); if(!el)return; el.classList.toggle('show',on); if(!on){const b=el.querySelector('div'); if(b)b.style.width='0%';} }
 function setProgress(panel,p){ const el=panel.querySelector('.progress'); if(!el)return; const b=el.querySelector('div'); if(b)b.style.width=Math.min(100,Math.max(0,p))+'%'; }
 
-function createDropzone(panel,{accept,multiple,onFiles}){
+function createDropzone(panel,{accept,multiple,onFiles,core=true}){
   const dz=document.createElement('div');
   dz.className='dropzone';
   const acceptLabel=accept?accept.split(',').map(x=>x.trim().split('/').pop().toUpperCase()).join(', '):'any';
@@ -291,8 +304,7 @@ function createDropzone(panel,{accept,multiple,onFiles}){
     if(!list || !list.length) return;
     const big=list.filter(f=>f.size>150*1024*1024);
     if(big.length) toast(big.length+' file(s) exceed 150 MB and may be slow to process.','warn',5200);
-    await waitForCore('PDFLib');
-    await waitForCore('pdfjsLib');
+    if(core){ await waitForCore('PDFLib'); await waitForCore('pdfjsLib'); }
     onFiles(list);
   };
   dz.addEventListener('drop',e=>{handle([...e.dataTransfer.files]);});
@@ -308,6 +320,9 @@ const LIB_URLS={
   mammoth:['https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js','https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js'],
   html2pdf:['https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js','https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js'],
   Tesseract:['https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js','https://unpkg.com/tesseract.js@5/dist/tesseract.min.js'],
+  heic2any:['https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js','https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js'],
+  UTIF:['https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js','https://unpkg.com/utif@3.1.0/UTIF.js'],
+  PSD:['https://cdn.jsdelivr.net/npm/psd.js@3.0.0/dist/psd.min.js','https://unpkg.com/psd.js@3.0.0/dist/psd.min.js'],
 };
 const libPromises={};
 function ensureLib(name,ms=20000){
@@ -677,6 +692,19 @@ const SEARCH_ALIASES={
   'header-footer':'margin top bottom text running brand',
   'remove-pages':'delete remove pages cut drop',
   'extract-pages':'extract pull select save keep pages',
+  'image-compress':'image jpg png gif svg photo shrink reduce optimize size quality weight',
+  'image-resize':'image jpg png gif svg photo dimensions scale percent pixels width height',
+  'image-crop':'image jpg png gif photo trim rectangle cut frame editor',
+  'image-to-jpg':'image png gif tif tiff psd svg webp heic raw jpeg convert batch',
+  'jpg-to-image':'jpg jpeg png gif animated convert batch',
+  'photo-editor':'image photo filters effects text stickers frame edit',
+  'image-upscale':'image enlarge high resolution quality bigger scale photo',
+  'remove-bg':'image background transparency transparent cutout erase',
+  'image-watermark':'image photo stamp text logo overlay mark opacity',
+  'meme-generator':'meme caption funny text image photo generator',
+  'image-rotate':'image photo spin turn orientation landscape portrait batch',
+  'html-to-image':'html webpage web page screenshot jpg png svg code',
+  'blur-face':'image photo blur face plate private hide region censor',
   summarize:'summary tldr ai brief key points overview',
   translate:'language spanish bengali hindi arabic french german chinese korean japanese urdu',
   ocr:'scan scanned text recognize searchable image photo',
@@ -774,7 +802,7 @@ function renderHome(root){
         <span class="hero-chip"><i class="fa-solid fa-bolt"></i><span data-i18n="hero_chip_free">${t('hero_chip_free')}</span></span>
         <span class="hero-chip hero-chip--green"><i class="fa-solid fa-shield-halved"></i><span data-i18n="hero_chip_private">${t('hero_chip_private')}</span></span>
         <span class="hero-chip hero-chip--blue"><i class="fa-solid fa-wifi"></i><span data-i18n="hero_chip_offline">${t('hero_chip_offline')}</span></span>
-        <span class="hero-chip hero-chip--violet"><i class="fa-solid fa-layer-group"></i><span data-i18n="hero_chip_tools">${t('hero_chip_tools')}</span></span>
+        <span class="hero-chip hero-chip--violet"><i class="fa-solid fa-layer-group"></i><span class="chip-count">${TOOLS.length.toLocaleString(I18N.lang)}</span> <span data-i18n="hero_chip_tools">${t('hero_chip_tools')}</span></span>
       </div>
     </div>`;
   root.appendChild(hero);
@@ -801,7 +829,8 @@ function renderHome(root){
     {key:'convert',label:'nav_convert',cats:['Convert from PDF','Convert to PDF']},
     {key:'edit',label:'cat_edit',cats:['Edit PDF']},
     {key:'security',label:'cat_security',cats:['PDF Security']},
-    {key:'intelligence',label:'cat_intelligence',cats:['PDF Intelligence']}
+    {key:'intelligence',label:'cat_intelligence',cats:['PDF Intelligence']},
+    {key:'image',label:'cat_image',cats:['Image Tools']}
   ];
   tags.forEach((tag,i)=>{
     const b=document.createElement('button');
@@ -4535,6 +4564,9 @@ onReady(()=>{
   if(skipLink) skipLink.addEventListener('click',()=>{
     const app=document.getElementById('app');
     if(app){ app.focus(); app.scrollIntoView({block:'start',behavior:'smooth'}); }
+  });
+  document.addEventListener('click',e=>{
+    if(e.target.closest && e.target.closest('a[href="#"]')) e.preventDefault();
   });
   initShortcuts();
   initAccessibility();

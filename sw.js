@@ -1,7 +1,7 @@
 /* Online Converter — service worker (offline-first, caches libraries too) */
-const CACHE = 'oc-shell-v16';
+const CACHE = 'oc-shell-v17';
 const CORE = [
-  './', './index.html', './css/style.css', './js/app.js', './js/i18n.js',
+  './', './index.html', './css/style.css', './js/app.js', './js/i18n.js', './js/image-tools.js',
   './manifest.json',
   './assets/logo-small.png', './assets/favicon.png',
   './assets/icon-192.png', './assets/icon-512.png',
@@ -25,7 +25,10 @@ const LIBS = [
   'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js',
   'https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js',
   'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
-  'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js'
+  'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+  'https://cdn.jsdelivr.net/npm/gifenc@1.0.3/dist/gifenc.esm.js',
+  'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js',
+  'https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js'
 ];
 
 self.addEventListener('install', (event) => {
