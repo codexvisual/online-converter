@@ -1,5 +1,5 @@
 /* Online Converter — service worker (offline-first, caches libraries too) */
-const CACHE = 'oc-shell-v22';
+const CACHE = 'oc-shell-v23';
 const CORE = [
   './', './index.html', './css/style.css', './js/app.js', './js/i18n.js', './js/image-tools.js', './js/image-utils.js',
   './manifest.json',
@@ -35,7 +35,8 @@ self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     await Promise.allSettled(CORE.map((u) => cache.add(u).catch(() => {})));
-    await Promise.allSettled(LIBS.map((u) => cache.add(new Request(u, { mode: 'no-cors' })).catch(() => {})));
+    // Cache with CORS mode so SRI integrity checks on <script crossorigin> succeed.
+    await Promise.allSettled(LIBS.map((u) => cache.add(new Request(u, { mode: 'cors', credentials: 'omit' })).catch(() => {})));
     await self.skipWaiting();
   })());
 });
@@ -54,8 +55,16 @@ self.addEventListener('fetch', (event) => {
   let url;
   try { url = new URL(req.url); } catch (e) { return; }
   if (url.origin !== self.location.origin) {
-    // Offline fallback for third-party libraries.
-    event.respondWith(caches.match(req).then((hit) => hit || fetch(req)));
+    // Network-first for libraries (keeps SRI valid); cached CORS copy is offline fallback.
+    event.respondWith(
+      fetch(req).then((res) => {
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+        }
+        return res;
+      }).catch(() => caches.match(req))
+    );
     return;
   }
   // Network-first for our own files, with offline cache fallback.

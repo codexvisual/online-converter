@@ -1,4 +1,4 @@
-@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url('assets/fonts/inter-latin.woff2') format('woff2')}
+@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url('../assets/fonts/inter-latin.woff2') format('woff2')}
 :root{
   --red:#E5322D;
   --red-dark:#c42520;
@@ -885,4 +885,19 @@ html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover{background:#4a5262;backg
 /* Dark-mode primary button keeps contrast on tinted panels */
 html[data-theme="dark"] .btn-ghost:hover{background:#241a1a}
 html[data-theme="dark"] .tool-header .icon{box-shadow:0 12px 24px -10px rgba(0,0,0,.7),inset 0 2px 1px rgba(255,255,255,.28),inset 0 -4px 8px rgba(0,0,0,.3)}
+
+/* ============ Print ============ */
+@media print{
+  .header,.menu,.nav-wrap,.skip-link,.hero,.search,.search-clear,.search-count,.search-result,.search-sugg,
+  .footer,.feedback-btn,.to-top,.toast,.dropzone,.file-move,.file-remove,.progress,.status,.actions,
+  .options,.live-toolbar,.live-tools,.compare-slider,.zoom-controls,.preset-btn,.btn,.icon-btn,.apps-menu{display:none!important}
+  body{background:#fff!important;color:#111!important}
+  .container{width:100%!important;max-width:none!important;padding:0!important}
+  .tool-page,.panel{box-shadow:none!important;border:0!important;margin:0!important;padding:0!important;background:#fff!important}
+  .panel *{color:#111!important}
+  .tool-header h1{font-size:22pt!important}
+  .section .card{break-inside:avoid;box-shadow:none!important;border:1px solid #ccc!important}
+  a[href]::after{content:''!important}
+}
+
 
