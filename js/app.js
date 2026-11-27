@@ -4515,6 +4515,8 @@ function syncTitle(hash){
 }
 function route(){
   const hash=location.hash||'#/'; const app=document.getElementById('app');
+  document.querySelectorAll('.nav-has-dropdown.open').forEach(x=>x.classList.remove('open'));
+  const menuEl=document.querySelector('.menu'); if(menuEl) menuEl.classList.remove('open');
   if(hash==='#/'||hash==='#') renderHome(app);
   else if(hash==='#/tools') renderTools(app);
   else if(hash.startsWith('#/tool/')) renderTool(app,hash.split('/')[2]);
@@ -4566,9 +4568,14 @@ onReady(()=>{
   });
   document.querySelectorAll('.nav-dropdown a').forEach(a=>{
     a.addEventListener('click',()=>{
+      const parent=a.closest('.nav-has-dropdown');
+      if(parent) parent.classList.add('suppress');
       document.querySelectorAll('.nav-has-dropdown.open').forEach(x=>x.classList.remove('open'));
       if(menu) menu.classList.remove('open');
     });
+  });
+  document.querySelectorAll('.nav-has-dropdown').forEach(n=>{
+    n.addEventListener('mouseleave',()=>n.classList.remove('suppress'));
   });
   const appsSearch=document.getElementById('appsSearch');
   if(appsSearch){

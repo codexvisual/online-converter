@@ -48,7 +48,8 @@ html[data-theme="dark"] .nav-link--direct[aria-current="page"]{color:#ff8a80;bac
 .nav-link i{font-size:10px;color:var(--muted)}
 .nav-dropdown{position:absolute;top:100%;left:0;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 14px 36px rgba(0,0,0,.13);padding:18px;display:none;z-index:200;max-height:calc(100vh - 80px);overflow-y:auto;overscroll-behavior:contain}
 @media (min-width:901px){
-  .nav-has-dropdown:hover>.nav-dropdown:not(.nav-dropdown--full):not(.apps-menu),.nav-has-dropdown.open>.nav-dropdown:not(.nav-dropdown--full):not(.apps-menu){display:flex;flex-direction:row;gap:10px}
+  html .nav-has-dropdown.suppress>.nav-dropdown,html .nav-has-dropdown.suppress:hover>.nav-dropdown,html .nav-has-dropdown.suppress.open>.nav-dropdown{display:none!important}
+.nav-has-dropdown:hover>.nav-dropdown:not(.nav-dropdown--full):not(.apps-menu),.nav-has-dropdown.open>.nav-dropdown:not(.nav-dropdown--full):not(.apps-menu){display:flex;flex-direction:row;gap:10px}
 }
 .nav-dropdown::-webkit-scrollbar{width:6px}
 .nav-dropdown::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
