@@ -15,6 +15,17 @@ Developed by [Filofa Technology](https://filofa.com).
 - Protect/unlock PDFs, redact, flatten, grayscale and fill forms
 - Everything runs locally in the browser — files are never uploaded
 
+## Image Studio
+
+A unified, canvas-first editor at `#/studio` (also linked in the header menu and home hero). Upload once, then switch between 52 image operations without re-uploading.
+
+- Non-destructive editing: the original pixels are never changed; every edit is an operation in a history list
+- Undo / redo, before-after comparison, zoom 10–800%, pan, grid and smart guides
+- Left tool rail + collapsible tool drawer; right context-sensitive properties panel with layer/history list
+- Responsive: docked panels on desktop, overlay drawers on tablet, bottom-sheet panels and category navigation on mobile
+- Multi-image gallery, apply-edits-to-all, batch export as ZIP, save project as JSON
+- Browser-side heuristic "AI" tools (background removal, upscale, enhance, privacy blur) — no cloud upload, no fake AI claims
+
 ## Advanced UX
 
 - **Dark mode** toggle, saved to `localStorage`, applied before page paint; follows your OS preference until you choose manually
