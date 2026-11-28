@@ -373,7 +373,7 @@ function render(root,initialId){
     const b=e.target.closest('[data-act]');if(!b)return;
     const act=b.dataset.act;
     if(act==='save')saveProject();
-    else if(act==='export')directExport('image/png');
+    else if(act==='export')exportDialog();
     else if(act==='quicksave')saveProject();
     else toolbar(act);
   });
