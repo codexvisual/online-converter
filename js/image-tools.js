@@ -679,10 +679,96 @@ INITERS['photo-editor']=function(panel){
 
 /* 7 — Upscale Image */
 INITERS['image-upscale']=function(panel){
-  const render=(ctx,w,h,im,get)=>{
+  const AI_MODEL='https://huggingface.co/Heliosoph/realesrgan-onnx/resolve/main/realesr-general-x4v3.onnx';
+  const AI_WASM='https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/';
+  const TILE=128,PAD=8,SCALE=4;
+
+  function cropId(src,x,y,w,h){
+    const out=new ImageData(w,h);
+    for(let row=0;row<h;row++){
+      const from=((y+row)*src.width+x)*4;
+      out.data.set(src.data.subarray(from,from+w*4),row*w*4);
+    }
+    return out;
+  }
+
+  async function aiRender(ctx,w,h,im,get){
+    setStatus(panel,'Loading AI model (about 5 MB on first use)…','info');
+    showProgress(panel,true);
+    await ensureLib('ort');
+    const ort=window.ort;
+    ort.env.wasm.wasmPaths=AI_WASM;
+    ort.env.wasm.numThreads=1;
+    if(!window.__ocModelBuf){
+      const res=await fetch(AI_MODEL,{mode:'cors'});
+      if(!res.ok)throw new Error('AI model download failed ('+res.status+')');
+      window.__ocModelBuf=await res.arrayBuffer();
+    }
+    if(!window.__ocSessionPromise){
+      window.__ocSessionPromise=ort.InferenceSession.create(window.__ocModelBuf,{executionProviders:['webgpu','wasm']})
+        .catch(()=>ort.InferenceSession.create(window.__ocModelBuf,{executionProviders:['wasm']}));
+    }
+    const session=await window.__ocSessionPromise;
+    setStatus(panel,'Enhancing with Real-ESRGAN…','info');
+
+    const cap=384;
+    const s=Math.min(1,cap/Math.max(im.width,im.height));
+    const sw=Math.max(1,Math.round(im.width*s)),sh=Math.max(1,Math.round(im.height*s));
+    const small=canvas(sw,sh);
+    const sctx=small.getContext('2d',{willReadFrequently:true});
+    sctx.imageSmoothingEnabled=true;sctx.imageSmoothingQuality='high';
+    sctx.drawImage(im,0,0,sw,sh);
+    const src=sctx.getImageData(0,0,sw,sh).data;
+    const out=canvas(sw*SCALE,sh*SCALE);
+    const octx=out.getContext('2d');
+    const step=TILE-2*PAD;
+    let total=0,done=0;
+    for(let y=0;y<sh;y+=step)for(let x=0;x<sw;x+=step)total++;
+    for(let y=0;y<sh;y+=step){
+      for(let x=0;x<sw;x+=step){
+        const tw=Math.min(TILE,sw-x),th=Math.min(TILE,sh-y);
+        const planes=new Float32Array(tw*th*3);
+        for(let j=0;j<th;j++)for(let i=0;i<tw;i++){
+          const p=((y+j)*sw+(x+i))*4,k=(j*tw+i)*3;
+          planes[k]=src[p]/255;planes[k+1]=src[p+1]/255;planes[k+2]=src[p+2]/255;
+        }
+        const tensor=new ort.Tensor('float32',planes,[1,3,th,tw]);
+        const feed={};feed[session.inputNames[0]]=tensor;
+        const res=await session.run(feed);
+        const od=res[session.outputNames[0]].data;
+        const ow=tw*SCALE,oh=th*SCALE;
+        const tile=new ImageData(ow,oh);
+        const plane=ow*oh;
+        for(let k=0;k<plane;k++){
+          const p=k*4;
+          tile.data[p]=Math.max(0,Math.min(255,od[k]*255));
+          tile.data[p+1]=Math.max(0,Math.min(255,od[plane+k]*255));
+          tile.data[p+2]=Math.max(0,Math.min(255,od[2*plane+k]*255));
+          tile.data[p+3]=255;
+        }
+        const lx=x===0?0:PAD,rx=(x+tw===sw)?tw:tw-PAD;
+        const ty=y===0?0:PAD,by=(y+th===sh)?th:th-PAD;
+        const kw=rx-lx,kh=by-ty;
+        if(kw>0&&kh>0){
+          const piece=canvas(kw*SCALE,kh*SCALE);
+          piece.getContext('2d').putImageData(cropId(tile,lx*SCALE,ty*SCALE,kw*SCALE,kh*SCALE),0,0);
+          octx.drawImage(piece,(x+lx)*SCALE,(y+ty)*SCALE);
+        }
+        done++;
+        setProgress(panel,Math.round(done/total*100));
+      }
+    }
+    ctx.clearRect(0,0,w,h);
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    ctx.drawImage(out,0,0,w,h);
+    showProgress(panel,false);
+    setStatus(panel,'AI-enhanced with Real-ESRGAN (4x model).','success');
+  }
+
+  const basicRender=(ctx,w,h,im,get)=>{
     const q=get('upQ')||'quality';
-    ctx.clearRect(0,0,w,h); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
-    if(q==='fast'){ ctx.drawImage(im,0,0,w,h); return; }
+    ctx.clearRect(0,0,w,h);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    if(q==='fast'){ctx.drawImage(im,0,0,w,h);return;}
     const half=canvas(Math.max(1,Math.round(w/2)),Math.max(1,Math.round(h/2)));
     const hc=half.getContext('2d');hc.imageSmoothingEnabled=true;hc.imageSmoothingQuality='high';hc.drawImage(im,0,0,half.width,half.height);
     ctx.drawImage(half,0,0,w,h);
@@ -690,23 +776,37 @@ INITERS['image-upscale']=function(panel){
       const d=ctx.getImageData(0,0,w,h),a=d.data,out=new Uint8ClampedArray(a),W=w,H=h;
       for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){
         const i=(y*W+x)*4;
-        for(let k=0;k<3;k++){ const v=a[i+k]*2-(a[i-4+k]+a[i+4+k]+a[i-W*4+k]+a[i+W*4+k])/4; out[i+k]=Math.max(0,Math.min(255,a[i+k]+(v-a[i+k])*0.22)); }
+        for(let k=0;k<3;k++){const v=a[i+k]*2-(a[i-4+k]+a[i+4+k]+a[i-W*4+k]+a[i+W*4+k])/4;out[i+k]=Math.max(0,Math.min(255,a[i+k]+(v-a[i+k])*0.22));}
       }
       d.data.set(out);ctx.putImageData(d,0,0);
     }
   };
+
+  const render=async(ctx,w,h,im,get)=>{
+    if(get('upEngine')==='ai'){
+      try{ await aiRender(ctx,w,h,im,get); return; }
+      catch(e){ setStatus(panel,'AI unavailable ('+e.message+') — using balanced mode.','error'); }
+    }
+    basicRender(ctx,w,h,im,get);
+  };
+
   imageTool(panel,{button:'Upscale images',zipName:'upscaled_images',render,
     previewSize:(im,get)=>{const f=Number(get('upF'))||2;const w=Math.min(MAX_PREVIEW,im.width*f);return {w:w,h:Math.round(im.height*f*w/(im.width*f))};},
-    options:opts([presets([['2','2×'],['3','3×'],['4','4×']]),select('upF','Scale factor',[['2','2×'],['3','3×'],['4','4×']]),select('upQ','Quality mode',[['quality','Balanced'],['detail','Sharpen detail'],['fast','Fast']]),select('upO','Format',[['png','PNG'],['jpeg','JPG'],['webp','WebP']])]),
+    options:opts([
+      select('upEngine','Engine',[['quality','Fast (balanced)'],['ai','AI · Real-ESRGAN 4x (5 MB download)']]),
+      presets([['2','2x'],['3','3x'],['4','4x']]),
+      select('upF','Scale factor',[['2','2x'],['3','3x'],['4','4x']]),
+      select('upQ','Quality mode',[['quality','Balanced'],['detail','Sharpen detail'],['fast','Fast']]),
+      select('upO','Format',[['png','PNG'],['jpeg','JPG'],['webp','WebP']])
+    ]),
     fullSize:(im,get)=>{const f=Number(get('upF'))||2;return {w:Math.min(8000,Math.round(im.width*f)),h:Math.min(8000,Math.round(im.height*f))};},
     type:g=>g('upO')==='png'?'image/png':g('upO')==='webp'?'image/webp':'image/jpeg',quality:()=>0.95,
     name:(f,g)=>outName(f,'-upscaled',g('upO')==='png'?'png':g('upO')==='webp'?'webp':'jpg'),
-    process:(files,get,panel)=>processAll(files,get,{panel,fullSize:(im,g)=>{const f=Number(g('upF'))||2;return {w:Math.min(8000,Math.round(im.width*f)),h:Math.min(8000,Math.round(im.height*f))};},render,type:g=>g('upO')==='png'?'image/png':g('upO')==='webp'?'image/webp':'image/jpeg',quality:()=>0.95,name:f=>outName(f,'-upscaled','png')})
+    process:(files,get,panel2)=>processAll(files,get,{panel:panel2,fullSize:(im,g)=>{const f=Number(g('upF'))||2;return {w:Math.min(8000,Math.round(im.width*f)),h:Math.min(8000,Math.round(im.height*f))};},render,type:g=>g('upO')==='png'?'image/png':g('upO')==='webp'?'image/webp':'image/jpeg',quality:()=>0.95,name:f=>outName(f,'-upscaled','png')})
   });
   bindPresets(panel,p=>{const el=panel.querySelector('#upF');if(el)el.value=p;});
 };
 
-/* 8 — Remove background */
 INITERS['remove-bg']=function(panel){
   const render=async(ctx,w,h,im,get)=>{
     const tol=Number(get('bgTol'))||45, feather=Number(get('bgFeather'))||0;

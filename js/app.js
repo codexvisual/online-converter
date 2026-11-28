@@ -244,7 +244,7 @@ function initHomeDrop(){
       +picks.map(id=>{const tool=TOOLS.find(x=>x.id===id);return '<button class="suggest-item" data-id="'+id+'"><i class="fa-solid '+tool.icon+'"></i><span>'+escapeHtml(tool.name)+'</span></button>';}).join('')
       +'</div><div class="actions"><button class="btn btn-ghost" id="sgClose">'+t('feedback_cancel')+'</button></div></div>';
     document.body.appendChild(wrap);
-    wrap.querySelectorAll('.suggest-item').forEach(b=>b.addEventListener('click',()=>{location.hash='#/tool/'+b.dataset.id;wrap.remove();}));
+    wrap.querySelectorAll('.suggest-item').forEach(b=>b.addEventListener('click',()=>{navigate('#/tool/'+b.dataset.id);wrap.remove();}));
     wrap.querySelector('#sgClose').addEventListener('click',()=>wrap.remove());
     wrap.addEventListener('click',ev=>{if(ev.target===wrap)wrap.remove();});
   });
@@ -329,6 +329,7 @@ const LIB_URLS={
   mammoth:['https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js','https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js'],
   html2pdf:['https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js','https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js'],
   Tesseract:['https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js','https://unpkg.com/tesseract.js@5/dist/tesseract.min.js'],
+ort:['https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/ort.all.min.js','https://unpkg.com/onnxruntime-web@1.19.0/dist/ort.all.min.js'],
   heic2any:['https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js','https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js'],
   UTIF:['https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js','https://unpkg.com/utif@3.1.0/UTIF.js'],
   PSD:['https://cdn.jsdelivr.net/npm/psd.js@3.0.0/dist/psd.min.js','https://unpkg.com/psd.js@3.0.0/dist/psd.min.js'],
@@ -1010,7 +1011,7 @@ function renderHome(root){
           +'<span class="search-result__text"><strong>'+escapeHtml(c.dataset.title||'')+'</strong><small>'+escapeHtml(c.dataset.cat||'')+' · '+escapeHtml(c.dataset.desc||'')+'</small></span>'
           +'<i class="fa-solid fa-arrow-up-right search-result__go"></i>';
         paintIcon(b.querySelector('.search-result__icon'),c.dataset.toolId,c.dataset.cat);
-        b.addEventListener('click',()=>{ location.hash='#/tool/'+c.dataset.toolId; resultsEl.classList.remove('show'); input.blur(); });
+        b.addEventListener('click',()=>{ navigate('#/tool/'+c.dataset.toolId); resultsEl.classList.remove('show'); input.blur(); });
         resultsEl.appendChild(b);
       });
       resultsEl.insertAdjacentHTML('beforeend','<div class="search-results__foot">'+total+' result'+(total===1?'':'s')+'<span>↑↓ navigate · ↵ open</span></div>');
@@ -1116,10 +1117,11 @@ function paintIcon(el,id,cat){
 }
 
 function makeCard(t){
-  const card=document.createElement('div');
+  const card=document.createElement('a');
   card.className='card';
+  card.href=siteBase()+'tools/'+t.id+'/';
   card.tabIndex=0;
-  card.setAttribute('role','button');
+  card.setAttribute('role','link');
   card.dataset.name=t.name;
   card.dataset.toolId=t.id;
   card.dataset.title=t.name;
@@ -1128,7 +1130,7 @@ function makeCard(t){
   card.dataset.cat=t.cat;
   card.innerHTML=`<div class="icon"><i class="fa-solid ${t.icon}"></i></div><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.desc)}</p>`;
   paintIcon(card.querySelector('.icon'),t.id,t.cat);
-  const open=()=>{location.hash='#/tool/'+t.id;};
+  const open=e=>{ if(e) e.preventDefault(); navigate('#/tool/'+t.id); };
   card.addEventListener('click',open);
   card.addEventListener('keydown',e=>{
     if(e.key==='Enter'||e.key===' '||e.key==='Spacebar'){ e.preventDefault(); open(); }
@@ -3831,7 +3833,7 @@ INITERS.summarize = function(panel){
     try{await navigator.clipboard.writeText(v);toast('Summary copied','success');}catch(e){setStatus(panel,'Copy failed — select the text manually.','error');}
   });
   const ocrBtn=document.createElement('button'); ocrBtn.className='btn btn-ghost'; ocrBtn.innerHTML='<i class="fa-solid fa-file-circle-check"></i> OCR first';
-  ocrBtn.addEventListener('click',()=>{location.hash='#/tool/ocr';});
+  ocrBtn.addEventListener('click',()=>{navigate('#/tool/ocr');});
   actions.appendChild(btn); actions.appendChild(copyBtn); actions.appendChild(ocrBtn);
   panel.insertBefore(actions,panel.querySelector('.status'));
 };
@@ -4728,9 +4730,48 @@ INITERS['header-footer'] = function(panel){
   panel.insertBefore(actions,panel.querySelector('.status'));
 };
 
-/* ---------- router ---------- */
+/* ---------- router (clean URLs, no /#/) ---------- */
+function siteBase(){
+  if(typeof window.__BASE_PATH__==='string') return window.__BASE_PATH__;
+  return location.pathname.indexOf('/online-converter/')===0?'/online-converter/':'/';
+}
+function hashFromPath(pathname){
+  const p=(pathname||location.pathname).replace(/\/+$/,'');
+  const parts=p.split('/').filter(Boolean);
+  const base=siteBase().replace(/\/+$/,'');
+  if(base && p.indexOf(base)===0) parts.shift();
+  const seg=parts[parts.length-1]||'';
+  if(seg && TOOLS.some(t=>t.id===seg)) return '#/tool/'+seg;
+  if(seg==='studio') return '#/studio';
+  if(seg==='tools') return '#/tools';
+  if(INFO[seg]) return '#/'+seg;
+  return '#/';
+}
+function cleanUrlFromHash(h){
+  const base=siteBase().replace(/\/$/,'');
+  h=h||'#/';
+  if(h==='#/'||h==='#') return base+'/';
+  if(h==='#/tools') return base+'/tools/';
+  if(h==='#/studio'||h.startsWith('#/studio/')) return base+'/studio/';
+  if(h.startsWith('#/tool/')) return base+'/tools/'+h.split('/')[2]+'/';
+  const k=h.replace('#/','');
+  if(INFO[k]) return base+'/'+k+'/';
+  return base+'/';
+}
+function currentHash(){
+  if(history.state && history.state.ocHash) return history.state.ocHash;
+  if(location.hash) return location.hash;
+  return hashFromPath(location.pathname);
+}
+function navigate(hash,replace){
+  hash=hash||'#/';
+  try{
+    history[replace?'replaceState':'pushState']({ocHash:hash},'',cleanUrlFromHash(hash));
+  }catch(e){ location.hash=hash; return; }
+  route();
+}
 function syncNavActive(){
-  const m=(location.hash||'').match(/^#\/tool\/([^/?#]+)/);
+  const m=(currentHash()||'').match(/^#\/tool\/([^/?#]+)/);
   const id=m?m[1]:'';
   document.querySelectorAll('.nav-link--direct').forEach(a=>{
     if(id&&a.getAttribute('href')==='#/tool/'+id) a.setAttribute('aria-current','page');
@@ -4749,14 +4790,9 @@ function syncTitle(hash){
   document.title=name?name+suffix+' | Online Converter':base;
 }
 function route(){
-  if(!location.hash && location.pathname && location.pathname!=='/' && !location.pathname.endsWith('index.html')){
-    const p=location.pathname.replace(/\/+$/,'');
-    const seg=p.split('/').filter(Boolean).pop();
-    if(seg && TOOLS.some(t=>t.id===seg)) location.hash='#/tool/'+seg;
-    else if(seg==='studio') location.hash='#/studio';
-    else if(seg==='tools') location.hash='#/tools';
-  }
-  const hash=location.hash||'#/'; const app=document.getElementById('app');
+  const hash=currentHash();
+  const app=document.getElementById('app');
+  if(!app) return;
   document.querySelectorAll('.nav-has-dropdown.open').forEach(x=>x.classList.remove('open'));
   const menuEl=document.querySelector('.menu'); if(menuEl) menuEl.classList.remove('open');
   if(hash==='#/'||hash==='#') renderHome(app);
@@ -4766,21 +4802,18 @@ function route(){
     if(window.OCSTUDIO){ window.OCSTUDIO.render(app,sid); }
     else{
       app.innerHTML='<div class="studio-loading"><span class="studio-loading__spin" aria-hidden="true"></span><p>Opening Image Studio…</p></div>';
-      ensureLocalScript((window.__BASE_PATH__||'')+'js/image-studio.js')
+      ensureLocalScript(siteBase()+'js/image-studio.js')
         .then(()=>{ if(window.OCSTUDIO) window.OCSTUDIO.render(app,sid); })
         .catch(()=>{ app.innerHTML='<div class="container" style="padding:60px 20px">Image Studio could not be loaded. Please refresh the page.</div>'; });
     }
   }
   else if(hash.startsWith('#/tool/')) renderTool(app,hash.split('/')[2]);
   else if(hash==='#/about') renderAbout(app);
-  else if(hash==='#/login') renderAuth(app,'login');
-  else if(hash==='#/register') renderAuth(app,'register');
   else if(INFO[hash.replace('#/','')]) renderInfo(app,hash.replace('#/',''));
   else renderHome(app);
   syncNavActive();
   syncTitle(hash);
   window.scrollTo(0,0);
-  // move assistive focus to the new page heading without scrolling again
   const heading=app.querySelector('h1');
   if(heading){
     if(!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex','-1');
@@ -4791,9 +4824,37 @@ function onReady(fn){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',fn);
   else fn();
 }
-window.addEventListener('hashchange',()=>{ route(); });
+window.addEventListener('hashchange',()=>{
+  const h=location.hash||'#/';
+  try{ history.replaceState({ocHash:h},'',cleanUrlFromHash(h)); }catch(e){}
+  route();
+});
 window.addEventListener('popstate',()=>{ route(); });
-onReady(()=>{ route(); });
+document.addEventListener('click',e=>{
+  if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+  const el=e.target instanceof Element?e.target:(e.target&&e.target.parentElement);
+  const a=el&&el.closest?el.closest('a[href^="#/"],a[href^="tools/"],a[href^="studio/"]'):null;
+  if(!a||a.target==='_blank'||a.hasAttribute('download'))return;
+  const href=a.getAttribute('href')||'';
+  e.preventDefault();
+  if(href.startsWith('#/')) navigate(href);
+  else {
+    const m=href.match(/^tools\/([\w-]+)\/$/);
+    navigate(m?'#/tool/'+m[1]:(href==='tools/'?'#/tools':'#/studio'));
+  }
+});
+onReady(()=>{
+  // Old bookmarks with #/… are migrated to a clean URL without a second hashchange.
+  if(location.hash){
+    try{ history.replaceState({ocHash:location.hash},'',cleanUrlFromHash(location.hash)); }catch(e){}
+  }
+  route();
+  // Initial clean URL: record the derived hash in history state without changing the path.
+  if(!history.state || !history.state.ocHash){
+    try{ history.replaceState({ocHash:currentHash()},'',location.pathname); }catch(e){}
+  }
+});
+
 
 /* menu */
 onReady(()=>{

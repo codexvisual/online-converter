@@ -2879,7 +2879,7 @@ window.TOOLS_CONFIG = [
     "desc": "Enlarge images with high-quality resampling while keeping detail.",
     "icon": "fa-maximize",
     "category": "Image Tools",
-    "metaDescription": "Upscale Image: Enlarge images with high-quality resampling while keeping detail. 100% free, private and client-side. No upload required.",
+    "metaDescription": "Upscale images with AI Real-ESRGAN 4x or fast resampling. Free, private, client-side — no upload.",
     "keywords": [
       "upscale image",
       "image upscale",
@@ -2889,45 +2889,16 @@ window.TOOLS_CONFIG = [
       "private",
       "no upload"
     ],
-    "longDesc": "Upscale Image is a free, browser-based tool that lets you enlarge images with high-quality resampling while keeping detail — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
-    "howToSteps": [
-      "Upload your image.",
-      "Adjust the settings for the chosen tool.",
-      "Click Process and download."
-    ],
+    "longDesc": "Upscale Image enlarges photos while keeping fine detail. Choose the AI engine (Real-ESRGAN 4x, running locally with onnxruntime-web; the ~5 MB model downloads once and is cached in your browser) for reconstructed detail, or the fast balanced mode for instant results. Scale up to 4x and export PNG, JPG or WebP. Your images never leave your device.",
+    "howToSteps": ["Upload a JPG, PNG or WebP image.","Choose the AI (Real-ESRGAN) or Fast engine and a scale factor.","Wait for the live preview — on first use the AI model downloads once (~5 MB).","Click Upscale images and download your result."],
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
       "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
       "Batch processing supported."
     ],
-    "tips": [
-      "Use WebP for web, PNG for transparency, JPG for photos.",
-      "Keep originals as backups.",
-      "For print, use 300 DPI or higher."
-    ],
-    "faqs": [
-      {
-        "q": "Which image formats are supported?",
-        "a": "JPG, PNG, WebP, GIF, BMP and SVG."
-      },
-      {
-        "q": "Is image editing free?",
-        "a": "Yes, unlimited and free."
-      },
-      {
-        "q": "Are images uploaded?",
-        "a": "No, editing is local."
-      },
-      {
-        "q": "Can I batch process?",
-        "a": "Yes, most tools support multiple images."
-      },
-      {
-        "q": "Does it work offline?",
-        "a": "Yes, after the first load."
-      }
-    ]
+    "tips": ["AI works best on low-resolution photos. Give it a few seconds on the first run.","For very large originals use Fast mode — AI analyses up to 384px then resamples to your target size.","Export PNG for maximum quality, JPG for smaller files."],
+    "faqs": [{"q":"Is an AI model downloaded to my device?","a":"Yes. The ~5 MB Real-ESRGAN model is fetched once from Hugging Face and cached in your browser. Your image is never uploaded."},{"q":"Does upscaling work offline?","a":"Fast mode works offline. AI mode needs the model on first use, then works offline."},{"q":"What scale factors are available?","a":"2x, 3x and 4x."},{"q":"Which output formats are supported?","a":"PNG, JPG and WebP."},{"q":"Is it free?","a":"Yes — all Online Converter tools are free, with no watermarks or sign-up."}]
   },
   {
     "id": "remove-bg",
