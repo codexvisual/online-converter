@@ -327,6 +327,28 @@ function waitForCore(name,ms=12000){
   if(window[name]) return Promise.resolve();
   return new Promise(res=>{const t0=Date.now();const iv=setInterval(()=>{if(window[name]||Date.now()-t0>ms){clearInterval(iv);res();}},100);});
 }
+/* Reflow every page of a PDF onto A4/Letter pages, centered and fitted with margins */
+async function normalizePageSize(source,target,margin=24){
+  const {PDFDocument}=PDFLib;
+  const out=await PDFDocument.create();
+  const dims=Array.isArray(target)?target:(target==='letter'?[612,792]:[595.28,841.89]);
+  const [pw,ph]=dims;
+  const m=Math.max(0,Math.min(120,Number(margin)||0));
+  for(let i=0;i<source.getPageCount();i++){
+    const src=source.getPage(i);
+    const page=out.addPage(dims);
+    const [embedded]=await out.embedPdf(source,[i]);
+    let {width,height}=src.getSize();
+    const rot=(src.getRotation().angle||0)%360;
+    if(rot===90||rot===270){ const t=width; width=height; height=t; }
+    const availW=Math.max(10,pw-2*m), availH=Math.max(10,ph-2*m);
+    const scale=Math.min(availW/width,availH/height);
+    const w=width*scale, h=height*scale;
+    page.drawPage(embedded,{x:(pw-w)/2,y:(ph-h)/2,width:w,height:h});
+  }
+  return out;
+}
+
 /* Detect a file kind from its magic bytes (more reliable than MIME/name) */
 async function detectFileKind(file){
   const type=(file.type||'').toLowerCase();
@@ -401,7 +423,16 @@ function renderFileList(container,files,onChange,onRotate){
     thumb.title='Click to preview';
     const isImg=f.type.startsWith('image/');
     thumb.innerHTML='<div class="thumb-doc"><span class="tag">'+(isImg?'IMG':'PDF')+'</span><div class="lines"><i style="width:92%"></i><i style="width:74%"></i><i style="width:86%"></i><i style="width:58%"></i></div></div>';
-    thumbUrl(f).then(u=>{ if(u && thumb.isConnected) thumb.innerHTML='<img src="'+u+'" alt="" draggable="false" />'; });
+    thumbUrl(f).then(u=>{
+    if(u && thumb.isConnected){
+      thumb.innerHTML='<img src="'+u+'" alt="" draggable="false" />';
+      if(f._rotation){
+        const im=thumb.querySelector('img');
+        im.style.transform='rotate('+f._rotation+'deg)';
+        im.style.transition='transform .2s';
+      }
+    }
+  });
     thumb.addEventListener('click',e=>{ e.stopPropagation(); openFilePreview(f); });
     item.appendChild(thumb);
 
@@ -547,16 +578,18 @@ function ensurePreviewOverlay(){
 }
 async function openFilePreview(f){
   const ov=ensurePreviewOverlay();
+  const kind=await detectFileKind(f);
   const body=ov.querySelector('.preview-modal__body');
   ov.querySelector('.preview-modal__name').textContent=f.name;
   body.innerHTML='<div class="preview-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading preview…</div>';
   ov.classList.add('show');
   try{
-    if(f.type.startsWith('image/')){
+    if(kind==='image'){
       const img=document.createElement('img');
       img.alt=f.name;
       img.src=URL.createObjectURL(f);
       await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; });
+      if(f._rotation) img.style.transform='rotate('+f._rotation+'deg)';
       body.innerHTML='';
       body.appendChild(img);
       return;
@@ -574,6 +607,10 @@ async function openFilePreview(f){
     await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
     body.innerHTML='';
     body.appendChild(canvas);
+    if(f._rotation){
+      canvas.style.transform='rotate('+f._rotation+'deg)';
+      canvas.style.transformOrigin='center center';
+    }
     if(pdf.numPages>1){
       const more=document.createElement('div');
       more.className='preview-more';
@@ -1044,6 +1081,14 @@ INITERS.merge = function(panel){
   panel.insertBefore(list, panel.querySelector('.status'));
   function rerender(){ renderFileList(list,files,rerender,true); }
   rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML='<div class="field"><label>Page size / alignment</label><select id="mgSize">'
+    +'<option value="a4" selected>A4 — fit &amp; center all pages</option>'
+    +'<option value="letter">Letter — fit &amp; center all pages</option>'
+    +'<option value="first">Match first document</option>'
+    +'<option value="original">Keep original sizes</option></select></div>'
+    +'<div class="field"><label>Margin (pt)</label><input id="mgMargin" type="number" min="0" max="120" value="24" /></div>';
+  panel.insertBefore(opts, panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-object-group"></i> Merge files';
   btn.addEventListener('click', async()=>{
@@ -1051,9 +1096,20 @@ INITERS.merge = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
+      const mode=(panel.querySelector('#mgSize')||{}).value||'a4';
+      const margin=(panel.querySelector('#mgMargin')||{}).value||24;
+      let target=null;
       const merged=await PDFDocument.create();
       for(let i=0;i<files.length;i++){
-        const doc=await fileToPdf(files[i],files[i]._rotation||0);
+        let doc=await fileToPdf(files[i],files[i]._rotation||0);
+        if(mode!=='original'){
+          if(mode==='first'){
+            if(!target){ const s=doc.getPage(0).getSize(); target=[s.width,s.height]; }
+            doc=await normalizePageSize(doc,target,margin);
+          }else{
+            doc=await normalizePageSize(doc,mode,margin);
+          }
+        }
         const pages=await merged.copyPages(doc,doc.getPageIndices());
         pages.forEach(p=>merged.addPage(p));
         setProgress(panel,(i+1)/files.length*100);
