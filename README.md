@@ -20,7 +20,8 @@ Developed by [Filofa Technology](https://filofa.com).
 - **Installable PWA** with manifest, icons and an offline service worker
 - **Toast notifications** for downloads and warnings
 - **Recently used tools** section on the home page
-- **Smart search** across tool names, descriptions and categories
+- **Smart search** with relevance ranking, synonyms, typo tolerance, live highlighting and keyboard navigation
+- **Standardized modern cards** with equal heights and responsive 3/2/1 layouts
 - **Keyboard shortcuts**: `Ctrl/Cmd + K` focuses search, `/` focuses search, `Esc` closes menus
 - **Back to top** button and large mobile touch targets
 - Self-hosted Font Awesome icons so the UI works offline too
