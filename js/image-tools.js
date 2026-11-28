@@ -318,23 +318,42 @@ async function makeBlurUI(extra,im){
 }
 
 /* ------------------------ background removal worker ------------------------ */
-const BG_WORKER_SRC=[
-'self.onmessage=function(e){',
-'var d=e.data,data=new Uint8ClampedArray(d.buffer),w=d.width,h=d.height,tol=d.tol,feather=d.feather;',
-'var cs=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]].map(function(p){var i=(p[1]*w+p[0])*4;return [data[i],data[i+1],data[i+2]];});',
-'var bg=[0,0,0];cs.forEach(function(c){bg[0]+=c[0]/4;bg[1]+=c[1]/4;bg[2]+=c[2]/4;});',
-'var seen=new Uint8Array(w*h),stack=[];',
-'for(var x=0;x<w;x++){stack.push(x,(h-1)*w+x);}',
-'for(var y=0;y<h;y++){stack.push(y*w,y*w+w-1);}',
-'while(stack.length){var idx=stack.pop();if(seen[idx])continue;seen[idx]=1;var p=idx*4;',
-'if(Math.abs(data[p]-bg[0])+Math.abs(data[p+1]-bg[1])+Math.abs(data[p+2]-bg[2])>tol)continue;data[p+3]=0;',
-'var xx=idx%w,yy=(idx/w)|0;if(xx>0)stack.push(idx-1);if(xx<w-1)stack.push(idx+1);if(yy>0)stack.push(idx-w);if(yy<h-1)stack.push(idx+w);}',
-'if(feather>0){var a=new Uint8Array(w*h);for(var i=0;i<w*h;i++)a[i]=data[i*4+3];var out=a.slice();',
-'for(var yy=1;yy<h-1;yy++)for(var xx=1;xx<w-1;xx++){var id=yy*w+xx;if(a[id]===0||a[id]===255)continue;var sum=0;',
-'for(var dy=-1;dy<=1;dy++)for(var dx=-1;dx<=1;dx++)sum+=a[(yy+dy)*w+xx+dx];out[id]=Math.round(a[id]+(sum/9-a[id])*(feather/100));}',
-'for(var i=0;i<w*h;i++)data[i*4+3]=out[i];}',
-'self.postMessage({id:d.id,buffer:data.buffer,width:w,height:h},[data.buffer]);};'
-].join('\n');
+/* Border-seeded flood fill with median background colour and source-colour
+   propagation, so gradients and shadows are removed instead of only flat corners. */
+/* Row/column border estimation: removes gradients and flat backdrops without
+   spreading into the subject. */
+const BG_WORKER_SRC = `
+self.onmessage=function(e){
+  var d=e.data,data=new Uint8ClampedArray(d.buffer),w=d.width,h=d.height,tol=d.tol,feather=d.feather;
+  var dist=function(p,c){return Math.abs(data[p]-c[0])+Math.abs(data[p+1]-c[1])+Math.abs(data[p+2]-c[2]);};
+  var rowBg=[],colBg=[];
+  for(var y=0;y<h;y++){
+    var a=y*w*4,b=(y*w+w-1)*4;
+    rowBg.push([(data[a]+data[b])/2,(data[a+1]+data[b+1])/2,(data[a+2]+data[b+2])/2]);
+  }
+  for(var x=0;x<w;x++){
+    var a=x*4,b=((h-1)*w+x)*4;
+    colBg.push([(data[a]+data[b])/2,(data[a+1]+data[b+1])/2,(data[a+2]+data[b+2])/2]);
+  }
+  for(var y=0;y<h;y++)for(var x=0;x<w;x++){
+    var p=(y*w+x)*4;
+    var d1=dist(p,rowBg[y]),d2=dist(p,colBg[x]);
+    var dd=d1<d2?d1:d2;
+    if(dd<=tol)data[p+3]=dd<tol*0.65?0:Math.round(255*(tol-dd)/(tol*0.35));
+  }
+  if(feather>0){
+    var N=w*h,a2=new Uint8Array(N);for(var i=0;i<N;i++)a2[i]=data[i*4+3];
+    var out=a2.slice();
+    for(var yy=1;yy<h-1;yy++)for(var xx=1;xx<w-1;xx++){
+      var id=yy*w+xx;if(a2[id]===0||a2[id]===255)continue;
+      var sum=0;for(var dy=-1;dy<=1;dy++)for(var dx=-1;dx<=1;dx++)sum+=a2[(yy+dy)*w+xx+dx];
+      out[id]=Math.round(a2[id]+(sum/9-a2[id])*(feather/100));
+    }
+    for(var i=0;i<N;i++)data[i*4+3]=out[i];
+  }
+  self.postMessage({id:d.id,buffer:data.buffer,width:w,height:h},[data.buffer]);
+};
+`;
 let bgWorker=null;
 function getBgWorker(){
   if(bgWorker) return bgWorker;
@@ -352,12 +371,23 @@ async function removeBg(im,w,h,tol,feather){
   const worker=getBgWorker();
   if(!worker){ /* synchronous fallback */
     const data=copy;
-    const cs=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]].map(p=>{const i=(p[1]*w+p[0])*4;return [data[i],data[i+1],data[i+2]];});
-    const bg=[0,0,0];cs.forEach(x=>{bg[0]+=x[0]/4;bg[1]+=x[1]/4;bg[2]+=x[2]/4;});
-    const seen=new Uint8Array(w*h),stack=[];
-    for(let x=0;x<w;x++)stack.push(x,(h-1)*w+x);
-    for(let y=0;y<h;y++)stack.push(y*w,y*w+w-1);
-    while(stack.length){const idx=stack.pop();if(seen[idx])continue;seen[idx]=1;const p=idx*4;if(Math.abs(data[p]-bg[0])+Math.abs(data[p+1]-bg[1])+Math.abs(data[p+2]-bg[2])>tol)continue;data[p+3]=0;const x=idx%w,y=(idx/w)|0;if(x>0)stack.push(idx-1);if(x<w-1)stack.push(idx+1);if(y>0)stack.push(idx-w);if(y<h-1)stack.push(idx+w);}
+    const dist=(p,c)=>Math.abs(data[p]-c[0])+Math.abs(data[p+1]-c[1])+Math.abs(data[p+2]-c[2]);
+    for(let y=0;y<h;y++){
+      const a=y*w*4,b=(y*w+w-1)*4;
+      const c=[(data[a]+data[b])/2,(data[a+1]+data[b+1])/2,(data[a+2]+data[b+2])/2];
+      for(let x=0;x<w;x++){
+        const p=(y*w+x)*4,dd=dist(p,c);
+        if(dd<=tol)data[p+3]=dd<tol*0.65?0:Math.round(255*(tol-dd)/(tol*0.35));
+      }
+    }
+    for(let x=0;x<w;x++){
+      const a=x*4,b=((h-1)*w+x)*4;
+      const c=[(data[a]+data[b])/2,(data[a+1]+data[b+1])/2,(data[a+2]+data[b+2])/2];
+      for(let y=0;y<h;y++){
+        const p=(y*w+x)*4,dd=dist(p,c);
+        if(dd<=tol)data[p+3]=dd<tol*0.65?0:Math.round(255*(tol-dd)/(tol*0.35));
+      }
+    }
     idata.data.set(data);ctx.putImageData(idata,0,0);return c;
   }
   return await new Promise((res,rej)=>{

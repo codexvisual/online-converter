@@ -2584,6 +2584,7 @@ INITERS['pdf-to-ppt'] = function(panel){
   opts.innerHTML='<div class="field"><label for="ptQ">Image quality</label><select id="ptQ"><option value="0.7">Lower (small file)</option><option value="0.85" selected>Balanced</option><option value="0.95">Higher</option></select></div>'
     +'<div class="field"><label for="ptScale">Render scale</label><select id="ptScale"><option value="1.2">1.2×</option><option value="1.6" selected>1.6×</option><option value="2">2×</option><option value="2.5">2.5×</option></select></div>'
     +'<div class="field"><label for="ptAspect">Slide aspect</label><select id="ptAspect"><option value="page" selected>Match PDF page</option><option value="16:9">16:9 widescreen</option><option value="4:3">4:3 classic</option></select></div>'
+ +'<div class="field"><label for="ptMode">Slide content</label><select id="ptMode"><option value="image" selected>Page images (exact appearance)</option><option value="text">Editable text (approximate layout)</option></select></div>'
     +'<div class="field"><label for="ptPages">Pages</label><input id="ptPages" placeholder="All (e.g. 1-3,5)" /></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
@@ -2598,35 +2599,56 @@ INITERS['pdf-to-ppt'] = function(panel){
       const q=parseFloat(panel.querySelector('#ptQ').value)||0.85;
       const scale=parseFloat(panel.querySelector('#ptScale').value)||1.6;
       const aspect=panel.querySelector('#ptAspect').value;
+      const textMode=panel.querySelector('#ptMode').value==='text';
+      let slideW=aspect==='16:9'?13.333:10, slideH=7.5;
       const pages=parseRanges(panel.querySelector('#ptPages').value.trim(),pdf.numPages).flat();
       const pptx=new PptxGenJS();
       pptx.author='Online Converter';
-      pptx.subject='PDF to PowerPoint';
+      pptx.subject=textMode?'PDF to PowerPoint (editable text)':'PDF to PowerPoint';
       if(aspect==='16:9') pptx.defineLayout({name:'OC16',width:13.333,height:7.5});
       if(aspect==='4:3') pptx.defineLayout({name:'OC43',width:10,height:7.5});
       if(aspect!=='page') pptx.layout=aspect==='16:9'?'OC16':'OC43';
+      if(textMode && aspect==='page' && pages.length){
+        const first=await pdf.getPage(pages[0]);
+        const bv=first.getViewport({scale:1});
+        slideW=bv.width/72; slideH=bv.height/72;
+        pptx.defineLayout({name:'OCPage',width:slideW,height:slideH});
+        pptx.layout='OCPage';
+      }
       for(const [i,pno] of pages.entries()){
         const page=await pdf.getPage(pno);
         const viewport=page.getViewport({scale});
-        const canvas=document.createElement('canvas');
-        canvas.width=viewport.width; canvas.height=viewport.height;
-        await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
-        const img=canvas.toDataURL('image/jpeg',q);
         const slide=pptx.addSlide();
-        if(aspect==='page') slide.addImage({data:img,x:0,y:0,w:'100%',h:'100%'});
-        else{
-          const slideW=aspect==='16:9'?13.333:10, slideH=7.5;
-          const ratio=viewport.width/viewport.height;
-          const target=slideW/slideH;
-          if(ratio>target){ const h=slideW/ratio; slide.addImage({data:img,x:0,y:(slideH-h)/2,w:slideW,h}); }
-          else { const w=slideH*ratio; slide.addImage({data:img,x:(slideW-w)/2,y:0,w,h:slideH}); }
+        if(textMode){
+          const base=page.getViewport({scale:1});
+          const k=aspect==='page'?1:(slideW/(base.width/72));
+          const tc=await page.getTextContent();
+          for(const it of tc.items){
+            if(!it.str||!it.str.trim())continue;
+            const fsz=Math.max(6,Math.hypot(it.transform[2],it.transform[3])||12);
+            const x=Math.max(0,it.transform[4]/72*k);
+            const y=Math.max(0,(base.height-it.transform[5]-fsz)/72*k);
+            slide.addText(it.str,{x,y,w:Math.min(slideW-x,Math.max(0.3,fsz*0.52*it.str.length/72*k)),h:Math.min(slideH-y,fsz*1.4/72*k),fontSize:fsz*k,fontFace:'Arial',margin:0});
+          }
+        }else{
+          const canvas=document.createElement('canvas');
+          canvas.width=viewport.width; canvas.height=viewport.height;
+          await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+          const img=canvas.toDataURL('image/jpeg',q);
+          if(aspect==='page') slide.addImage({data:img,x:0,y:0,w:'100%',h:'100%'});
+          else{
+            const ratio=viewport.width/viewport.height;
+            const target=slideW/slideH;
+            if(ratio>target){ const h=slideW/ratio; slide.addImage({data:img,x:0,y:(slideH-h)/2,w:slideW,h}); }
+            else { const w=slideH*ratio; slide.addImage({data:img,x:(slideW-w)/2,y:0,w,h:slideH}); }
+          }
         }
         setProgress(panel,10+85*(i+1)/pages.length);
       }
       const pptxBuf=await pptx.write({outputType:'arraybuffer'});
       offerDownload(panel,new Blob([pptxBuf],{type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'}),'converted.pptx');
       setProgress(panel,100);
-      setStatus(panel,'Converted '+pages.length+' page(s) to PowerPoint.','success');
+      setStatus(panel,textMode?'Converted '+pages.length+' page(s) to editable slides.':'Converted '+pages.length+' page(s) to PowerPoint.',textMode?'info':'success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
@@ -3207,6 +3229,8 @@ INITERS.crop = function(panel){
         <button type="button" data-a="undo" title="Undo"><i class="fa-solid fa-undo"></i></button>
         <button type="button" data-a="redo" title="Redo"><i class="fa-solid fa-redo"></i></button>
         <button type="button" data-a="r"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+        <button type="button" data-a="full">Full page</button>
+        <button type="button" data-a="half">Center 50%</button>
       </div>
     </div>
     <div class="pdf-editor__stage" id="cpStage">
@@ -3306,6 +3330,8 @@ INITERS.crop = function(panel){
     if(a==='p' && pageNum>1){ pageNum--; box=null; renderPage(); }
     else if(a==='n' && pageNum<total){ pageNum++; box=null; renderPage(); }
     else if(a==='r'){ box={page:pageNum,x:vp.width*0.1,y:vp.height*0.1,w:vp.width*0.8,h:vp.height*0.8}; paint(); pushBox(); }
+    else if(a==='full'){ box={page:pageNum,x:0,y:0,w:vp.width,h:vp.height}; paint(); pushBox(); }
+    else if(a==='half'){ box={page:pageNum,x:vp.width*0.25,y:vp.height*0.25,w:vp.width*0.5,h:vp.height*0.5}; paint(); pushBox(); }
     else if(a==='undo' && bh>0){ bh--; box={...boxHistory[bh]}; paint(); }
     else if(a==='redo' && bh<boxHistory.length-1){ bh++; box={...boxHistory[bh]}; paint(); }
   }));
@@ -3315,7 +3341,7 @@ INITERS.crop = function(panel){
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-crop"></i> Crop PDF';
   btn.addEventListener('click',async()=>{
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
-    if(!box){setStatus(panel,'Select a crop area first.','error');return;}
+    if(!box){box={page:pageNum,x:vp.width*0.1,y:vp.height*0.1,w:vp.width*0.8,h:vp.height*0.8};paint();pushBox();}
     try{
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
