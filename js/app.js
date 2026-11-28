@@ -1458,13 +1458,15 @@ INITERS.compress = function(panel){
         }
         out=await doc.save({useObjectStreams:true});
       }
-      offerDownload(panel, new Blob([out],{type:'application/pdf'}),'compressed.pdf');
       const pct=Math.round((1-out.byteLength/orig)*100);
+      const already=pct<=0;
+      if(already) offerDownload(panel, files[0], files[0].name.replace(/\.pdf$/i,'')+'-original.pdf');
+      else offerDownload(panel, new Blob([out],{type:'application/pdf'}),'compressed.pdf');
       result.hidden=false;
-      result.innerHTML='<strong>Compression result</strong><br>Original: '+formatBytes(orig)+' → Compressed: '+formatBytes(out.byteLength)
-        +'<br>'+(pct>0?pct+'% smaller':Math.abs(pct)+'% larger (file was already optimized)')
+      result.innerHTML='<strong>Compression result</strong><br>Original: '+formatBytes(orig)+' → '+(already?'kept original':formatBytes(out.byteLength))
+        +'<br>'+(already?'Already optimized — recompression would make it larger, so your original file is kept.':pct+'% smaller')
         +(level==='less'?' · Text and vectors preserved':' · Pages flattened to images for maximum saving');
-      setStatus(panel,`Done. Original ${formatBytes(orig)} → ${formatBytes(out.byteLength)} (${pct>0?pct+'% smaller':Math.abs(pct)+'% larger — already optimized'}).`,pct>0?'success':'info');
+      setStatus(panel,already?'Already optimized — original file kept for download.':`Done. Original ${formatBytes(orig)} → ${formatBytes(out.byteLength)} (${pct}% smaller).`,already?'info':'success');
       setProgress(panel,100);
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}

@@ -25,9 +25,11 @@ function toolPage(t){
 <meta property="og:description" content="${esc(t.metaDescription)}" />
 <meta property="og:url" content="${url}" />
 <meta property="og:type" content="website" />
+<meta property="og:image" content="https://codexvisual.github.io/online-converter/assets/icon-512.png" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${esc(t.title)}" />
 <meta name="twitter:description" content="${esc(t.metaDescription)}" />
+<meta name="twitter:image" content="https://codexvisual.github.io/online-converter/assets/icon-512.png" />
 <script type="application/ld+json">${JSON.stringify(jsonld)}</script>
 <link rel="icon" type="image/png" href="${base}assets/favicon.png" />
 <link rel="stylesheet" href="${base}assets/fontawesome/css/all.min.css" />
