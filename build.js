@@ -1,7 +1,7 @@
 const fs=require('fs');
 const path=require('path');
 const ROOT='C:/Users/Rahat/Desktop/Online Converter';
-const DIST=path.join(ROOT,'dist');
+const OUT=ROOT;
 const data=JSON.parse(fs.readFileSync('C:/Users/Rahat/AppData/Local/Temp/opencode/toolsConfig.json','utf8'));
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -35,6 +35,7 @@ function toolPage(t){
 <link rel="stylesheet" href="${base}css/studio.css" />
 </head>
 <body>
+<script>window.__BASE_PATH__='../../';</script>
 <header class="header"><div class="container"><a class="brand" href="${base}"><img src="${base}assets/logo-small.png" alt="Online Converter" class="brand-logo"/></a></div></header>
 <main>
 <div class="container" style="padding:20px 0">
@@ -55,7 +56,6 @@ function toolPage(t){
 </section>
 </main>
 <script>window.__INITIAL_TOOL__='${t.id}';</script>
-<script>window.__BASE_PATH__='../../';</script>
 <script src="${base}js/i18n.js" defer></script>
 <script src="${base}js/app.js" defer></script>
 <script src="${base}js/image-tools.js" defer></script>
@@ -65,21 +65,15 @@ function toolPage(t){
 </html>`;
 }
 
-// Generate
-if(fs.existsSync(DIST)) fs.rmSync(DIST,{recursive:true,force:true});
-fs.mkdirSync(DIST,{recursive:true});
-// copy root static files
-for(const f of ['index.html','manifest.json','robots.txt','sw.js','404.html','_redirects']) if(fs.existsSync(path.join(ROOT,f))) fs.copyFileSync(path.join(ROOT,f),path.join(DIST,f));
-// copy assets, css, js
-for(const d of ['assets','css','js']){const src=path.join(ROOT,d),dst=path.join(DIST,d);fs.cpSync(src,dst,{recursive:true});}
-// tool pages
+// Generate tool pages
 for(const t of data){
-  const dir=path.join(DIST,'tools',t.slug); fs.mkdirSync(dir,{recursive:true});
+  const dir=path.join(OUT,'tools',t.slug); fs.mkdirSync(dir,{recursive:true});
   fs.writeFileSync(path.join(dir,'index.html'), toolPage(t));
 }
-// legal pages copy
-for(const p of ['about','contact','privacy-policy','terms','studio']){const src=path.join(ROOT,p);if(fs.existsSync(src)){const dst=path.join(DIST,p);fs.cpSync(src,dst,{recursive:true});}}
-// sitemap with clean urls
+// legal pages already exist at root; ensure studio dir exists (root index handles studio)
+const studioDir=path.join(OUT,'studio'); if(!fs.existsSync(studioDir)) fs.mkdirSync(studioDir,{recursive:true});
+if(!fs.existsSync(path.join(studioDir,'index.html'))) fs.copyFileSync(path.join(OUT,'index.html'),path.join(studioDir,'index.html'));
+// sitemap
 const base='https://codexvisual.github.io/online-converter';
 let sm='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 sm+=`<url><loc>${base}/</loc><priority>1.0</priority></url>\n`;
@@ -87,5 +81,5 @@ sm+=`<url><loc>${base}/studio/</loc><priority>0.9</priority></url>\n`;
 for(const t of data) sm+=`<url><loc>${base}/tools/${t.slug}/</loc><priority>0.7</priority></url>\n`;
 for(const p of ['about','contact','privacy-policy','terms']) sm+=`<url><loc>${base}/${p}/</loc><priority>0.5</priority></url>\n`;
 sm+='</urlset>\n';
-fs.writeFileSync(path.join(DIST,'sitemap.xml'), sm);
-console.log('built dist with', data.length, 'tool pages');
+fs.writeFileSync(path.join(OUT,'sitemap.xml'), sm);
+console.log('built', data.length, 'tool pages at root');
