@@ -440,13 +440,8 @@ function togglePanel(which){
   savePrefs();scheduleDraw();
 }
 async function quickExport(fmt){
-  const im=cur();if(!im){studioStatus('Open an image first','error');return;}
-  try{
-    const ext=fmt.split('/')[1].replace('jpeg','jpg');
-    const blob=await canvasBlob(im.current,fmt,.92);
-    download(blob,(im.name.replace(/\.[^.]+$/,'')||'image')+'.'+ext);
-    toastInline('Downloaded '+ext.toUpperCase());
-  }catch(e){studioStatus(fmt.split('/')[1].toUpperCase()+' not supported here — use WebP or PNG','error');}
+  if(!cur()){studioStatus('Open an image first','error');return;}
+  exportDialog(fmt);
 }
 function shortcutHelp(){
   const m=document.createElement('div');m.className='pro-modal';
@@ -474,7 +469,7 @@ function saveProjectDialog(){
   m.querySelector('.pro-modal__x').addEventListener('click',close);
   m.querySelector('[data-close]').addEventListener('click',close);
   m.addEventListener('click',e=>{if(e.target===m)close();});
-  const go=()=>{saveProject(m.querySelector('#svName').value);close();};
+  const go=()=>{saveProject(m.querySelector('#svName').value);const b=m.querySelector('#svGo');if(b){b.innerHTML='<i class="fa-solid fa-check"></i> Saved';b.disabled=true;}setTimeout(close,900);};
   m.querySelector('#svGo').addEventListener('click',go);
   m.querySelector('#svName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go();}});
   setTimeout(()=>{const i=m.querySelector('#svName');i.focus();i.select();},50);
@@ -741,11 +736,11 @@ function toolbar(act){
 function studioStatus(msg,kind){const el=S.statusEl;if(el){el.textContent=msg;el.className='pro-status-msg '+(kind||'');}}
 function toastInline(msg){studioStatus(msg,'success');}
 
-function exportDialog(){
+function exportDialog(initialFmt){
   const im=cur();if(!im){studioStatus('Open an image first','error');return;}
   const ops=im.ops.concat(im.temp?[im.temp]:[]);
   const fmtOp=ops.filter(o=>o.id==='format').pop(),cmpOp=ops.filter(o=>o.id==='compress').pop();
-  const fmt=(cmpOp&&cmpOp.v.fmt)||(fmtOp&&fmtOp.v.fmt)||'image/png';
+  const fmt=(initialFmt)||(cmpOp&&cmpOp.v.fmt)||(fmtOp&&fmtOp.v.fmt)||'image/png';
   const q=((cmpOp||fmtOp)&&+((cmpOp||fmtOp).v.q)/100)||.9;
   const modal=document.createElement('div');modal.className='pro-modal';
   modal.innerHTML=`<div class="pro-modal__box"><button class="pro-modal__x" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
@@ -772,7 +767,9 @@ function exportDialog(){
       }else{
         const b=await canvasBlob(im.current,f,quality);download(b,(im.name.replace(/\.[^.]+$/,'')||'image')+'.'+f.split('/')[1].replace('jpeg','jpg'));
       }
-      studioStatus('Export ready','success');close();
+      const btn=modal.querySelector('#exGo');if(btn){btn.innerHTML='<i class="fa-solid fa-check"></i> Downloaded';btn.disabled=true;}
+      studioStatus('Export ready','success');
+      setTimeout(close,900);
     }catch(e){studioStatus('Export failed: '+(e.message||e),'error');}
   });
 }
