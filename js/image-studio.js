@@ -230,10 +230,22 @@ function drawCrop(c,ox,oy,s){
 
 /* ---------------- UI ---------------- */
 const MENUS={
-  file:[['Open images','open'],['Save project (JSON)','save'],['Export…','export']],
+  file:[['Open images','open'],['Open project (JSON)','openproject'],['Save project (JSON)','save'],['Export…','export']],
   edit:[['Undo','undo'],['Redo','redo'],['Reset all edits','reset']],
   view:[['Fit to screen','fit'],['Actual size','actual'],['Grid','grid'],['Rulers','rulers'],['Smart guides','guides'],['Fullscreen','fullscreen'],['Hide left panel','drawer'],['Hide right panel','props']],
-  help:[['Keyboard shortcuts','shortcuts']]
+  exportquick:[['PNG — best quality','q:image/png'],['JPG — smallest','q:image/jpeg'],['WebP — balanced','q:image/webp'],['GIF — animation','q:image/gif'],['Full export options…','export']],
+  help:[['Keyboard shortcuts','shortcuts'],['About Image Studio','about']]
+};
+const MENU_LABELS={exportquick:'Quick export'};
+const PRESETS={
+  'image-compress':[['Web','q:60'],['Balanced','q:80'],['Print','q:95']],
+  'compress':[['Web','q:60'],['Balanced','q:80'],['Print','q:95']],
+  'bgremove':[['Light','tol:22'],['Normal','tol:42'],['Strong','tol:70']],
+  'blur':[['Soft','v:3'],['Medium','v:8'],['Strong','v:18']],
+  'sharpness':[['Soft','v:60'],['Normal','v:120'],['Strong','v:220']],
+  'upscale':[['2×','scale:2'],['3×','scale:3'],['4×','scale:4']],
+  'saturation':[['Muted','v:-35'],['Natural','v:0'],['Vivid','v:35']],
+  'contrast':[['Soft','v:-25'],['Normal','v:0'],['Punchy','v:30']]
 };
 const RAIL=[
   {cat:'Basic',icon:'fa-crop'},
@@ -259,13 +271,14 @@ function render(root,initialId){
     <header class="pro-header">
       <div class="pro-brand"><span class="pro-logo"><i class="fa-solid fa-layer-group"></i></span><div><strong>Image Studio</strong><small>Non-destructive · browser-only</small></div></div>
       <nav class="pro-menu" aria-label="Application menu">
-        ${Object.keys(MENUS).map(k=>`<div class="pro-menu-wrap"><button type="button" class="pro-menu-btn" data-menu="${k}">${k.charAt(0).toUpperCase()+k.slice(1)}</button><div class="pro-menu-pop" data-pop="${k}" hidden>${MENUS[k].map(([label,act])=>`<button type="button" data-menu-act="${act}">${label}</button>`).join('')}</div></div>`).join('')}
+        ${Object.keys(MENUS).map(k=>`<div class="pro-menu-wrap"><button type="button" class="pro-menu-btn" data-menu="${k}">${MENU_LABELS[k]||k.charAt(0).toUpperCase()+k.slice(1)}</button><div class="pro-menu-pop" data-pop="${k}" hidden>${MENUS[k].map(([label,act])=>`<button type="button" data-menu-act="${act}">${label}</button>`).join('')}</div></div>`).join('')}
       </nav>
       <div class="pro-header-actions">
         <button class="pro-btn" data-act="save" title="Save project"><i class="fa-solid fa-file-arrow-down"></i><span> Save project</span></button>
         <select id="proTheme" class="pro-theme" aria-label="Theme"><option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select>
         <button class="pro-btn pro-btn--primary" data-act="export"><i class="fa-solid fa-download"></i> Export</button>
       </div>
+      <input type="file" id="proProjectInput" accept="application/json,.json" hidden />
     </header>
     <div class="pro-contextbar">
       <button class="pro-btn" data-act="undo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-arrow-rotate-left"></i></button>
@@ -292,11 +305,14 @@ function render(root,initialId){
         <div class="pro-drawer-head"><strong>Tools</strong><button class="pro-icon-btn" data-panel="drawer" title="Collapse"><i class="fa-solid fa-angles-left"></i></button></div>
         <div class="pro-upload" id="proUpload" tabindex="0" role="button"><i class="fa-solid fa-cloud-arrow-up"></i><strong>Open images</strong><span>Drop · click · paste</span><input type="file" id="proInput" accept="image/*,.svg" multiple hidden></div>
         <div class="pro-gallery" id="proGallery"></div>
+        <label class="pro-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="proToolSearch" placeholder="Search 52 tools…" aria-label="Search tools" autocomplete="off"></label>
+        <div class="pro-popular" id="proPopular"></div>
         <div class="pro-tools" id="proTools"></div>
       </aside>
       <main class="pro-stage" id="proStage">
-        <div class="pro-canvas-wrap"><canvas id="proCanvas"></canvas><div class="pro-hint" id="proHint">Drop an image to start editing</div></div>
+        <div class="pro-canvas-wrap"><canvas id="proCanvas"></canvas><div class="pro-hint" id="proHint"><div class="pro-hint-box"><i class="fa-solid fa-images"></i><strong>Drop an image to start</strong><span>or click “Open images” · paste from clipboard</span><button type="button" id="proSample"><i class="fa-solid fa-wand-magic-sparkles"></i> Try a sample image</button></div></div></div>
         <input type="range" class="pro-split" id="proSplit" min="0" max="100" value="50" hidden aria-label="Comparison divider">
+        <div class="pro-fab"><button type="button" data-panel="drawer" title="Tools"><i class="fa-solid fa-toolbox"></i></button><button type="button" data-panel="props" title="Settings"><i class="fa-solid fa-sliders"></i></button></div>
       </main>
       <aside class="pro-props" id="proProps">
         <div class="pro-right-head"><i class="fa-solid fa-sliders"></i><strong id="proToolName">Crop</strong><button class="pro-icon-btn" data-panel="props" title="Collapse"><i class="fa-solid fa-angles-right"></i></button></div>
@@ -313,6 +329,19 @@ function render(root,initialId){
 
   q('#proTools').innerHTML=CATS.map(cat=>`<div class="pro-group" data-group="${cat}"><div class="pro-group-t">${cat}</div>${T.filter(t=>t.cat===cat).map(t=>`<button type="button" class="pro-tool" data-tool="${t.id}" title="${esc(t.label)}"><i class="fa-solid ${t.icon}"></i><span>${esc(t.label)}</span></button>`).join('')}</div>`).join('');
   q('#proTools').querySelectorAll('.pro-tool').forEach(b=>b.addEventListener('click',()=>selectTool(b.dataset.tool)));
+  // popular quick tools
+  const popular=['crop','resize','remove-bg','compress','text','watermark'];
+  q('#proPopular').innerHTML=popular.map(id=>{const d=defsFor(id);return d?`<button type="button" class="pro-pop" data-tool="${id}" title="${esc(d.label)}"><i class="fa-solid ${d.icon}"></i>${esc(d.label)}</button>`:'';}).join('');
+  q('#proPopular').querySelectorAll('.pro-pop').forEach(b=>b.addEventListener('click',()=>selectTool(b.dataset.tool)));
+  // tool search
+  q('#proToolSearch').addEventListener('input',e=>{
+    const term=e.target.value.trim().toLowerCase();let shown=0;
+    q('#proTools').querySelectorAll('.pro-group').forEach(g=>{
+      let n=0;g.querySelectorAll('.pro-tool').forEach(b=>{const ok=!term||b.dataset.tool.includes(term)||b.textContent.toLowerCase().includes(term);b.hidden=!ok;if(ok)n++;});
+      g.hidden=n===0;shown+=n;
+    });
+    setStatus(term?shown+' tool(s) found':'52 tools','success');
+  });
 
   // menus
   const closeMenus=()=>root.querySelectorAll('.pro-menu-pop').forEach(x=>x.hidden=true);
@@ -320,8 +349,11 @@ function render(root,initialId){
     const b=e.target.closest('[data-menu]');if(b){const pop=q(`[data-pop="${b.dataset.menu}"]`);const was=!pop.hidden;closeMenus();pop.hidden=was;return;}
     const a=e.target.closest('[data-menu-act]');if(a){const act=a.dataset.menuAct;closeMenus();
       if(act==='open')q('#proInput').click();
+      else if(act==='openproject')q('#proProjectInput').click();
       else if(act==='save')saveProject();
-      else if(act==='shortcuts')setStatus('Shortcuts: Ctrl+Z undo · Ctrl+Y redo · Ctrl+S export · +/- zoom · 0 fit · Space+drag pan','success');
+      else if(act==='shortcuts')shortcutHelp();
+      else if(act==='about')setStatus('Image Studio · non-destructive canvas editor · all processing stays in your browser','success');
+      else if(act.startsWith('q:'))quickExport(act.slice(2));
       else if(act==='drawer'||act==='props')togglePanel(act);
       else toolbar(act);
     }
@@ -354,6 +386,28 @@ function render(root,initialId){
   up.addEventListener('drop',e=>addFiles([...e.dataTransfer.files]));
   inp.addEventListener('change',()=>{addFiles([...inp.files]);inp.value='';});
   q('#proSplit').addEventListener('input',e=>{S.split=+e.target.value;draw();});
+  root.addEventListener('click',e=>{const f=e.target.closest('.pro-fab [data-panel]');if(f)togglePanel(f.dataset.panel);});
+  q('#proProjectInput').addEventListener('change',async e=>{
+    const f=e.target.files[0];if(!f)return;
+    try{const data=JSON.parse(await f.text());if(!data.images)throw new Error('Not an Image Studio project');
+      S.images=[];S.active=0;
+      for(const item of data.images){
+        const img=new Image();img.src=item.base;await img.decode();
+        const cv=mk(img.naturalWidth,img.naturalHeight);cv.getContext('2d').drawImage(img,0,0);
+        S.images.push({name:item.name||'image.png',size:0,base:cv,ops:item.ops||[],redo:[],temp:null,current:cv});
+      }
+      if(S.images.length){q('#proHint').hidden=true;renderGallery();rerender();setStatus('Project restored','success');}
+    }catch(err){setStatus('Could not open project: '+(err.message||err),'error');}
+    e.target.value='';
+  });
+  q('#proSample').addEventListener('click',async()=>{
+    const cv=mk(720,480),c=cv.getContext('2d');
+    const g=c.createLinearGradient(0,0,720,480);g.addColorStop(0,'#1e3a8a');g.addColorStop(1,'#e5322d');c.fillStyle=g;c.fillRect(0,0,720,480);
+    c.fillStyle='rgba(255,255,255,.9)';c.font='800 76px Inter, Arial';c.textAlign='center';c.fillText('Image Studio',360,250);
+    c.font='600 26px Inter, Arial';c.fillText('Sample image — try any tool',360,300);
+    const b=await new Promise(r=>cv.toBlob(r,'image/png'));
+    addFiles([new File([b],'sample.png',{type:'image/png'})]);
+  });
   bindCanvas();
   document.addEventListener('paste',pasteHandler);
   document.addEventListener('keydown',keyHandler);
@@ -373,8 +427,25 @@ function togglePanel(which){
   }
   savePrefs();scheduleDraw();
 }
+async function quickExport(fmt){
+  const im=cur();if(!im){setStatus('Open an image first','error');return;}
+  try{
+    const ext=fmt.split('/')[1].replace('jpeg','jpg');
+    const blob=await canvasBlob(im.current,fmt,.92);
+    download(blob,(im.name.replace(/\.[^.]+$/,'')||'image')+'.'+ext);
+    toastInline('Downloaded '+ext.toUpperCase());
+  }catch(e){setStatus(fmt.split('/')[1].toUpperCase()+' not supported here — use WebP or PNG','error');}
+}
+function shortcutHelp(){
+  const m=document.createElement('div');m.className='pro-modal';
+  m.innerHTML=`<div class="pro-modal__box"><button class="pro-modal__x" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button><h2>Keyboard shortcuts</h2>
+    <div class="pro-shortcuts">${[['Ctrl / ⌘ + Z','Undo'],['Ctrl / ⌘ + Y','Redo'],['Ctrl / ⌘ + S','Export'],['+ / -','Zoom in / out'],['0','Fit to screen'],['Space + drag','Pan canvas'],['/','Search tools'],['Esc','Close menus / panels']].map(([k,v])=>`<div><kbd>${k}</kbd><span>${v}</span></div>`).join('')}</div></div>`;
+  document.body.appendChild(m);
+  const close=()=>m.remove();m.querySelector('.pro-modal__x').addEventListener('click',close);m.addEventListener('click',e=>{if(e.target===m)close();});
+}
 function saveProject(){
-  const data=S.images.map(im=>({name:im.name,ops:im.ops}));
+  if(!S.images.length){setStatus('Open an image first','error');return;}
+  const data=S.images.map(im=>({name:im.name,base:im.base.toDataURL('image/png'),ops:im.ops}));
   download(new Blob([JSON.stringify({app:'Image Studio',version:1,images:data},null,2)],{type:'application/json'}),'image-studio-project.json');
   setStatus('Project saved','success');
 }
@@ -392,6 +463,8 @@ function keyHandler(e){
   else if(e.key==='+'||e.key==='='){toolbar('zoomin');}
   else if(e.key==='-'){toolbar('zoomout');}
   else if(e.key==='0'){toolbar('resetzoom');}
+  else if(e.key==='/'){e.preventDefault();const s=S.root.querySelector('#proToolSearch');if(s){S.drawerOpen=true;S.root.querySelector('.pro-studio').classList.remove('hide-drawer');s.focus();}}
+  else if(e.key==='Escape'){const st=S.root.querySelector('.pro-studio');st.classList.add('hide-props');S.propsOpen=false;}
 }
 
 async function addFiles(list){
@@ -427,7 +500,9 @@ function selectTool(id){
   S.root.querySelectorAll('.pro-tool').forEach(b=>b.classList.toggle('active',b.dataset.tool===id));
   S.root.querySelector('#proToolName').textContent=d.label;
   const box=S.root.querySelector('#proControls');
+  const presets=PRESETS[id]||[];
   box.innerHTML=`<div class="pro-tool-info"><i class="fa-solid ${d.icon}"></i><span>${esc(d.label)}</span></div>`+
+    (presets.length?`<div class="pro-presets">${presets.map(([label,val])=>`<button type="button" class="pro-preset" data-preset="${val}">${esc(label)}</button>`).join('')}</div>`:'')+
     d.controls.map(c=>controlHtml(c)).join('')+
     `<div class="pro-tool-actions"><button type="button" class="pro-btn" data-tool-act="reset"><i class="fa-solid fa-rotate-left"></i> Reset tool</button><button type="button" class="pro-btn pro-btn--primary" data-tool-act="apply"><i class="fa-solid fa-check"></i> Apply</button></div>`+
     (id==='bgremove'||id==='upscale'||id==='faceblur'||id==='enhance'?`<p class="pro-note"><i class="fa-solid fa-circle-info"></i> Browser-side heuristic — no cloud AI, no upload.</p>`:'')+
@@ -456,6 +531,11 @@ function selectTool(id){
       if(q==='rotr')im.ops.push({id:'rotate',v:{deg:90}});
       rerender();
     }
+  }));
+  box.querySelectorAll('.pro-preset').forEach(b=>b.addEventListener('click',()=>{
+    const [k,v]=b.dataset.preset.split(':');const el=box.querySelector(`[data-k="${k}"]`);if(!el)return;
+    el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));
+    box.querySelectorAll('.pro-preset').forEach(x=>x.classList.toggle('active',x===b));
   }));
   bindControls(box,d);
   updateContextTools();renderLayers();
@@ -667,7 +747,17 @@ function updateStatus(){
   if(size)size.textContent=im?fmtBytes(im.size):'—';
   if(z)z.textContent=Math.round(S.zoom*100)+'%';
   if(zs)zs.textContent=Math.round(S.zoom*100)+'%';
+  const u=S.root.querySelector('[data-act=undo]'),r=S.root.querySelector('[data-act=redo]');
+  if(u)u.disabled=!(im&&im.ops.length);
+  if(r)r.disabled=!(im&&im.redo.length);
 }
 
 window.OCSTUDIO={render:render,tools:T.map(t=>t.id)};
+/* Direct navigation to #/studio can arrive before deferred scripts register.
+   Re-check once the DOM is ready so the studio always opens. */
+onReady(()=>{
+  if(!/^#\/studio(\/|$)/.test(location.hash||''))return;
+  const app=document.getElementById('app');
+  if(app&&!app.querySelector('.pro-studio'))render(app,location.hash.split('/')[2]||'');
+});
 })();
