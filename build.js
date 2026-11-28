@@ -42,6 +42,7 @@ function toolPage(t){
   <nav class="tool-crumb" aria-label="Breadcrumb"><a href="${base}">Home</a> <i class="fa-solid fa-chevron-right"></i> <span>${esc(t.title)}</span></nav>
 </div>
 <div id="app"></div>
+<div class="ad-slot" aria-label="Advertisement" style="min-height:90px;margin:24px auto;max-width:880px"></div>
 <section class="seo-block container" style="padding:40px 20px;max-width:880px">
   <h2>How to Use ${esc(t.title)}</h2>
   <ol>${t.howToSteps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
