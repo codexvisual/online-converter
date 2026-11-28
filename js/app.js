@@ -4577,15 +4577,6 @@ function syncTitle(hash){
   else if(INFO[key]) name=INFO[key].title;
   document.title=name?name+' · '+base:base;
 }
-function cleanUrlFromHash(h){
-  if(!h||h==='#/'||h==='#') return '/';
-  if(h==='#/tools') return '/tools/';
-  if(h==='#/studio'||h.startsWith('#/studio/')) return '/studio/';
-  if(h.startsWith('#/tool/')){ const id=h.replace('#/tool/','').split('/')[0]; return '/tools/'+id+'/'; }
-  const info=h.replace('#/','');
-  if(INFO[info]) return '/'+info+'/';
-  return '/';
-}
 function route(){
   if(!location.hash && location.pathname && location.pathname!=='/' && !location.pathname.endsWith('index.html')){
     const p=location.pathname.replace(/\/+$/,'');
@@ -4629,16 +4620,9 @@ function onReady(fn){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',fn);
   else fn();
 }
-function syncCleanUrl(hash){
-  try{
-    const clean=cleanUrlFromHash(hash||location.hash);
-    if(clean && clean!=='/' && (location.pathname!==clean || location.hash)) history.replaceState(null,'',clean);
-  }catch(e){}
-}
-window.addEventListener('hashchange',()=>{ route(); syncCleanUrl(location.hash); });
+window.addEventListener('hashchange',()=>{ route(); });
 window.addEventListener('popstate',()=>{ route(); });
 onReady(()=>{ route(); });
-onReady(()=>{ syncCleanUrl(location.hash); window.__INITIAL_LOAD_DONE=true; });
 
 /* menu */
 onReady(()=>{
