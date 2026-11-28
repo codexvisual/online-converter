@@ -271,7 +271,8 @@ function setProgress(panel,p){ const el=panel.querySelector('.progress'); if(!el
 function createDropzone(panel,{accept,multiple,onFiles}){
   const dz=document.createElement('div');
   dz.className='dropzone';
-  dz.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i><h3>'+t('drop_title')+'</h3><p>'+t('drop_supported')+' '+ (accept||'any') +'</p><div class="privacy-badge"><i class="fa-solid fa-shield-halved"></i> '+t('privacy_notice')+'</div>';
+  const acceptLabel=accept?accept.split(',').map(x=>x.trim().split('/').pop().toUpperCase()).join(', '):'any';
+  dz.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i><h3>'+t('drop_title')+'</h3><p>'+t('drop_supported')+' '+ acceptLabel +'</p><div class="privacy-badge"><i class="fa-solid fa-shield-halved"></i> '+t('privacy_notice')+'</div>';
   const input=document.createElement('input');
   input.type='file'; input.accept=accept||''; input.multiple=!!multiple; input.style.display='none';
   dz.appendChild(input);
