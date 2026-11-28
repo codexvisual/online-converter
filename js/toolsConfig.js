@@ -2270,7 +2270,7 @@ window.TOOLS_CONFIG = [
     "desc": "Translate PDF text into another language.",
     "icon": "fa-language",
     "category": "PDF Intelligence",
-    "metaDescription": "Translate PDF: Translate PDF text into another language. 100% free, private and client-side. No upload required.",
+    "metaDescription": "Translate PDF text into 30+ languages with live preview. Download as Word, PDF, TXT or HTML. Your PDF file is never uploaded.",
     "keywords": [
       "translate pdf",
       "translate",
@@ -2280,45 +2280,16 @@ window.TOOLS_CONFIG = [
       "private",
       "no upload"
     ],
-    "longDesc": "Translate PDF is a free, browser-based tool that lets you translate pdf text into another language — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
-    "howToSteps": [
-      "Upload your PDF.",
-      "Run OCR, summarize, translate or redact.",
-      "Download the result."
-    ],
+    "longDesc": "Translate PDF is a free browser-based translator with live preview. Upload a PDF, choose a language, and watch the translation appear instantly in over 30 languages including Bengali, Hindi, Spanish, Arabic and Chinese. Download the result as an editable Word document, PDF, plain text or HTML. Only the extracted text is sent to the translation service — your original PDF file is never uploaded. Translated segments are cached in your browser so repeated text is instant.",
+    "howToSteps": ["Upload a PDF with selectable text (use OCR first for scans).","Text is extracted and translated live — choose the source and target languages from 30+ options.","Review the live translation preview and use Swap if needed.","Choose Word, PDF, TXT or HTML, then click Download translation."],
     "features": [
       "Extract text, OCR, summarize, translate and redact.",
       "Runs in your browser.",
       "Privacy-first.",
       "Multiple languages supported."
     ],
-    "tips": [
-      "OCR works best on high-resolution scans.",
-      "Redact carefully — check all pages.",
-      "Summaries are extractive; review before sharing."
-    ],
-    "faqs": [
-      {
-        "q": "Does OCR work offline?",
-        "a": "Yes, after libraries load."
-      },
-      {
-        "q": "Which languages are supported?",
-        "a": "Multiple languages depending on the tool."
-      },
-      {
-        "q": "Are documents uploaded?",
-        "a": "No, processing is local."
-      },
-      {
-        "q": "Is it free?",
-        "a": "Yes."
-      },
-      {
-        "q": "Can I redact sensitive info?",
-        "a": "Yes, use the Redact tool to black out text."
-      }
-    ]
+    "tips": ["Only the extracted text is sent for translation — your PDF file is never uploaded.","Use Auto detect when you are unsure of the source language.","Long PDFs are translated paragraph by paragraph, and translated segments are cached in your browser."],
+    "faqs": [{"q":"Is my PDF uploaded for translation?","a":"No. Only the extracted text is sent to the translation service. Your original PDF file never leaves your device."},{"q":"How many languages are supported?","a":"Over 30 languages, including Bengali, Hindi, Spanish, Arabic, Chinese, Japanese, Korean and Portuguese."},{"q":"Does translation work on scanned PDFs?","a":"Run the OCR PDF tool first to make the text selectable, then translate it here."},{"q":"Which formats can I download?","a":"Editable Word (.docx), PDF, plain text (.txt) and HTML."},{"q":"Is the translator free?","a":"Yes. All 66 Online Converter tools are free, with no sign-up and no watermarks."}]
   },
   {
     "id": "ocr",
