@@ -669,7 +669,7 @@ const SEARCH_ALIASES={
   'remove-pages':'delete remove pages cut drop',
   'extract-pages':'extract pull select save keep pages',
   summarize:'summary tldr ai brief key points overview',
-  translate:'language spanish bengali hindi arabic french german',
+  translate:'language spanish bengali hindi arabic french german chinese korean japanese urdu',
   ocr:'scan scanned text recognize searchable image photo',
   'pdf-to-markdown':'md markdown text convert notes',
   redact:'black out hide censor sensitive remove confidential',
@@ -3883,11 +3883,15 @@ INITERS.translate = function(panel){
       <option value="auto">Auto detect</option><option value="en">English</option><option value="bn">Bengali</option>
       <option value="hi">Hindi</option><option value="es">Spanish</option><option value="fr">French</option>
       <option value="de">German</option><option value="ar">Arabic</option><option value="ru">Russian</option>
+      <option value="zh-CN">Chinese (Simplified)</option><option value="ja">Japanese</option>
+      <option value="ko">Korean</option><option value="ur">Urdu</option>
     </select></div>
     <div class="field"><label>To</label><select id="trTo">
       <option value="bn">Bengali</option><option value="en">English</option><option value="hi">Hindi</option>
       <option value="es">Spanish</option><option value="fr">French</option><option value="de">German</option>
       <option value="ar">Arabic</option><option value="ru">Russian</option>
+      <option value="zh-CN">Chinese (Simplified)</option><option value="ja">Japanese</option>
+      <option value="ko">Korean</option><option value="ur">Urdu</option>
     </select></div>
     <div class="field" style="grid-column:1/-1"><label class="check"><input type="checkbox" id="trConsent" /> I agree to send the extracted text to MyMemory, a free third-party translation service. Your original PDF file is never uploaded.</label></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
@@ -3965,7 +3969,9 @@ INITERS.translate = function(panel){
       const cv=document.createElement('canvas');
       cv.width=PW*sc; cv.height=PH*sc;
       const ctx=cv.getContext('2d');
-      const fontFamily='"Noto Sans Bengali","Noto Sans Devanagari","Noto Sans Arabic",Arial,sans-serif';
+      const fontFamily='"Noto Sans Bengali","Noto Sans Devanagari","Noto Sans Arabic","Noto Sans CJK SC","Noto Sans CJK JP","Noto Sans CJK KR","Microsoft YaHei","Malgun Gothic","Yu Gothic","Noto Nastaliq Urdu",Arial,sans-serif';
+      const rtl=/^(ar|ur|fa|he)$/.test(to);
+      const setCtxFont=()=>{ ctx.fillStyle='#111'; ctx.font=(22*sc)+'px '+fontFamily; ctx.textBaseline='top'; ctx.direction=rtl?'rtl':'ltr'; ctx.textAlign=rtl?'right':'left'; };
       const wrap=(text,maxW)=>{
         const out=[]; let line='';
         for(const word of text.split(/\s+/)){
@@ -3980,7 +3986,7 @@ INITERS.translate = function(panel){
       for(const part of result.split(/(?<=[.!?])\s+/)) lines.push(...wrap(part.trim(),(PW-90)*sc));
       let page=doc.addPage([PW,PH]);
       ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
-      ctx.fillStyle='#111'; ctx.font=(22*sc)+'px '+fontFamily; ctx.textBaseline='top';
+      setCtxFont();
       let y=64*sc;
       for(const line of lines){
         if(y>PH*sc-70*sc){
@@ -3988,10 +3994,10 @@ INITERS.translate = function(panel){
           page.drawImage(jpg,{x:0,y:0,width:PW,height:PH});
           page=doc.addPage([PW,PH]);
           ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
-          ctx.fillStyle='#111'; ctx.font=(22*sc)+'px '+fontFamily;
+          setCtxFont();
           y=64*sc;
         }
-        ctx.fillText(line,45*sc,y);
+        ctx.fillText(line, rtl?(PW-45)*sc:45*sc, y);
         y+=32*sc;
       }
       const jpg=await doc.embedJpg(cv.toDataURL('image/jpeg',0.85));
