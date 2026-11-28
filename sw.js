@@ -1,5 +1,5 @@
 /* Online Converter — service worker (offline-first, caches libraries too) */
-const CACHE = 'oc-shell-v26';
+const CACHE = 'oc-shell-v27';
 const CORE = [
   './', './index.html', './css/style.css', './css/studio.css', './js/app.js', './js/i18n.js', './js/image-tools.js', './js/image-utils.js', './js/image-studio.js',
   './manifest.json',

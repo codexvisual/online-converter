@@ -67,7 +67,7 @@ async function deliverItems(panel,items,zipName){
 }
 
 function opts(rows){ return rows.join(''); }
-function field(label,inner){ return '<div class="field"><label>'+label+'</label>'+inner+'</div>'; }
+function field(label,inner){ const m=inner.match(/id="([^"]+)"/); return '<div class="field"><label'+(m?' for="'+m[1]+'"':'')+'>'+label+'</label>'+inner+'</div>'; }
 function range(id,label,min,max,val,step){ return field(label,'<input id="'+id+'" type="range" min="'+min+'" max="'+max+'" step="'+(step||1)+'" value="'+val+'" />'); }
 function select(id,label,options){ return field(label,'<select id="'+id+'">'+options.map(o=>'<option value="'+o[0]+'">'+o[1]+'</option>').join('')+'</select>'); }
 function text(id,label,val,ph){ return field(label,'<input id="'+id+'" type="text" value="'+(val||'')+'" placeholder="'+(ph||'')+'" />'); }
@@ -338,7 +338,11 @@ const BG_WORKER_SRC=[
 let bgWorker=null;
 function getBgWorker(){
   if(bgWorker) return bgWorker;
-  try{ bgWorker=new Worker(URL.createObjectURL(new Blob([BG_WORKER_SRC],{type:'text/javascript'}))); }catch(e){ return null; }
+  try{
+    const u=URL.createObjectURL(new Blob([BG_WORKER_SRC],{type:'text/javascript'}));
+    bgWorker=new Worker(u);
+    URL.revokeObjectURL(u); // worker already holds the script
+  }catch(e){ return null; }
   return bgWorker;
 }
 let bgSeq=0;

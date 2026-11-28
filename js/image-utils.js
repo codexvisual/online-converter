@@ -47,7 +47,7 @@ function shell(panel,cfg){
 /* Image → Base64 */
 INITERS['image-base64']=function(panel){
   shell(panel,{button:'Copy Base64',accept:'image/*',multiple:false,noFiles:true,
-    options:'<div class="field"><label>Output</label><select id="b64Mode"><option value="data">Data URL (with prefix)</option><option value="raw">Pure Base64</option></select></div>',
+    options:'<div class="field"><label for="b64Mode">Output</label><select id="b64Mode"><option value="data">Data URL (with prefix)</option><option value="raw">Pure Base64</option></select></div>',
     onFiles:(files,result,get)=>{
       const f=files[0];const r=new FileReader();
       r.onload=()=>{
@@ -71,7 +71,7 @@ function fmt(n){return n>1048576?(n/1048576).toFixed(2)+' MB':Math.max(1,Math.ro
 /* Base64 → Image */
 INITERS['base64-image']=function(panel){
   shell(panel,{button:'Create image',noFiles:true,multiple:false,
-    options:'<div class="field"><label>Base64 or data URL</label><textarea id="b62In" rows="6" placeholder="data:image/png;base64,..."></textarea></div><div class="field"><label>Filename</label><input id="b62Name" type="text" value="image.png" /></div>',
+    options:'<div class="field"><label>Base64 or data URL</label><textarea id="b62In" rows="6" placeholder="data:image/png;base64,..."></textarea></div><div class="field"><label for="b62Name">Filename</label><input id="b62Name" type="text" value="image.png" /></div>',
     process:async(files,get,panel)=>{
       const raw=(get('b62In')||'').trim().replace(/\s/g,'');
       if(!raw)throw new Error('Paste Base64 data first.');
@@ -120,7 +120,7 @@ INITERS['image-color-picker']=function(panel){
 /* Metadata viewer + strip */
 INITERS['image-metadata']=function(panel){
   shell(panel,{button:'Strip metadata & download',
-    options:'<div class="field"><label>Output format</label><select id="mdF"><option value="keep">Keep original (re-encode)</option><option value="jpeg">JPG</option><option value="png">PNG</option></select></div>',
+    options:'<div class="field"><label for="mdF">Output format</label><select id="mdF"><option value="keep">Keep original (re-encode)</option><option value="jpeg">JPG</option><option value="png">PNG</option></select></div>',
     onFiles:(files,result)=>{
       (async()=>{
         const rows=[];
@@ -193,11 +193,11 @@ INITERS['image-border']=function(panel){
   function roundRect(ctx,x,y,w,h,r){r=Math.max(0,Math.min(r,w/2,h/2));ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
   core.imageTool(panel,{button:'Add border',zipName:'bordered_images',render,
     options:['<div class="preset-row"><button type="button" class="preset-btn" data-preset="none">None</button><button type="button" class="preset-btn active" data-preset="frame">Frame</button><button type="button" class="preset-btn" data-preset="polaroid">Polaroid</button></div>',
-      '<div class="field"><label>Padding (%)</label><input id="brPad" type="range" min="0" max="20" value="6" /></div>',
-      '<div class="field"><label>Border width (%)</label><input id="brW" type="range" min="0" max="10" value="2" /></div>',
-      '<div class="field"><label>Rounded corners (%)</label><input id="brR" type="range" min="0" max="25" value="0" /></div>',
-      '<div class="field"><label>Border colour</label><input id="brColor" type="color" value="#ffffff" /></div>',
-      '<div class="field"><label>Mat colour</label><input id="brBg" type="color" value="#1f2328" /></div>'].join(''),
+      '<div class="field"><label for="brPad">Padding (%)</label><input id="brPad" type="range" min="0" max="20" value="6" /></div>',
+      '<div class="field"><label for="brW">Border width (%)</label><input id="brW" type="range" min="0" max="10" value="2" /></div>',
+      '<div class="field"><label for="brR">Rounded corners (%)</label><input id="brR" type="range" min="0" max="25" value="0" /></div>',
+      '<div class="field"><label for="brColor">Border colour</label><input id="brColor" type="color" value="#ffffff" /></div>',
+      '<div class="field"><label for="brBg">Mat colour</label><input id="brBg" type="color" value="#1f2328" /></div>'].join(''),
     fullSize:im=>({w:im.width,h:im.height}),type:()=> 'image/jpeg',quality:()=>0.94,name:f=>outName(f,'-border','jpg'),
     process:(files,get,p)=>core.processAll(files,get,{panel:p,fullSize:im=>({w:im.width,h:im.height}),render,type:()=> 'image/jpeg',quality:()=>0.94,name:f=>outName(f,'-border','jpg')})
   });
@@ -207,7 +207,7 @@ INITERS['image-border']=function(panel){
 /* Favicon generator */
 INITERS['image-favicon']=function(panel){
   shell(panel,{button:'Generate favicons',multiple:false,
-    options:'<div class="field"><label>Background</label><input id="fvBg" type="color" value="#ffffff" /></div><div class="file-hint">Outputs PNG sizes 16, 32, 48, 64, 180 and 512 in a ZIP.</div>',
+    options:'<div class="field"><label for="fvBg">Background</label><input id="fvBg" type="color" value="#ffffff" /></div><div class="file-hint">Outputs PNG sizes 16, 32, 48, 64, 180 and 512 in a ZIP.</div>',
     onFiles:(files,result)=>{result.innerHTML='<div class="file-hint">'+esc(files[0].name)+' ready.</div>';},
     process:async(files,get,panel)=>{
       const im=await decodeAny(files[0]),bg=get('fvBg')||'#ffffff',out=[];
@@ -223,7 +223,7 @@ INITERS['image-favicon']=function(panel){
 /* Contact sheet */
 INITERS['image-contact-sheet']=function(panel){
   shell(panel,{button:'Create contact sheet',
-    options:'<div class="field"><label>Columns</label><input id="csCols" type="number" min="1" max="8" value="4" /></div><div class="field"><label>Thumb size (px)</label><input id="csCell" type="number" min="64" max="400" value="220" /></div><div class="field"><label>Background</label><input id="csBg" type="color" value="#f7f8fa" /></div>',
+    options:'<div class="field"><label for="csCols">Columns</label><input id="csCols" type="number" min="1" max="8" value="4" /></div><div class="field"><label for="csCell">Thumb size (px)</label><input id="csCell" type="number" min="64" max="400" value="220" /></div><div class="field"><label for="csBg">Background</label><input id="csBg" type="color" value="#f7f8fa" /></div>',
     onFiles:(files,result)=>{result.innerHTML='<div class="file-hint">'+files.length+' image(s) will be arranged in a labelled grid.</div>';},
     process:async(files,get,panel)=>{
       const cols=Math.max(1,Math.min(8,Number(get('csCols'))||4)),cell=Math.max(64,Math.min(400,Number(get('csCell'))||220));

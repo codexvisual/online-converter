@@ -7,7 +7,7 @@
 'use strict';
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const escS=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtBytes=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':n>=1024?(n/1024).toFixed(0)+' KB':n+' B';
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=Math.max(1,w|0);c.height=Math.max(1,h|0);return c;};
 const filtered=(src,f)=>{const cv=mk(src.width,src.height),c=cv.getContext('2d');c.filter=f;c.drawImage(src,0,0);return cv;};
@@ -74,7 +74,7 @@ def({id:'grain',cat:'Effects',label:'Film grain',icon:'fa-wand-magic-sparkles',c
 def({id:'film',cat:'Effects',label:'Film look',icon:'fa-film',controls:[R('v','Intensity',0,100,60)],apply:(s,v)=>{let cv=filtered(s,`sepia(${(+v.v/100)*.55}) contrast(${1+ +v.v/300})`);return unsharp(cv,.5);}});
 def({id:'denoise',cat:'Effects',label:'Noise reduction',icon:'fa-broom',controls:[R('v','Strength',0,100,35)],apply:(s,v)=>filtered(s,`blur(${+v.v/25}px)`)});
 
-def({id:'bgremove',cat:'AI',label:'Background removal',icon:'fa-wand-magic-sparkles',controls:[R('tol','Tolerance',5,120,42),R('feather','Feather',0,20,4),SEL('replace','Replacement',['transparent','white','color'],'transparent'),C('color','Color','#ffffff')],apply:removeBg});
+def({id:'bgremove',cat:'AI',label:'Background removal',icon:'fa-wand-magic-sparkles',controls:[R('tol','Tolerance',5,120,42),R('feather','Feather',0,20,4),SEL('replace','Replacement',['transparent','white','color'],'transparent'),C('color','Color','#ffffff')],apply:studioRemoveBg});
 def({id:'upscale',cat:'AI',label:'Upscale & enhance',icon:'fa-maximize',controls:[R('scale','Scale',1.2,4,2,0.1),R('sharp','Sharpen',0,300,120)],apply:(s,v)=>{const w=Math.round(s.width*(+v.scale||2)),h=Math.round(s.height*(+v.scale||2)),cv=mk(w,h),c=cv.getContext('2d');c.imageSmoothingQuality='high';c.drawImage(s,0,0,w,h);return unsharp(cv,+v.sharp/100);}});
 def({id:'enhance',cat:'AI',label:'Auto enhance',icon:'fa-wand-magic-sparkles',controls:[R('v','Strength',0,100,60)],apply:(s,v)=>unsharp(filtered(s,`contrast(${1+ +v.v/250}) saturate(${1+ +v.v/300})`),+v.v/160)});
 def({id:'faceblur',cat:'AI',label:'Face / privacy blur',icon:'fa-eye-slash',controls:[R('v','Blur',2,40,14)],apply:(s,v)=>faceBlur(s,+v.v)});
@@ -112,7 +112,7 @@ function drawText(s,v,tile){
 }
 
 /* Fast corner-color flood fill on a downscaled mask (honest, no AI claim). */
-function removeBg(src,v){
+function studioRemoveBg(src,v){
   const scale=Math.min(1,700/Math.max(src.width,src.height));
   const sw=Math.max(8,Math.round(src.width*scale)),sh=Math.max(8,Math.round(src.height*scale));
   const small=mk(sw,sh),sc=small.getContext('2d');sc.drawImage(src,0,0,sw,sh);
@@ -327,11 +327,11 @@ function render(root,initialId){
   const q=s=>root.querySelector(s);
   S.canvas=q('#proCanvas');S.statusEl=q('#proStatus');
 
-  q('#proTools').innerHTML=CATS.map(cat=>`<div class="pro-group" data-group="${cat}"><div class="pro-group-t">${cat}</div>${T.filter(t=>t.cat===cat).map(t=>`<button type="button" class="pro-tool" data-tool="${t.id}" title="${esc(t.label)}"><i class="fa-solid ${t.icon}"></i><span>${esc(t.label)}</span></button>`).join('')}</div>`).join('');
+  q('#proTools').innerHTML=CATS.map(cat=>`<div class="pro-group" data-group="${cat}"><div class="pro-group-t">${cat}</div>${T.filter(t=>t.cat===cat).map(t=>`<button type="button" class="pro-tool" data-tool="${t.id}" title="${escS(t.label)}"><i class="fa-solid ${t.icon}"></i><span>${escS(t.label)}</span></button>`).join('')}</div>`).join('');
   q('#proTools').querySelectorAll('.pro-tool').forEach(b=>b.addEventListener('click',()=>selectTool(b.dataset.tool)));
   // popular quick tools
   const popular=['crop','resize','remove-bg','compress','text','watermark'];
-  q('#proPopular').innerHTML=popular.map(id=>{const d=defsFor(id);return d?`<button type="button" class="pro-pop" data-tool="${id}" title="${esc(d.label)}"><i class="fa-solid ${d.icon}"></i>${esc(d.label)}</button>`:'';}).join('');
+  q('#proPopular').innerHTML=popular.map(id=>{const d=defsFor(id);return d?`<button type="button" class="pro-pop" data-tool="${id}" title="${escS(d.label)}"><i class="fa-solid ${d.icon}"></i>${escS(d.label)}</button>`:'';}).join('');
   q('#proPopular').querySelectorAll('.pro-pop').forEach(b=>b.addEventListener('click',()=>selectTool(b.dataset.tool)));
   // tool search
   q('#proToolSearch').addEventListener('input',e=>{
@@ -340,7 +340,7 @@ function render(root,initialId){
       let n=0;g.querySelectorAll('.pro-tool').forEach(b=>{const ok=!term||b.dataset.tool.includes(term)||b.textContent.toLowerCase().includes(term);b.hidden=!ok;if(ok)n++;});
       g.hidden=n===0;shown+=n;
     });
-    setStatus(term?shown+' tool(s) found':'52 tools','success');
+    studioStatus(term?shown+' tool(s) found':'52 tools','success');
   });
 
   // menus
@@ -352,7 +352,7 @@ function render(root,initialId){
       else if(act==='openproject')q('#proProjectInput').click();
       else if(act==='save')saveProject();
       else if(act==='shortcuts')shortcutHelp();
-      else if(act==='about')setStatus('Image Studio · non-destructive canvas editor · all processing stays in your browser','success');
+      else if(act==='about')studioStatus('Image Studio · non-destructive canvas editor · all processing stays in your browser','success');
       else if(act.startsWith('q:'))quickExport(act.slice(2));
       else if(act==='drawer'||act==='props')togglePanel(act);
       else toolbar(act);
@@ -396,8 +396,8 @@ function render(root,initialId){
         const cv=mk(img.naturalWidth,img.naturalHeight);cv.getContext('2d').drawImage(img,0,0);
         S.images.push({name:item.name||'image.png',size:0,base:cv,ops:item.ops||[],redo:[],temp:null,current:cv});
       }
-      if(S.images.length){q('#proHint').hidden=true;renderGallery();rerender();setStatus('Project restored','success');}
-    }catch(err){setStatus('Could not open project: '+(err.message||err),'error');}
+      if(S.images.length){q('#proHint').hidden=true;renderGallery();rerender();studioStatus('Project restored','success');}
+    }catch(err){studioStatus('Could not open project: '+(err.message||err),'error');}
     e.target.value='';
   });
   q('#proSample').addEventListener('click',async()=>{
@@ -428,13 +428,13 @@ function togglePanel(which){
   savePrefs();scheduleDraw();
 }
 async function quickExport(fmt){
-  const im=cur();if(!im){setStatus('Open an image first','error');return;}
+  const im=cur();if(!im){studioStatus('Open an image first','error');return;}
   try{
     const ext=fmt.split('/')[1].replace('jpeg','jpg');
     const blob=await canvasBlob(im.current,fmt,.92);
     download(blob,(im.name.replace(/\.[^.]+$/,'')||'image')+'.'+ext);
     toastInline('Downloaded '+ext.toUpperCase());
-  }catch(e){setStatus(fmt.split('/')[1].toUpperCase()+' not supported here — use WebP or PNG','error');}
+  }catch(e){studioStatus(fmt.split('/')[1].toUpperCase()+' not supported here — use WebP or PNG','error');}
 }
 function shortcutHelp(){
   const m=document.createElement('div');m.className='pro-modal';
@@ -444,10 +444,10 @@ function shortcutHelp(){
   const close=()=>m.remove();m.querySelector('.pro-modal__x').addEventListener('click',close);m.addEventListener('click',e=>{if(e.target===m)close();});
 }
 function saveProject(){
-  if(!S.images.length){setStatus('Open an image first','error');return;}
+  if(!S.images.length){studioStatus('Open an image first','error');return;}
   const data=S.images.map(im=>({name:im.name,base:im.base.toDataURL('image/png'),ops:im.ops}));
   download(new Blob([JSON.stringify({app:'Image Studio',version:1,images:data},null,2)],{type:'application/json'}),'image-studio-project.json');
-  setStatus('Project saved','success');
+  studioStatus('Project saved','success');
 }
 function pasteHandler(e){
   if(!S.root||!document.body.contains(S.root))return;
@@ -478,19 +478,19 @@ async function addFiles(list){
       const cv=mk(bmp.width||1,bmp.height||1);cv.getContext('2d').drawImage(bmp,0,0);
       if(bmp.close)bmp.close();
       S.images.push({name:file.name,size:file.size,base:cv,ops:[],redo:[],temp:null,current:cv});
-    }catch(e){ setStatus('Could not open '+file.name+' — '+(e.message||e),'error'); }
+    }catch(e){ studioStatus('Could not open '+file.name+' — '+(e.message||e),'error'); }
   }
   if(S.images.length){S.active=S.images.length-1;S.root.querySelector('#proHint').hidden=true;renderGallery();rerender();}
 }
 
 function renderGallery(){
   const g=S.root.querySelector('#proGallery');if(!g)return;
-  g.innerHTML=S.images.map((im,i)=>`<div class="pro-thumb ${i===S.active?'active':''}" data-i="${i}" title="${esc(im.name)}"><canvas data-c="${i}"></canvas><button type="button" class="pro-thumb-x" data-x="${i}" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button></div>`).join('')+
+  g.innerHTML=S.images.map((im,i)=>`<div class="pro-thumb ${i===S.active?'active':''}" data-i="${i}" title="${escS(im.name)}"><canvas data-c="${i}"></canvas><button type="button" class="pro-thumb-x" data-x="${i}" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button></div>`).join('')+
     (S.images.length>1?'<button type="button" class="pro-all" id="proApplyAll"><i class="fa-solid fa-copy"></i> Apply edits to all</button>':'');
   g.querySelectorAll('.pro-thumb').forEach(el=>el.addEventListener('click',()=>{S.active=+el.dataset.i;S.crop=null;renderGallery();rerender();}));
   g.querySelectorAll('.pro-thumb-x').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();S.images.splice(+b.dataset.x,1);S.active=clamp(S.active,0,Math.max(0,S.images.length-1));if(!S.images.length)S.root.querySelector('#proHint').hidden=false;renderGallery();rerender();}));
   const all=g.querySelector('#proApplyAll');if(all)all.addEventListener('click',()=>{
-    const ops=JSON.parse(JSON.stringify(cur().ops));S.images.forEach(im=>{im.ops=JSON.parse(JSON.stringify(ops));im.redo=[];});rerender();setStatus('Edits applied to all '+S.images.length+' images','success');});
+    const ops=JSON.parse(JSON.stringify(cur().ops));S.images.forEach(im=>{im.ops=JSON.parse(JSON.stringify(ops));im.redo=[];});rerender();studioStatus('Edits applied to all '+S.images.length+' images','success');});
   g.querySelectorAll('canvas[data-c]').forEach(cv=>{const im=S.images[+cv.dataset.c];cv.width=96;cv.height=72;const c=cv.getContext('2d');const s=Math.min(96/im.current.width,72/im.current.height);c.drawImage(im.current,(96-im.current.width*s)/2,(72-im.current.height*s)/2,im.current.width*s,im.current.height*s);});
 }
 
@@ -501,8 +501,8 @@ function selectTool(id){
   S.root.querySelector('#proToolName').textContent=d.label;
   const box=S.root.querySelector('#proControls');
   const presets=PRESETS[id]||[];
-  box.innerHTML=`<div class="pro-tool-info"><i class="fa-solid ${d.icon}"></i><span>${esc(d.label)}</span></div>`+
-    (presets.length?`<div class="pro-presets">${presets.map(([label,val])=>`<button type="button" class="pro-preset" data-preset="${val}">${esc(label)}</button>`).join('')}</div>`:'')+
+  box.innerHTML=`<div class="pro-tool-info"><i class="fa-solid ${d.icon}"></i><span>${escS(d.label)}</span></div>`+
+    (presets.length?`<div class="pro-presets">${presets.map(([label,val])=>`<button type="button" class="pro-preset" data-preset="${val}">${escS(label)}</button>`).join('')}</div>`:'')+
     d.controls.map(c=>controlHtml(c)).join('')+
     `<div class="pro-tool-actions"><button type="button" class="pro-btn" data-tool-act="reset"><i class="fa-solid fa-rotate-left"></i> Reset tool</button><button type="button" class="pro-btn pro-btn--primary" data-tool-act="apply"><i class="fa-solid fa-check"></i> Apply</button></div>`+
     (id==='bgremove'||id==='upscale'||id==='faceblur'||id==='enhance'?`<p class="pro-note"><i class="fa-solid fa-circle-info"></i> Browser-side heuristic — no cloud AI, no upload.</p>`:'')+
@@ -543,12 +543,12 @@ function selectTool(id){
 }
 function controlHtml(c){
   const v=c.def;
-  if(c.type==='range')return `<label class="pro-field"><span>${esc(c.label)} <b data-out="${c.k}">${v}</b></span><input type="range" data-k="${c.k}" min="${c.min}" max="${c.max}" step="${c.step||1}" value="${v}"></label>`;
-  if(c.type==='number')return `<label class="pro-field"><span>${esc(c.label)}</span><input type="number" data-k="${c.k}" value="${v}"></label>`;
-  if(c.type==='select')return `<label class="pro-field"><span>${esc(c.label)}</span><select data-k="${c.k}">${c.opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select></label>`;
-  if(c.type==='color')return `<label class="pro-field"><span>${esc(c.label)}</span><input type="color" data-k="${c.k}" value="${esc(v)}"></label>`;
-  if(c.type==='checkbox')return `<label class="pro-field pro-check"><input type="checkbox" data-k="${c.k}" ${v?'checked':''}><span>${esc(c.label)}</span></label>`;
-  return `<label class="pro-field"><span>${esc(c.label)}</span><input type="text" data-k="${c.k}" value="${esc(v)}"></label>`;
+  if(c.type==='range')return `<label class="pro-field"><span>${escS(c.label)} <b data-out="${c.k}">${v}</b></span><input type="range" data-k="${c.k}" min="${c.min}" max="${c.max}" step="${c.step||1}" value="${v}"></label>`;
+  if(c.type==='number')return `<label class="pro-field"><span>${escS(c.label)}</span><input type="number" data-k="${c.k}" value="${v}"></label>`;
+  if(c.type==='select')return `<label class="pro-field"><span>${escS(c.label)}</span><select data-k="${c.k}">${c.opts.map(o=>`<option ${o===v?'selected':''}>${escS(o)}</option>`).join('')}</select></label>`;
+  if(c.type==='color')return `<label class="pro-field"><span>${escS(c.label)}</span><input type="color" data-k="${c.k}" value="${escS(v)}"></label>`;
+  if(c.type==='checkbox')return `<label class="pro-field pro-check"><input type="checkbox" data-k="${c.k}" ${v?'checked':''}><span>${escS(c.label)}</span></label>`;
+  return `<label class="pro-field"><span>${escS(c.label)}</span><input type="text" data-k="${c.k}" value="${escS(v)}"></label>`;
 }
 function values(box){const o={};box.querySelectorAll('[data-k]').forEach(el=>{o[el.dataset.k]=el.type==='checkbox'?el.checked:el.value;});return o;}
 function bindControls(box,d){
@@ -564,8 +564,8 @@ function bindControls(box,d){
   box.addEventListener('click',async e=>{
     const b=e.target.closest('[data-tool-act]');if(!b)return;
     const act=b.dataset.toolAct;
-    if(act==='reset'){if(im){im.ops=im.ops.filter(o=>o.id!==d.id);im.temp=null;rerender();setStatus(d.label+' reset','success');}}
-    if(act==='apply'){if(im&&im.temp){im.ops.push(im.temp);im.redo=[];im.temp=null;}rerender();renderGallery();setStatus(d.label+' applied','success');}
+    if(act==='reset'){if(im){im.ops=im.ops.filter(o=>o.id!==d.id);im.temp=null;rerender();studioStatus(d.label+' reset','success');}}
+    if(act==='apply'){if(im&&im.temp){im.ops.push(im.temp);im.redo=[];im.temp=null;}rerender();renderGallery();studioStatus(d.label+' applied','success');}
     if(act==='b64'){try{await navigator.clipboard.writeText(im.current.toDataURL('image/png'));toastInline('Data URL copied');}catch(e){toastInline('Copy failed');}}
     if(act==='svg'){const s=box.querySelector('#proSvg').value;const out=s.replace(/>\s+</g,'><').replace(/\s{2,}/g,' ').trim();box.querySelector('#proSvg').value=out;toastInline('SVG minimized '+(s.length-out.length)+' chars');}
   });
@@ -582,7 +582,7 @@ function bindControls(box,d){
   if(d.id==='detect'&&im){const out=box.querySelector('#proDetect');if(out)out.textContent=(im.name.split('.').pop()||'?').toUpperCase()+' · '+im.current.width+'×'+im.current.height+' · '+fmtBytes(im.size);}
   // crop geometry from current image
   if(d.id==='crop'){S.crop={x:0,y:0,w:im?im.current.width:100,h:im?im.current.height:100};box.querySelectorAll('[data-k]').forEach(el=>el.addEventListener('change',()=>{
-    if(!S.crop)return;['x','y','w','h'].forEach(k=>{const i=box.querySelector(`[data-k=${k}]`);if(i)S.crop[k]=+i.value||0;});draw();}));setStatus('Drag on the canvas to adjust the crop');}
+    if(!S.crop)return;['x','y','w','h'].forEach(k=>{const i=box.querySelector(`[data-k=${k}]`);if(i)S.crop[k]=+i.value||0;});draw();}));studioStatus('Drag on the canvas to adjust the crop');}
   if(d.id==='resize'&&im){box.querySelector('[data-k=w]').value=im.current.width;box.querySelector('[data-k=h]').value=im.current.height;
     box.querySelector('[data-k=w]').addEventListener('input',()=>{if(box.querySelector('[data-k=lock]').checked&&im){const r=im.current.height/im.current.width;box.querySelector('[data-k=h]').value=Math.round(+box.querySelector('[data-k=w]').value*r);}});
   }
@@ -651,7 +651,7 @@ function bindCanvas(){
 /* ---------------- toolbar / export ---------------- */
 function updateContextTools(){
   const d=defsFor(S.tool),box=S.root&&S.root.querySelector('#proContextTools');
-  if(box&&d)box.innerHTML=`<span class="pro-ctx-name"><i class="fa-solid ${d.icon}"></i> ${esc(d.label)}</span><button type="button" class="pro-btn pro-hide-sm" data-act="resettool" title="Reset this tool"><i class="fa-solid fa-rotate-left"></i></button>`;
+  if(box&&d)box.innerHTML=`<span class="pro-ctx-name"><i class="fa-solid ${d.icon}"></i> ${escS(d.label)}</span><button type="button" class="pro-btn pro-hide-sm" data-act="resettool" title="Reset this tool"><i class="fa-solid fa-rotate-left"></i></button>`;
 }
 function renderLayers(){
   const im=cur(),box=S.root&&S.root.querySelector('#proLayerList');if(!box||!im)return;
@@ -660,7 +660,7 @@ function renderLayers(){
     const d=defsFor(op.id);
     return `<div class="pro-layer ${op.hidden?'hidden':''}" data-i="${i}">
       <button type="button" class="pro-layer-eye" data-lay="eye" title="Show / hide"><i class="fa-solid ${op.hidden?'fa-eye-slash':'fa-eye'}"></i></button>
-      <i class="fa-solid ${d?d.icon:'fa-circle'}"></i><span class="pro-layer-name">${esc(d?d.label:op.id)}</span>
+      <i class="fa-solid ${d?d.icon:'fa-circle'}"></i><span class="pro-layer-name">${escS(d?d.label:op.id)}</span>
       <button type="button" data-lay="up" title="Move up"><i class="fa-solid fa-chevron-up"></i></button>
       <button type="button" data-lay="down" title="Move down"><i class="fa-solid fa-chevron-down"></i></button>
       <button type="button" data-lay="dup" title="Duplicate"><i class="fa-solid fa-copy"></i></button>
@@ -690,16 +690,16 @@ function toolbar(act){
   else if(act==='fullscreen'){const el=root.querySelector('.pro-studio');if(document.fullscreenElement)document.exitFullscreen();else if(el.requestFullscreen)el.requestFullscreen();}
   else if(act==='undo'){if(im&&im.ops.length){im.redo.push(im.ops.pop());im.temp=null;rerender();renderGallery();renderLayers();}}
   else if(act==='redo'){if(im&&im.redo.length){im.ops.push(im.redo.pop());im.temp=null;rerender();renderGallery();renderLayers();}}
-  else if(act==='resettool'){if(im){im.ops=im.ops.filter(o=>o.id!==S.tool);im.temp=null;rerender();renderGallery();renderLayers();setStatus(S.tool+' reset','success');}}
-  else if(act==='reset'){if(im){im.ops=[];im.redo=[];im.temp=null;S.zoom=1;S.pan={x:0,y:0};rerender();renderGallery();renderLayers();setStatus('All edits reset','success');}}
+  else if(act==='resettool'){if(im){im.ops=im.ops.filter(o=>o.id!==S.tool);im.temp=null;rerender();renderGallery();renderLayers();studioStatus(S.tool+' reset','success');}}
+  else if(act==='reset'){if(im){im.ops=[];im.redo=[];im.temp=null;S.zoom=1;S.pan={x:0,y:0};rerender();renderGallery();renderLayers();studioStatus('All edits reset','success');}}
   else if(act==='export'){exportDialog();return;}
   updateStatus();scheduleDraw();
 }
-function setStatus(msg,kind){const el=S.statusEl;if(el){el.textContent=msg;el.className='pro-status-msg '+(kind||'');}}
-function toastInline(msg){setStatus(msg,'success');}
+function studioStatus(msg,kind){const el=S.statusEl;if(el){el.textContent=msg;el.className='pro-status-msg '+(kind||'');}}
+function toastInline(msg){studioStatus(msg,'success');}
 
 function exportDialog(){
-  const im=cur();if(!im){setStatus('Open an image first','error');return;}
+  const im=cur();if(!im){studioStatus('Open an image first','error');return;}
   const ops=im.ops.concat(im.temp?[im.temp]:[]);
   const fmtOp=ops.filter(o=>o.id==='format').pop(),cmpOp=ops.filter(o=>o.id==='compress').pop();
   const fmt=(cmpOp&&cmpOp.v.fmt)||(fmtOp&&fmtOp.v.fmt)||'image/png';
@@ -729,8 +729,8 @@ function exportDialog(){
       }else{
         const b=await canvasBlob(im.current,f,quality);download(b,(im.name.replace(/\.[^.]+$/,'')||'image')+'.'+f.split('/')[1].replace('jpeg','jpg'));
       }
-      setStatus('Export ready','success');close();
-    }catch(e){setStatus('Export failed: '+(e.message||e),'error');}
+      studioStatus('Export ready','success');close();
+    }catch(e){studioStatus('Export failed: '+(e.message||e),'error');}
   });
 }
 function canvasBlob(cv,type,q){
@@ -753,11 +753,4 @@ function updateStatus(){
 }
 
 window.OCSTUDIO={render:render,tools:T.map(t=>t.id)};
-/* Direct navigation to #/studio can arrive before deferred scripts register.
-   Re-check once the DOM is ready so the studio always opens. */
-onReady(()=>{
-  if(!/^#\/studio(\/|$)/.test(location.hash||''))return;
-  const app=document.getElementById('app');
-  if(app&&!app.querySelector('.pro-studio'))render(app,location.hash.split('/')[2]||'');
-});
 })();

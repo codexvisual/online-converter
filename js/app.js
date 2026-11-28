@@ -278,7 +278,7 @@ window.addEventListener('unhandledrejection',e=>{
   const st=panel && panel.querySelector('.status');
   const msg=(e.reason && e.reason.message) ? e.reason.message : String(e.reason||'Unexpected error');
   if(st){ st.textContent='Something went wrong: '+msg; st.className='status show error'; }
-  else console.error('Unhandled error:',msg);
+  else if(typeof toast==='function') toast('Something went wrong: '+msg,'error');
 });
 function offerDownload(panel,blob,name){
   if(!panel){ downloadBlob(blob,name); return; }
@@ -333,6 +333,16 @@ const LIB_URLS={
   UTIF:['https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js','https://unpkg.com/utif@3.1.0/UTIF.js'],
   PSD:['https://cdn.jsdelivr.net/npm/psd.js@3.0.0/dist/psd.min.js','https://unpkg.com/psd.js@3.0.0/dist/psd.min.js'],
 };
+const localScriptPromises={};
+function ensureLocalScript(src){
+  if(!localScriptPromises[src]) localScriptPromises[src]=new Promise((resolve,reject)=>{
+    const s=document.createElement('script'); s.src=src; s.async=true;
+    s.onload=()=>resolve();
+    s.onerror=()=>{ delete localScriptPromises[src]; reject(new Error('Could not load '+src)); };
+    document.head.appendChild(s);
+  });
+  return localScriptPromises[src];
+}
 const libPromises={};
 function ensureLib(name,ms=20000){
   if(window[name]) return Promise.resolve();
@@ -413,7 +423,25 @@ async function thumbUrl(f){
   const work=(async()=>{
     let url=null;
     try{
-      if(kind==='image') url=URL.createObjectURL(f);
+      if(kind==='image'){
+        // Rasterize to a data URL instead of keeping a permanent object URL alive.
+        const draw=(src)=>{
+          const scale=Math.min(1,280/Math.max(src.width||src.naturalWidth||1,src.height||src.naturalHeight||1));
+          const cv=document.createElement('canvas');
+          cv.width=Math.max(1,Math.round((src.width||src.naturalWidth)*scale));
+          cv.height=Math.max(1,Math.round((src.height||src.naturalHeight)*scale));
+          cv.getContext('2d').drawImage(src,0,0,cv.width,cv.height);
+          return cv.toDataURL('image/jpeg',0.7);
+        };
+        try{
+          const bmp=await createImageBitmap(f);
+          url=draw(bmp); if(bmp.close) bmp.close();
+        }catch(e){
+          const tmp=URL.createObjectURL(f);
+          try{ const im=new Image(); im.src=tmp; await im.decode(); url=draw(im); }
+          finally{ URL.revokeObjectURL(tmp); }
+        }
+      }
       else if(kind==='pdf'){
         const bytes=new Uint8Array(await f.arrayBuffer());
         const pdf=await pdfjsLib.getDocument({data:bytes,useWorkerFetch:false,isEvalSupported:false}).promise;
@@ -627,6 +655,13 @@ function enableCardDrag(container,files,onChange){
 
 /* large preview modal */
 let previewOverlay=null;
+function hidePreview(){
+  if(!previewOverlay)return;
+  previewOverlay.classList.remove('show');
+  if(previewOverlay._url){ URL.revokeObjectURL(previewOverlay._url); previewOverlay._url=null; }
+  const body=previewOverlay.querySelector('.preview-modal__body');
+  if(body) body.innerHTML='';
+}
 function ensurePreviewOverlay(){
   if(previewOverlay) return previewOverlay;
   const ov=document.createElement('div');
@@ -634,9 +669,9 @@ function ensurePreviewOverlay(){
   ov.innerHTML='<div class="preview-modal" role="dialog" aria-modal="true"><div class="preview-modal__head"><span class="preview-modal__name"></span><button type="button" class="preview-modal__close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div><div class="preview-modal__body"></div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',e=>{
-    if(e.target===ov || e.target.closest('.preview-modal__close')) ov.classList.remove('show');
+    if(e.target===ov || e.target.closest('.preview-modal__close')) hidePreview();
   });
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape') ov.classList.remove('show'); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') hidePreview(); });
   previewOverlay=ov;
   return ov;
 }
@@ -651,7 +686,8 @@ async function openFilePreview(f){
     if(kind==='image'){
       const img=document.createElement('img');
       img.alt=f.name;
-      img.src=URL.createObjectURL(f);
+      ov._url=URL.createObjectURL(f);
+      img.src=ov._url;
       await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; });
       if(f._rotation) img.style.transform='rotate('+f._rotation+'deg)';
       body.innerHTML='';
@@ -1200,12 +1236,12 @@ INITERS.merge = function(panel){
   function rerender(){ renderFileList(list,files,rerender,true); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Page size / alignment</label><select id="mgSize">'
+  opts.innerHTML='<div class="field"><label for="mgSize">Page size / alignment</label><select id="mgSize">'
     +'<option value="first" selected>Auto — match first page</option>'
     +'<option value="a4">A4 — fit &amp; center all pages</option>'
     +'<option value="letter">Letter — fit &amp; center all pages</option>'
     +'<option value="original">Keep original sizes</option></select></div>'
-    +'<div class="field"><label>Margin (pt)</label><input id="mgMargin" type="number" min="0" max="120" value="24" /></div>';
+    +'<div class="field"><label for="mgMargin">Margin (pt)</label><input id="mgMargin" type="number" min="0" max="120" value="24" /></div>';
   panel.insertBefore(opts, panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-object-group"></i> Merge files';
@@ -1262,9 +1298,9 @@ INITERS.split = function(panel){
         <option value="every">Every N pages</option>
       </select>
     </div>
-    <div class="field"><label>JPG scale (for JPG mode)</label><select id="splitScale"><option value="1">1x</option><option value="1.5" selected>1.5x</option><option value="2">2x</option></select></div>
-    <div class="field"><label>Ranges (e.g. 1-3,4,5-7)</label><input id="splitRanges" placeholder="1-3,4" /></div>
-    <div class="field"><label>Every N pages</label><input id="splitEvery" type="number" value="2" min="1" /></div>`;
+    <div class="field"><label for="splitScale">JPG scale (for JPG mode)</label><select id="splitScale"><option value="1">1x</option><option value="1.5" selected>1.5x</option><option value="2">2x</option></select></div>
+    <div class="field"><label for="splitRanges">Ranges (e.g. 1-3,4,5-7)</label><input id="splitRanges" placeholder="1-3,4" /></div>
+    <div class="field"><label for="splitEvery">Every N pages</label><input id="splitEvery" type="number" value="2" min="1" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-scissors"></i> Split PDF';
@@ -1376,8 +1412,8 @@ INITERS.compress = function(panel){
       <select id="compLvl"><option value="recommended">Recommended (good quality)</option><option value="extreme">Extreme (smallest size)</option><option value="less">Less (keep quality)</option></select></div>
     <div class="field"><label>Image quality</label>
       <select id="compQ"><option value="auto">Auto by level</option><option value="0.85">High</option><option value="0.7">Medium</option><option value="0.5">Low</option></select></div>
-    <div class="field"><label>Render scale (image modes)</label><select id="compScale"><option value="auto">Auto by level</option><option value="1.5">1.5×</option><option value="1.2">1.2×</option><option value="1">1×</option></select></div>
-    <div class="field"><label>Target size (KB, optional)</label><input id="compTarget" type="number" min="20" placeholder="e.g. 500" /></div>`;
+    <div class="field"><label for="compScale">Render scale (image modes)</label><select id="compScale"><option value="auto">Auto by level</option><option value="1.5">1.5×</option><option value="1.2">1.2×</option><option value="1">1×</option></select></div>
+    <div class="field"><label for="compTarget">Target size (KB, optional)</label><input id="compTarget" type="number" min="20" placeholder="e.g. 500" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const result=document.createElement('div'); result.className='compare-summary'; result.hidden=true;
   panel.insertBefore(result,panel.querySelector('.status'));
@@ -1447,10 +1483,10 @@ INITERS.batch = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Operation</label><select id="btOp"><option value="compress">Compress (re-save optimized)</option><option value="rotate">Rotate all pages</option><option value="watermark">Add text watermark</option></select></div>'
-    +'<div class="field"><label>Rotation</label><select id="btRot"><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></div>'
-    +'<div class="field"><label>Watermark text</label><input id="btText" value="CONFIDENTIAL" /></div>'
-    +'<div class="field"><label>Output</label><select id="btOut"><option value="zip">ZIP archive</option><option value="pdf">Single merged PDF</option></select></div>';
+  opts.innerHTML='<div class="field"><label for="btOp">Operation</label><select id="btOp"><option value="compress">Compress (re-save optimized)</option><option value="rotate">Rotate all pages</option><option value="watermark">Add text watermark</option></select></div>'
+    +'<div class="field"><label for="btRot">Rotation</label><select id="btRot"><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></div>'
+    +'<div class="field"><label for="btText">Watermark text</label><input id="btText" value="CONFIDENTIAL" /></div>'
+    +'<div class="field"><label for="btOut">Output</label><select id="btOut"><option value="zip">ZIP archive</option><option value="pdf">Single merged PDF</option></select></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btnEl=document.createElement('button'); btnEl.className='btn btn-primary'; btnEl.id='btRun'; btn=btnEl;
@@ -1587,7 +1623,7 @@ INITERS.rotate = function(panel){
   rerender();
 
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML=`<div class="field"><label>Pages (blank = all)</label><input id="rotPages" placeholder="1,3,5-7" /></div>`;
+  opts.innerHTML=`<div class="field"><label for="rotPages">Pages (blank = all)</label><input id="rotPages" placeholder="1,3,5-7" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-rotate"></i> Rotate PDF';
@@ -1726,11 +1762,11 @@ INITERS['page-numbers'] = function(panel){
       <select id="pnPos"><option value="bottom-center">Bottom center</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option><option value="top-center">Top center</option><option value="top-left">Top left</option><option value="top-right">Top right</option></select></div>
     <div class="field"><label>Format</label>
       <select id="pnFmt"><option value="arabic">1, 2, 3...</option><option value="roman">I, II, III...</option><option value="letters">A, B, C...</option></select></div>
-    <div class="field"><label>Start number</label><input id="pnStart" type="number" value="1" /></div>
-    <div class="field"><label>Font size</label><input id="pnSize" type="number" value="12" /></div>
-    <div class="field"><label>Color</label><select id="pnColor"><option value="0,0,0">Black</option><option value="0.3,0.3,0.3">Gray</option><option value="0.8,0,0">Red</option><option value="0,0,0.7">Blue</option></select></div>
-    <div class="field"><label>Prefix</label><input id="pnPrefix" placeholder="Page " /></div>
-    <div class="field"><label>Pages (blank = all)</label><input id="pnPages" placeholder="1,3,5-7" /></div>`;
+    <div class="field"><label for="pnStart">Start number</label><input id="pnStart" type="number" value="1" /></div>
+    <div class="field"><label for="pnSize">Font size</label><input id="pnSize" type="number" value="12" /></div>
+    <div class="field"><label for="pnColor">Color</label><select id="pnColor"><option value="0,0,0">Black</option><option value="0.3,0.3,0.3">Gray</option><option value="0.8,0,0">Red</option><option value="0,0,0.7">Blue</option></select></div>
+    <div class="field"><label for="pnPrefix">Prefix</label><input id="pnPrefix" placeholder="Page " /></div>
+    <div class="field"><label for="pnPages">Pages (blank = all)</label><input id="pnPages" placeholder="1,3,5-7" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-list-ol"></i> Add page numbers';
@@ -1793,17 +1829,17 @@ INITERS.watermark = function(panel){
   opts.innerHTML=`
     <div class="field"><label>Type</label>
       <select id="wmType"><option value="text">Text</option><option value="image">Image</option></select></div>
-    <div class="field" id="wmTextWrap"><label>Text</label><input id="wmText" value="CONFIDENTIAL" /></div>
-    <div class="field" id="wmImgWrap" hidden><label>Image</label><input id="wmImg" type="file" accept="image/*" /></div>
+    <div class="field" id="wmTextWrap"><label for="wmText">Text</label><input id="wmText" value="CONFIDENTIAL" /></div>
+    <div class="field" id="wmImgWrap" hidden><label for="wmImg">Image</label><input id="wmImg" type="file" accept="image/*" /></div>
     <div class="field"><label>Position</label>
       <select id="wmPos"><option value="center">Center</option><option value="top-left">Top left</option><option value="top-center">Top center</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-center">Bottom center</option><option value="bottom-right">Bottom right</option><option value="tile">Tile (repeat)</option></select></div>
-    <div class="field"><label>Font size</label><input id="wmSize" type="number" value="48" /></div>
-    <div class="field"><label>Scale (image)</label><input id="wmScale" type="number" step="0.1" value="0.3" /></div>
-    <div class="field"><label>Color</label><select id="wmColor"><option value="0.5,0.5,0.5">Gray</option><option value="0.8,0,0">Red</option><option value="0,0,0.7">Blue</option><option value="0,0,0">Black</option></select></div>
-    <div class="field"><label>Opacity (0-1)</label><input id="wmOpacity" type="number" step="0.1" value="0.3" /></div>
-    <div class="field"><label>Rotation</label><input id="wmRot" type="number" value="45" /></div>
-    <div class="field"><label>Layer</label><select id="wmLayer"><option value="over">Over content</option><option value="under">Under content</option></select></div>
-    <div class="field"><label>Pages (blank = all)</label><input id="wmPages" placeholder="1,3,5-7" /></div>`;
+    <div class="field"><label for="wmSize">Font size</label><input id="wmSize" type="number" value="48" /></div>
+    <div class="field"><label for="wmScale">Scale (image)</label><input id="wmScale" type="number" step="0.1" value="0.3" /></div>
+    <div class="field"><label for="wmColor">Color</label><select id="wmColor"><option value="0.5,0.5,0.5">Gray</option><option value="0.8,0,0">Red</option><option value="0,0,0.7">Blue</option><option value="0,0,0">Black</option></select></div>
+    <div class="field"><label for="wmOpacity">Opacity (0-1)</label><input id="wmOpacity" type="number" step="0.1" value="0.3" /></div>
+    <div class="field"><label for="wmRot">Rotation</label><input id="wmRot" type="number" value="45" /></div>
+    <div class="field"><label for="wmLayer">Layer</label><select id="wmLayer"><option value="over">Over content</option><option value="under">Under content</option></select></div>
+    <div class="field"><label for="wmPages">Pages (blank = all)</label><input id="wmPages" placeholder="1,3,5-7" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const typeSel=opts.querySelector('#wmType');
   typeSel.addEventListener('change',()=>{
@@ -1903,8 +1939,8 @@ INITERS.protect = async function(panel){
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>User password (to open)</label><input id="protPwd" type="password" /></div>
-    <div class="field"><label>Owner password (optional)</label><input id="protOwner" type="password" placeholder="defaults to user password" /></div>
+    <div class="field"><label for="protPwd">User password (to open)</label><input id="protPwd" type="password" /></div>
+    <div class="field"><label for="protOwner">Owner password (optional)</label><input id="protOwner" type="password" placeholder="defaults to user password" /></div>
     <div class="field"><label>Permissions</label>
       <div class="perm-grid">
         <label><input type="checkbox" id="permPrint" checked /> Print</label>
@@ -1966,7 +2002,7 @@ INITERS.unlock = async function(panel){
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>Password</label><input id="unlockPwd" type="password" /></div>`;
+    <div class="field"><label for="unlockPwd">Password</label><input id="unlockPwd" type="password" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-lock-open"></i> Unlock PDF';
@@ -2060,8 +2096,10 @@ studio.querySelector('#sigRedo').addEventListener('click',()=>{ if(sh<sigHistory
   studio.querySelector('#sigFont').addEventListener('change',updatePreview);
   studio.querySelector('#sigFile').addEventListener('change',updatePreview);
 
+  let sigUrl=null;
   function updatePreview(){
     const img=studio.querySelector('#sigPreview');
+    if(sigUrl){ URL.revokeObjectURL(sigUrl); sigUrl=null; }
     if(mode==='draw'){
       if(!hasDrawn){ img.style.display='none'; return; }
       img.src=canvas.toDataURL('image/png'); img.style.display='block';
@@ -2076,7 +2114,7 @@ studio.querySelector('#sigRedo').addEventListener('click',()=>{ if(sh<sigHistory
     } else {
       const f=studio.querySelector('#sigFile').files[0];
       if(!f){ img.style.display='none'; return; }
-      img.src=URL.createObjectURL(f); img.style.display='block';
+      sigUrl=URL.createObjectURL(f); img.src=sigUrl; img.style.display='block';
     }
   }
   updatePreview();
@@ -2085,8 +2123,8 @@ studio.querySelector('#sigRedo').addEventListener('click',()=>{ if(sh<sigHistory
   opts.innerHTML=`
     <div class="field"><label>Position</label>
       <select id="signPos"><option value="bottom-right">Bottom right</option><option value="bottom-center">Bottom center</option><option value="bottom-left">Bottom left</option><option value="top-right">Top right</option><option value="top-left">Top left</option></select></div>
-    <div class="field"><label>Size</label><select id="signSize"><option value="0.18">Small</option><option value="0.25" selected>Medium</option><option value="0.35">Large</option></select></div>
-    <div class="field"><label>Page</label><select id="signPage"><option value="last">Last page</option><option value="first">First page</option><option value="all">All pages</option></select></div>`;
+    <div class="field"><label for="signSize">Size</label><select id="signSize"><option value="0.18">Small</option><option value="0.25" selected>Medium</option><option value="0.35">Large</option></select></div>
+    <div class="field"><label for="signPage">Page</label><select id="signPage"><option value="last">Last page</option><option value="first">First page</option><option value="all">All pages</option></select></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
 
   const actions=document.createElement('div'); actions.className='actions';
@@ -2144,10 +2182,10 @@ INITERS['pdf-to-jpg'] = function(panel){
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>Format</label><select id="jpgFmt"><option value="jpeg">JPG</option><option value="png">PNG</option></select></div>
-    <div class="field"><label>Quality</label><select id="jpgQ"><option value="0.95">High</option><option value="0.85">Medium</option><option value="0.7">Low</option></select></div>
-    <div class="field"><label>Scale (DPI)</label><select id="jpgScale"><option value="1">1x (72 dpi)</option><option value="1.5">1.5x</option><option value="2" selected>2x (144 dpi)</option><option value="3">3x (216 dpi)</option><option value="4">4x (288 dpi)</option></select></div>
-    <div class="field"><label>Pages (blank = all)</label><input id="jpgPages" placeholder="1,3,5-7" /></div>`;
+    <div class="field"><label for="jpgFmt">Format</label><select id="jpgFmt"><option value="jpeg">JPG</option><option value="png">PNG</option></select></div>
+    <div class="field"><label for="jpgQ">Quality</label><select id="jpgQ"><option value="0.95">High</option><option value="0.85">Medium</option><option value="0.7">Low</option></select></div>
+    <div class="field"><label for="jpgScale">Scale (DPI)</label><select id="jpgScale"><option value="1">1x (72 dpi)</option><option value="1.5">1.5x</option><option value="2" selected>2x (144 dpi)</option><option value="3">3x (216 dpi)</option><option value="4">4x (288 dpi)</option></select></div>
+    <div class="field"><label for="jpgPages">Pages (blank = all)</label><input id="jpgPages" placeholder="1,3,5-7" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-image"></i> Convert to JPG';
@@ -2279,10 +2317,10 @@ INITERS['pdf-to-word'] = function(panel){
       <select id="wFmt"><option value="docx">DOCX (Word)</option><option value="txt">Plain text (TXT)</option><option value="md">Markdown (MD)</option></select></div>
     <div class="field"><label>Layout</label>
       <select id="wLay"><option value="smart" selected>Smart (headings + tables)</option><option value="preserve">Preserve layout (line by line)</option><option value="flow">Flow (paragraphs)</option></select></div>
-    <div class="field"><label>Pages (blank = all)</label><input id="wPages" placeholder="1,3,5-7" /></div>
-    <div class="field"><label>Include page numbers</label><select id="wPn"><option value="no">No</option><option value="yes">Yes</option></select></div>
-    <div class="field"><label>Font</label><select id="wFont"><option value="default">Default</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></div>
-    <div class="field"><label>Heading size threshold (pt)</label><input id="wHead" type="number" value="16" min="10" max="60" /></div>`;
+    <div class="field"><label for="wPages">Pages (blank = all)</label><input id="wPages" placeholder="1,3,5-7" /></div>
+    <div class="field"><label for="wPn">Include page numbers</label><select id="wPn"><option value="no">No</option><option value="yes">Yes</option></select></div>
+    <div class="field"><label for="wFont">Font</label><select id="wFont"><option value="default">Default</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></div>
+    <div class="field"><label for="wHead">Heading size threshold (pt)</label><input id="wHead" type="number" value="16" min="10" max="60" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
 
   const preview=document.createElement('div'); preview.className='translate-preview'; preview.hidden=true;
@@ -2448,10 +2486,10 @@ INITERS['pdf-to-excel'] = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Extraction mode</label><select id="xlMode"><option value="table">Detect tables (columns)</option><option value="rows">One text item per row</option><option value="lines">One line per row</option></select></div>'
-    +'<div class="field"><label>Sheets</label><select id="xlSheets"><option value="one">Single sheet</option><option value="page">One sheet per page</option></select></div>'
-    +'<div class="field"><label>Pages</label><input id="xlPages" placeholder="All (e.g. 1-3,5)" /></div>'
-    +'<div class="field"><label>Page markers</label><select id="xlMark"><option value="yes">Yes</option><option value="no" selected>No</option></select></div>';
+  opts.innerHTML='<div class="field"><label for="xlMode">Extraction mode</label><select id="xlMode"><option value="table">Detect tables (columns)</option><option value="rows">One text item per row</option><option value="lines">One line per row</option></select></div>'
+    +'<div class="field"><label for="xlSheets">Sheets</label><select id="xlSheets"><option value="one">Single sheet</option><option value="page">One sheet per page</option></select></div>'
+    +'<div class="field"><label for="xlPages">Pages</label><input id="xlPages" placeholder="All (e.g. 1-3,5)" /></div>'
+    +'<div class="field"><label for="xlMark">Page markers</label><select id="xlMark"><option value="yes">Yes</option><option value="no" selected>No</option></select></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const prev=document.createElement('div'); prev.className='translate-preview'; prev.hidden=true;
   prev.innerHTML='<label style="font-size:13px;font-weight:700">Data preview</label><textarea id="xlPreview" rows="6" readonly></textarea>';
@@ -2528,10 +2566,10 @@ INITERS['pdf-to-ppt'] = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Image quality</label><select id="ptQ"><option value="0.7">Lower (small file)</option><option value="0.85" selected>Balanced</option><option value="0.95">Higher</option></select></div>'
-    +'<div class="field"><label>Render scale</label><select id="ptScale"><option value="1.2">1.2×</option><option value="1.6" selected>1.6×</option><option value="2">2×</option><option value="2.5">2.5×</option></select></div>'
-    +'<div class="field"><label>Slide aspect</label><select id="ptAspect"><option value="page" selected>Match PDF page</option><option value="16:9">16:9 widescreen</option><option value="4:3">4:3 classic</option></select></div>'
-    +'<div class="field"><label>Pages</label><input id="ptPages" placeholder="All (e.g. 1-3,5)" /></div>';
+  opts.innerHTML='<div class="field"><label for="ptQ">Image quality</label><select id="ptQ"><option value="0.7">Lower (small file)</option><option value="0.85" selected>Balanced</option><option value="0.95">Higher</option></select></div>'
+    +'<div class="field"><label for="ptScale">Render scale</label><select id="ptScale"><option value="1.2">1.2×</option><option value="1.6" selected>1.6×</option><option value="2">2×</option><option value="2.5">2.5×</option></select></div>'
+    +'<div class="field"><label for="ptAspect">Slide aspect</label><select id="ptAspect"><option value="page" selected>Match PDF page</option><option value="16:9">16:9 widescreen</option><option value="4:3">4:3 classic</option></select></div>'
+    +'<div class="field"><label for="ptPages">Pages</label><input id="ptPages" placeholder="All (e.g. 1-3,5)" /></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-powerpoint"></i> Convert to PowerPoint';
@@ -2590,9 +2628,9 @@ INITERS['pdf-to-pdfa'] = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Conformance target</label><select id="paLevel"><option value="1">PDF/A-1b</option><option value="2" selected>PDF/A-2b</option><option value="3">PDF/A-3b</option></select></div>'
-    +'<div class="field"><label>Method</label><select id="paMode"><option value="preserve">Preserve vector text (recommended)</option><option value="raster">Flatten to images (maximum compatibility)</option></select></div>'
-    +'<div class="field"><label>Render scale (flatten mode)</label><select id="paScale"><option value="1.5" selected>1.5×</option><option value="2">2×</option></select></div>';
+  opts.innerHTML='<div class="field"><label for="paLevel">Conformance target</label><select id="paLevel"><option value="1">PDF/A-1b</option><option value="2" selected>PDF/A-2b</option><option value="3">PDF/A-3b</option></select></div>'
+    +'<div class="field"><label for="paMode">Method</label><select id="paMode"><option value="preserve">Preserve vector text (recommended)</option><option value="raster">Flatten to images (maximum compatibility)</option></select></div>'
+    +'<div class="field"><label for="paScale">Render scale (flatten mode)</label><select id="paScale"><option value="1.5" selected>1.5×</option><option value="2">2×</option></select></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const checks=document.createElement('div'); checks.className='compare-summary'; checks.hidden=true;
   panel.insertBefore(checks,panel.querySelector('.status'));
@@ -2696,9 +2734,9 @@ INITERS['word-to-pdf'] = function(panel){
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>Page size</label><select id="w2pSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select></div>
-    <div class="field"><label>Orientation</label><select id="w2pOri"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div>
-    <div class="field"><label>Margin (pt)</label><input id="w2pMargin" type="number" value="10" min="0" max="60" /></div>`;
+    <div class="field"><label for="w2pSize">Page size</label><select id="w2pSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select></div>
+    <div class="field"><label for="w2pOri">Orientation</label><select id="w2pOri"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div>
+    <div class="field"><label for="w2pMargin">Margin (pt)</label><input id="w2pMargin" type="number" value="10" min="0" max="60" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
@@ -2732,9 +2770,9 @@ INITERS['excel-to-pdf'] = function(panel){
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>Page size</label><select id="e2pSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select></div>
-    <div class="field"><label>Orientation</label><select id="e2pOri"><option value="landscape" selected>Landscape</option><option value="portrait">Portrait</option></select></div>
-    <div class="field"><label>Margin (pt)</label><input id="e2pMargin" type="number" value="10" min="0" max="60" /></div>`;
+    <div class="field"><label for="e2pSize">Page size</label><select id="e2pSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select></div>
+    <div class="field"><label for="e2pOri">Orientation</label><select id="e2pOri"><option value="landscape" selected>Landscape</option><option value="portrait">Portrait</option></select></div>
+    <div class="field"><label for="e2pMargin">Margin (pt)</label><input id="e2pMargin" type="number" value="10" min="0" max="60" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
@@ -2832,8 +2870,8 @@ INITERS['html-to-pdf'] = function(panel){
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
     <div class="field" style="grid-column:1/-1"><label>HTML content</label><textarea id="htmlIn" style="width:100%;min-height:160px;padding:10px;border:1px solid var(--border);border-radius:10px"></textarea></div>
-    <div class="field"><label>Page size</label><select id="h2pSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select></div>
-    <div class="field"><label>Margin (pt)</label><input id="h2pMargin" type="number" value="10" min="0" max="60" /></div>`;
+    <div class="field"><label for="h2pSize">Page size</label><select id="h2pSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select></div>
+    <div class="field"><label for="h2pMargin">Margin (pt)</label><input id="h2pMargin" type="number" value="10" min="0" max="60" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
@@ -3291,8 +3329,8 @@ INITERS.repair = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Repair mode</label><select id="rpMode"><option value="auto">Auto (try all methods)</option><option value="structure">Structure only (fast)</option><option value="rebuild">Rebuild pages (aggressive)</option></select></div>'
-    +'<div class="field"><label>Render scale for rebuild</label><select id="rpScale"><option value="1.2">1.2×</option><option value="1.5" selected>1.5×</option><option value="2">2×</option></select></div>';
+  opts.innerHTML='<div class="field"><label for="rpMode">Repair mode</label><select id="rpMode"><option value="auto">Auto (try all methods)</option><option value="structure">Structure only (fast)</option><option value="rebuild">Rebuild pages (aggressive)</option></select></div>'
+    +'<div class="field"><label for="rpScale">Render scale for rebuild</label><select id="rpScale"><option value="1.2">1.2×</option><option value="1.5" selected>1.5×</option><option value="2">2×</option></select></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const report=document.createElement('div'); report.className='compare-summary'; report.hidden=true;
   panel.insertBefore(report,panel.querySelector('.status'));
@@ -3378,8 +3416,8 @@ INITERS.compare = function(panel){
       <div class="dropzone" id="cd2"><i class="fa-solid fa-cloud-arrow-up"></i><h3>Second PDF</h3><p>Click or drop</p><input type="file" accept="application/pdf" hidden></div>
     </div>
     <div class="options">
-      <div class="field"><label>View</label><select id="cmpView"><option value="side">Side by side</option><option value="diff">Text diff</option></select></div>
-      <div class="field"><label>Max pages</label><input id="cmpMax" type="number" value="6" min="1" max="20" /></div>
+      <div class="field"><label for="cmpView">View</label><select id="cmpView"><option value="side">Side by side</option><option value="diff">Text diff</option></select></div>
+      <div class="field"><label for="cmpMax">Max pages</label><input id="cmpMax" type="number" value="6" min="1" max="20" /></div>
     </div>`;
   panel.insertBefore(wrap,panel.querySelector('.status'));
   const d1=wrap.querySelector('#cd1'), d2=wrap.querySelector('#cd2');
@@ -3472,8 +3510,8 @@ function renderAuth(root,mode){
     </div>
     <div class="panel">
       <div class="options" style="grid-template-columns:1fr">
-        <div class="field"><label>Email</label><input id="authEmail" type="email" placeholder="you@example.com" /></div>
-        <div class="field"><label>Password</label><input id="authPass" type="password" placeholder="••••••••" /></div>
+        <div class="field"><label for="authEmail">Email</label><input id="authEmail" type="email" placeholder="you@example.com" /></div>
+        <div class="field"><label for="authPass">Password</label><input id="authPass" type="password" placeholder="••••••••" /></div>
       </div>
       <div class="actions"><button class="btn btn-primary" id="authBtn">${mode==='login'?'Login':'Create account'}</button></div>
       <div class="status"></div>
@@ -3516,7 +3554,7 @@ INITERS['remove-pages'] = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Pages to remove (e.g. 2,4-6)</label><input id="rmPages" placeholder="1,3,5-7" /></div>';
+  opts.innerHTML='<div class="field"><label for="rmPages">Pages to remove (e.g. 2,4-6)</label><input id="rmPages" placeholder="1,3,5-7" /></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-circle-minus"></i> Remove pages';
@@ -3550,7 +3588,7 @@ INITERS['extract-pages'] = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Pages to extract (e.g. 2,4-6)</label><input id="exPages" placeholder="1,3,5-7" /></div>';
+  opts.innerHTML='<div class="field"><label for="exPages">Pages to extract (e.g. 2,4-6)</label><input id="exPages" placeholder="1,3,5-7" /></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-export"></i> Extract pages';
@@ -3641,9 +3679,9 @@ INITERS.summarize = function(panel){
   panel.insertBefore(list,panel.querySelector('.status'));
   function rerender(){ renderFileList(list,files,rerender); }
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Sentences in summary</label><input id="sumCount" type="number" value="5" min="1" max="30" /></div>'
-    +'<div class="field"><label>Style</label><select id="sumMode"><option value="balanced">Balanced</option><option value="short">Short &amp; punchy</option><option value="detailed">Detailed</option></select></div>'
-    +'<div class="field"><label>Output</label><select id="sumFmt"><option value="txt">Text (.txt)</option><option value="md">Markdown (.md)</option></select></div>';
+  opts.innerHTML='<div class="field"><label for="sumCount">Sentences in summary</label><input id="sumCount" type="number" value="5" min="1" max="30" /></div>'
+    +'<div class="field"><label for="sumMode">Style</label><select id="sumMode"><option value="balanced">Balanced</option><option value="short">Short &amp; punchy</option><option value="detailed">Detailed</option></select></div>'
+    +'<div class="field"><label for="sumFmt">Output</label><select id="sumFmt"><option value="txt">Text (.txt)</option><option value="md">Markdown (.md)</option></select></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const prev=document.createElement('div'); prev.className='translate-preview'; prev.hidden=true;
   prev.innerHTML='<label style="font-size:13px;font-weight:700">Summary preview</label><textarea id="sumPreview" rows="9" readonly placeholder="Your summary will appear here..."></textarea>';
@@ -3907,13 +3945,13 @@ INITERS.ocr = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Language</label><select id="ocrLang">'
+  opts.innerHTML='<div class="field"><label for="ocrLang">Language</label><select id="ocrLang">'
     +'<option value="eng">English</option><option value="spa">Español</option><option value="fra">Français</option>'
     +'<option value="deu">Deutsch</option><option value="ita">Italiano</option><option value="por">Português</option>'
     +'<option value="hin">हिन्दी</option><option value="ben">বাংলা</option><option value="ara">العربية</option><option value="rus">Русский</option></select></div>'
-    +'<div class="field"><label>Render scale</label><select id="ocrScale"><option value="1.5">1.5× (fast)</option><option value="1.8" selected>1.8× (balanced)</option><option value="2.5">2.5× (accurate)</option></select></div>'
-    +'<div class="field"><label>Output</label><select id="ocrOut"><option value="pdf">Searchable PDF + text</option><option value="txt">Text only (.txt)</option></select></div>'
-    +'<div class="field"><label>Pages</label><input id="ocrPages" placeholder="All (e.g. 1-3,5)" /></div>';
+    +'<div class="field"><label for="ocrScale">Render scale</label><select id="ocrScale"><option value="1.5">1.5× (fast)</option><option value="1.8" selected>1.8× (balanced)</option><option value="2.5">2.5× (accurate)</option></select></div>'
+    +'<div class="field"><label for="ocrOut">Output</label><select id="ocrOut"><option value="pdf">Searchable PDF + text</option><option value="txt">Text only (.txt)</option></select></div>'
+    +'<div class="field"><label for="ocrPages">Pages</label><input id="ocrPages" placeholder="All (e.g. 1-3,5)" /></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const prev=document.createElement('div'); prev.className='translate-preview'; prev.hidden=true;
   prev.innerHTML='<label style="font-size:13px;font-weight:700">Recognized text</label><textarea id="ocrPreview" rows="8" readonly></textarea>';
@@ -3991,14 +4029,14 @@ INITERS.translate = function(panel){
   rerender();
 
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML=`<div class="field"><label>From</label><select id="trFrom">
+  opts.innerHTML=`<div class="field"><label for="trFrom">From</label><select id="trFrom">
       <option value="auto">Auto detect</option><option value="en">English</option><option value="bn">Bengali</option>
       <option value="hi">Hindi</option><option value="es">Spanish</option><option value="fr">French</option>
       <option value="de">German</option><option value="ar">Arabic</option><option value="ru">Russian</option>
       <option value="zh-CN">Chinese (Simplified)</option><option value="ja">Japanese</option>
       <option value="ko">Korean</option><option value="ur">Urdu</option>
     </select></div>
-    <div class="field"><label>To</label><select id="trTo">
+    <div class="field"><label for="trTo">To</label><select id="trTo">
       <option value="bn">Bengali</option><option value="en">English</option><option value="hi">Hindi</option>
       <option value="es">Spanish</option><option value="fr">French</option><option value="de">German</option>
       <option value="ar">Arabic</option><option value="ru">Russian</option>
@@ -4132,11 +4170,11 @@ INITERS.metadata = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>Title</label><input id="mdTitle" /></div>
-    <div class="field"><label>Author</label><input id="mdAuthor" /></div>
-    <div class="field"><label>Subject</label><input id="mdSubject" /></div>
-    <div class="field"><label>Keywords</label><input id="mdKeywords" placeholder="comma,separated" /></div>
-    <div class="field"><label>Creator</label><input id="mdCreator" /></div>`;
+    <div class="field"><label for="mdTitle">Title</label><input id="mdTitle" /></div>
+    <div class="field"><label for="mdAuthor">Author</label><input id="mdAuthor" /></div>
+    <div class="field"><label for="mdSubject">Subject</label><input id="mdSubject" /></div>
+    <div class="field"><label for="mdKeywords">Keywords</label><input id="mdKeywords" placeholder="comma,separated" /></div>
+    <div class="field"><label for="mdCreator">Creator</label><input id="mdCreator" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   async function load(){
     try{
@@ -4205,7 +4243,7 @@ INITERS.grayscale = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Scale</label><select id="gsScale"><option value="1.5">1.5x</option><option value="2" selected>2x</option><option value="3">3x</option></select></div>';
+  opts.innerHTML='<div class="field"><label for="gsScale">Scale</label><select id="gsScale"><option value="1.5">1.5x</option><option value="2" selected>2x</option><option value="3">3x</option></select></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-circle-half-stroke"></i> Convert to grayscale';
@@ -4250,7 +4288,7 @@ INITERS['pdf-to-text'] = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Pages (blank = all)</label><input id="txtPages" placeholder="1,3,5-7" /></div>';
+  opts.innerHTML='<div class="field"><label for="txtPages">Pages (blank = all)</label><input id="txtPages" placeholder="1,3,5-7" /></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-lines"></i> Extract text';
@@ -4285,7 +4323,7 @@ INITERS['pdf-to-csv'] = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Pages (blank = all)</label><input id="csvPages" placeholder="1,3,5-7" /></div><div class="field"><label>Column gap (px)</label><input id="csvGap" type="number" value="18" /></div>';
+  opts.innerHTML='<div class="field"><label for="csvPages">Pages (blank = all)</label><input id="csvPages" placeholder="1,3,5-7" /></div><div class="field"><label for="csvGap">Column gap (px)</label><input id="csvGap" type="number" value="18" /></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-csv"></i> Convert to CSV';
@@ -4340,10 +4378,10 @@ INITERS['add-blank'] = function(panel){
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>Position</label><select id="abPos"><option value="end">End</option><option value="start">Start</option><option value="after">After page N</option><option value="before">Before page N</option></select></div>
-    <div class="field"><label>Page number</label><input id="abN" type="number" value="1" min="1" /></div>
-    <div class="field"><label>How many</label><input id="abCount" type="number" value="1" min="1" max="50" /></div>
-    <div class="field"><label>Page size</label><select id="abSize"><option value="same">Same as document</option><option value="a4">A4</option><option value="letter">Letter</option></select></div>`;
+    <div class="field"><label for="abPos">Position</label><select id="abPos"><option value="end">End</option><option value="start">Start</option><option value="after">After page N</option><option value="before">Before page N</option></select></div>
+    <div class="field"><label for="abN">Page number</label><input id="abN" type="number" value="1" min="1" /></div>
+    <div class="field"><label for="abCount">How many</label><input id="abCount" type="number" value="1" min="1" max="50" /></div>
+    <div class="field"><label for="abSize">Page size</label><select id="abSize"><option value="same">Same as document</option><option value="a4">A4</option><option value="letter">Letter</option></select></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-circle-plus"></i> Add blank pages';
@@ -4385,7 +4423,7 @@ INITERS['remove-blank'] = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label>Threshold (0-255, higher = more sensitive)</label><input id="rbThresh" type="number" value="245" min="200" max="255" /></div><div class="field"><label>Min dark pixels to keep</label><input id="rbMin" type="number" value="50" min="0" /></div>';
+  opts.innerHTML='<div class="field"><label for="rbThresh">Threshold (0-255, higher = more sensitive)</label><input id="rbThresh" type="number" value="245" min="200" max="255" /></div><div class="field"><label for="rbMin">Min dark pixels to keep</label><input id="rbMin" type="number" value="50" min="0" /></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-circle-minus"></i> Remove blank pages';
@@ -4433,9 +4471,9 @@ INITERS['resize-pages'] = function(panel){
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>Target size</label><select id="rpSize"><option value="a4">A4 (210×297mm)</option><option value="letter">Letter (8.5×11in)</option><option value="legal">Legal (8.5×14in)</option><option value="a3">A3 (297×420mm)</option></select></div>
-    <div class="field"><label>Fit content</label><select id="rpFit"><option value="contain">Fit (keep aspect)</option><option value="stretch">Stretch to fill</option></select></div>
-    <div class="field"><label>Pages (blank = all)</label><input id="rpPages" placeholder="1,3,5-7" /></div>`;
+    <div class="field"><label for="rpSize">Target size</label><select id="rpSize"><option value="a4">A4 (210×297mm)</option><option value="letter">Letter (8.5×11in)</option><option value="legal">Legal (8.5×14in)</option><option value="a3">A3 (297×420mm)</option></select></div>
+    <div class="field"><label for="rpFit">Fit content</label><select id="rpFit"><option value="contain">Fit (keep aspect)</option><option value="stretch">Stretch to fill</option></select></div>
+    <div class="field"><label for="rpPages">Pages (blank = all)</label><input id="rpPages" placeholder="1,3,5-7" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-expand"></i> Resize pages';
@@ -4480,11 +4518,11 @@ INITERS['header-footer'] = function(panel){
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
-    <div class="field"><label>Header text</label><input id="hfH" placeholder="Document title" /></div>
-    <div class="field"><label>Footer text</label><input id="hfF" placeholder="Page {n} of {total}" /></div>
-    <div class="field"><label>Font size</label><input id="hfSize" type="number" value="10" /></div>
-    <div class="field"><label>Color</label><select id="hfColor"><option value="0.3,0.3,0.3">Gray</option><option value="0,0,0">Black</option><option value="0.8,0,0">Red</option></select></div>
-    <div class="field"><label>Pages (blank = all)</label><input id="hfPages" placeholder="1,3,5-7" /></div>`;
+    <div class="field"><label for="hfH">Header text</label><input id="hfH" placeholder="Document title" /></div>
+    <div class="field"><label for="hfF">Footer text</label><input id="hfF" placeholder="Page {n} of {total}" /></div>
+    <div class="field"><label for="hfSize">Font size</label><input id="hfSize" type="number" value="10" /></div>
+    <div class="field"><label for="hfColor">Color</label><select id="hfColor"><option value="0.3,0.3,0.3">Gray</option><option value="0,0,0">Black</option><option value="0.8,0,0">Red</option></select></div>
+    <div class="field"><label for="hfPages">Pages (blank = all)</label><input id="hfPages" placeholder="1,3,5-7" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-align-center"></i> Add header & footer';
@@ -4547,8 +4585,12 @@ function route(){
   else if(hash==='#/tools') renderTools(app);
   else if(hash==='#/studio'||hash.startsWith('#/studio/')){
     const sid=hash.startsWith('#/studio/')?hash.split('/')[2].split('?')[0]:'';
-    if(window.OCSTUDIO) window.OCSTUDIO.render(app,sid);
-    else window.addEventListener('load',()=>{ if(window.OCSTUDIO) window.OCSTUDIO.render(app,sid); },{once:true});
+    if(window.OCSTUDIO){ window.OCSTUDIO.render(app,sid); }
+    else{
+      ensureLocalScript('js/image-studio.js')
+        .then(()=>{ if(window.OCSTUDIO) window.OCSTUDIO.render(app,sid); })
+        .catch(()=>{ app.innerHTML='<div class="container" style="padding:60px 20px">Image Studio could not be loaded. Please refresh the page.</div>'; });
+    }
   }
   else if(hash.startsWith('#/tool/')) renderTool(app,hash.split('/')[2]);
   else if(hash==='#/about') renderAbout(app);
