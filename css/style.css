@@ -667,6 +667,9 @@ html[data-theme="dark"] .feedback-btn{background:#1e2430;border-color:var(--bord
 html[data-theme="dark"] .feedback-box{background:#171a21;color:var(--ink)}
 .feedback-box h3{margin:0 0 6px;font-size:19px}
 .feedback-box p{margin:0 0 12px;color:var(--muted);font-size:13px}
+.feedback-email{margin:-4px 0 12px !important;font-size:12.5px !important}
+.feedback-email a{color:var(--red);font-weight:700}
+.feedback-email a:hover{text-decoration:underline}
 .feedback-box textarea{width:100%;resize:vertical;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:14px;background:transparent;color:inherit}
 .feedback-box pre{margin:12px 0;padding:10px;border-radius:8px;background:#f3f4f6;font-size:11px;white-space:pre-wrap;word-break:break-word;max-height:140px;overflow:auto}
 html[data-theme="dark"] .feedback-box pre{background:#0f1115;color:#9aa3ad}

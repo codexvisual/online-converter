@@ -164,6 +164,7 @@ function initFeedback(){
   btn.addEventListener('click',()=>{
     const wrap=document.createElement('div'); wrap.className='overlay feedback-modal';
     wrap.innerHTML='<div class="feedback-box" role="dialog" aria-modal="true"><h3>'+t('feedback_title')+'</h3><p>'+t('feedback_desc')+'</p>'
+      +'<p class="feedback-email">Send to: <a href="mailto:support@filofa.com">support@filofa.com</a></p>'
       +'<textarea id="fbText" rows="4" placeholder="What happened?"></textarea>'
       +'<pre id="fbDetails"></pre>'
       +'<div class="actions"><button class="btn btn-primary" id="fbMail"><i class="fa-solid fa-envelope"></i> '+t('feedback_send')+'</button>'
@@ -171,7 +172,7 @@ function initFeedback(){
       +'<button class="btn btn-ghost" id="fbCancel">'+t('feedback_cancel')+'</button></div></div>';
     document.body.appendChild(wrap);
     const tool=(location.hash.split('/')[2]||'home');
-    const details='Tool: '+tool+'\nPage: '+location.href+'\nUser agent: '+navigator.userAgent+'\nLast error: '+(window.__ocLastError||'none');
+    const details='Tool: '+tool+'\nPage: '+location.href+'\nEmail: support@filofa.com\nUser agent: '+navigator.userAgent+'\nLast error: '+(window.__ocLastError||'none');
     wrap.querySelector('#fbDetails').textContent=details;
     const build=()=>'Problem report\n\n'+wrap.querySelector('#fbText').value+'\n\n---\n'+details;
     wrap.querySelector('#fbMail').addEventListener('click',()=>{
@@ -3188,17 +3189,18 @@ function renderAuth(root,mode){
 const INFO = {
   privacy:{title:'Privacy policy',icon:'fa-shield-halved',body:'Online Converter processes every file locally in your browser. Files are never uploaded to our servers, stored, or shared. The only exception is the optional Translate PDF tool, which asks for your consent before sending extracted text to the free MyMemory translation service — your PDF file itself is never uploaded.'},
   terms:{title:'Terms & conditions',icon:'fa-file-contract',body:'Online Converter is provided free of charge for personal and commercial use. The service is offered “as is” without warranty. You are responsible for the files you process and for keeping backups.'},
-  contact:{title:'Contact us',icon:'fa-envelope',body:'Questions, feedback or business enquiries? Email us at support@filofa.com or visit filofa.com. We usually reply within one business day.'},
+  contact:{title:'Contact us',icon:'fa-envelope',body:'Questions, feedback or business enquiries? Email us at <a href="mailto:support@filofa.com">support@filofa.com</a> or visit filofa.com. We usually reply within one business day.'},
   faq:{title:'Frequently asked questions',icon:'fa-circle-question',body:'Are my files uploaded? No — all processing happens in your browser. Is it free? Yes, all tools are free. Do I need an account? No. Which formats are supported? PDF, DOCX, XLSX, PPTX, JPG, PNG and HTML.'},
   features:{title:'Features',icon:'fa-star',body:'Merge, split, compress, convert, edit, sign, protect and organize PDFs. Convert between PDF and Word, Excel, PowerPoint, JPG, HTML and PDF/A. Everything runs locally in your browser.'},
   pricing:{title:'Pricing',icon:'fa-tag',body:'Online Converter is 100% free. There are no subscriptions, hidden fees or file limits. Advanced server-side workflows are available through Filofa Technology on request.'}
 };
 function renderInfo(root,key){
   const info=INFO[key]||INFO.about;
+  const mailBtn=key==='contact'?'<a class="btn btn-primary" href="mailto:support@filofa.com"><i class="fa-solid fa-envelope"></i> Email support@filofa.com</a>':'';
   root.innerHTML='';
   const sec=document.createElement('section');
   sec.className='about container';
-  sec.innerHTML=`<div class="tool-header"><div class="icon"><i class="fa-solid ${info.icon}"></i></div><div><h1>${info.title}</h1><p>Online Converter</p></div></div><p style="max-width:760px">${info.body}</p><div class="actions"><a class="btn btn-primary" href="#/tools"><i class="fa-solid fa-grid-2"></i> Explore all tools</a><a class="btn btn-ghost" href="#/">Back to home</a></div>`;
+  sec.innerHTML=`<div class="tool-header"><div class="icon"><i class="fa-solid ${info.icon}"></i></div><div><h1>${info.title}</h1><p>Online Converter</p></div></div><p style="max-width:760px">${info.body}</p><div class="actions">${mailBtn}<a class="btn btn-primary" href="#/tools"><i class="fa-solid fa-grid-2"></i> Explore all tools</a><a class="btn btn-ghost" href="#/">Back to home</a></div>`;
   root.appendChild(sec);
 }
 
