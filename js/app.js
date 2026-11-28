@@ -327,15 +327,33 @@ function waitForCore(name,ms=12000){
   if(window[name]) return Promise.resolve();
   return new Promise(res=>{const t0=Date.now();const iv=setInterval(()=>{if(window[name]||Date.now()-t0>ms){clearInterval(iv);res();}},100);});
 }
+/* Detect a file kind from its magic bytes (more reliable than MIME/name) */
+async function detectFileKind(file){
+  const type=(file.type||'').toLowerCase();
+  const name=(file.name||'').toLowerCase();
+  try{
+    const h=new Uint8Array(await file.slice(0,12).arrayBuffer());
+    if(h[0]===0x25&&h[1]===0x50&&h[2]===0x44&&h[3]===0x46&&h[4]===0x2D) return 'pdf';
+    if(h[0]===0xFF&&h[1]===0xD8&&h[2]===0xFF) return 'image';
+    if(h[0]===0x89&&h[1]===0x50&&h[2]===0x4E&&h[3]===0x47) return 'image';
+    if(h[0]===0x47&&h[1]===0x49&&h[2]===0x46) return 'image';
+    if(h[0]===0x42&&h[1]===0x4D) return 'image';
+    if(h[0]===0x52&&h[1]===0x49&&h[2]===0x46&&h[8]===0x57&&h[9]===0x45&&h[10]===0x42&&h[11]===0x50) return 'image';
+  }catch(e){}
+  if(type==='application/pdf'||name.endsWith('.pdf')) return 'pdf';
+  if(type.startsWith('image/')||/\.(jpe?g|png|webp|gif|bmp)$/i.test(name)) return 'image';
+  return 'unknown';
+}
+
 async function thumbUrl(f){
-  if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)) await waitForCore('pdfjsLib');
+  const kind=await detectFileKind(f);
+  if(kind==='pdf') await waitForCore('pdfjsLib');
   if(thumbCache.has(f)) return thumbCache.get(f);
   const work=(async()=>{
     let url=null;
     try{
-      if(f.type.startsWith('image/')){
-        url=URL.createObjectURL(f);
-      } else if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){
+      if(kind==='image') url=URL.createObjectURL(f);
+      else if(kind==='pdf'){
         const bytes=new Uint8Array(await f.arrayBuffer());
         const pdf=await pdfjsLib.getDocument({data:bytes,useWorkerFetch:false,isEvalSupported:false}).promise;
         const page=await pdf.getPage(1);
@@ -989,18 +1007,18 @@ const INITERS = {};
 async function fileToPdf(file,rotation=0){
   const {PDFDocument,degrees}=PDFLib;
   const type=(file.type||'').toLowerCase();
-  const name=(file.name||'').toLowerCase();
-  if(type==='application/pdf'||name.endsWith('.pdf')){
+  const kind=await detectFileKind(file);
+  if(kind==='pdf'){
     const doc=await PDFDocument.load(new Uint8Array(await file.arrayBuffer()));
     if(rotation) doc.getPages().forEach(p=>p.setRotation(degrees((p.getRotation().angle+rotation)%360)));
     return doc;
   }
-  if(type.startsWith('image/')){
+  if(kind==='image'){
     const doc=await PDFDocument.create();
     const bytes=new Uint8Array(await file.arrayBuffer());
     let img;
-    if(type==='image/jpeg'||type==='image/jpg') img=await doc.embedJpg(bytes);
-    else if(type==='image/png') img=await doc.embedPng(bytes);
+    if(type==='image/jpeg'||type==='image/jpg'||/\.jpe?g$/i.test(file.name||'')) img=await doc.embedJpg(bytes);
+    else if(type==='image/png'||/\.png$/i.test(file.name||'')) img=await doc.embedPng(bytes);
     else{
       const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error('Cannot read image'));fr.readAsDataURL(file);});
       const el=new Image(); el.src=dataUrl; await el.decode();
