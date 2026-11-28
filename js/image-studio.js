@@ -625,13 +625,21 @@ function bindControls(box,d){
   if(d.id==='detect'&&im){const out=box.querySelector('#proDetect');if(out)out.textContent=(im.name.split('.').pop()||'?').toUpperCase()+' · '+im.current.width+'×'+im.current.height+' · '+fmtBytes(im.size);}
   // crop geometry from current image
   if(d.id==='crop'){S.crop={x:0,y:0,w:im?im.current.width:100,h:im?im.current.height:100};const syncCropInputs=()=>{['x','y','w','h'].forEach(k=>{const i=box.querySelector(`[data-k=${k}]`);if(i)i.value=Math.round(S.crop[k]);});};syncCropInputs();
+    // quick crop actions
+    const actRow=document.createElement('div');actRow.className='pro-crop-actions';actRow.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin:6px 0';
+    const mkBtn=(label,fn)=>{const b=document.createElement('button');b.type='button';b.className='pro-btn pro-btn--mini';b.textContent=label;b.addEventListener('click',()=>{if(!S.crop||!im)return;fn();syncCropInputs();draw();});return b;};
+    actRow.appendChild(mkBtn('Full',()=>{S.crop={x:0,y:0,w:im.current.width,h:im.current.height};}));
+    actRow.appendChild(mkBtn('Center 50%',()=>{const w=Math.round(im.current.width*.5),h=Math.round(im.current.height*.5);S.crop={x:Math.round((im.current.width-w)/2),y:Math.round((im.current.height-h)/2),w,h};}));
+    actRow.appendChild(mkBtn('1:1',()=>{const s=Math.min(im.current.width,im.current.height);S.crop={x:Math.round((im.current.width-s)/2),y:Math.round((im.current.height-s)/2),w:s,h:s};}));
+    actRow.appendChild(mkBtn('16:9',()=>{let w=im.current.width,h=Math.round(w*9/16);if(h>im.current.height){h=im.current.height;w=Math.round(h*16/9);}S.crop={x:Math.round((im.current.width-w)/2),y:Math.round((im.current.height-h)/2),w,h};}));
+    box.appendChild(actRow);
     box.querySelectorAll('[data-k]').forEach(el=>el.addEventListener('change',()=>{
     if(!S.crop)return;['x','y','w','h'].forEach(k=>{const i=box.querySelector(`[data-k=${k}]`);if(i)S.crop[k]=+i.value||0;});
     const ratio=box.querySelector('[data-k=ratio]')&&box.querySelector('[data-k=ratio]').value;
     if(ratio&&ratio!=='free'&&im){
       const [a,b]=ratio.split(':').map(Number);if(a&&b){const nh=Math.round(S.crop.w*b/a);if(nh>=1&&nh<=im.current.height-S.crop.y)S.crop.h=nh;}
     }
-    syncCropInputs();draw();}));studioStatus('Drag on the canvas to adjust the crop — handles resize, drag moves');}
+    syncCropInputs();draw();}));studioStatus('Drag on canvas to create/adjust crop — handles resize, drag moves');}
   if(d.id==='resize'&&im){box.querySelector('[data-k=w]').value=im.current.width;box.querySelector('[data-k=h]').value=im.current.height;
     box.querySelector('[data-k=w]').addEventListener('input',()=>{if(box.querySelector('[data-k=lock]').checked&&im){const r=im.current.height/im.current.width;box.querySelector('[data-k=h]').value=Math.round(+box.querySelector('[data-k=w]').value*r);}});
   }
@@ -665,7 +673,21 @@ function bindCanvas(){
     if(S.tool==='crop'&&S.crop&&S.view){
       const r=cv.getBoundingClientRect(),x=(e.clientX-r.left-S.view.ox)/S.view.scale,y=(e.clientY-r.top-S.view.oy)/S.view.scale,c=S.crop;
       const corners=[[c.x,c.y,'nw'],[c.x+c.w,c.y,'ne'],[c.x,c.y+c.h,'sw'],[c.x+c.w,c.y+c.h,'se']];
-      let mode='move';for(const [cx,cy,m] of corners)if(Math.hypot(cx-x,cy-y)<18/S.view.scale){mode=m;break;}
+      let mode='move';let hit=false;
+      for(const [cx,cy,m] of corners)if(Math.hypot(cx-x,cy-y)<18/S.view.scale){mode=m;hit=true;break;}
+      // edge handles
+      if(!hit){
+        if(Math.abs(x-(c.x+c.w/2))<12/S.view.scale && Math.abs(y-c.y)<18/S.view.scale) mode='n';
+        else if(Math.abs(x-(c.x+c.w/2))<12/S.view.scale && Math.abs(y-(c.y+c.h))<18/S.view.scale) mode='s';
+        else if(Math.abs(y-(c.y+c.h/2))<12/S.view.scale && Math.abs(x-c.x)<18/S.view.scale) mode='w';
+        else if(Math.abs(y-(c.y+c.h/2))<12/S.view.scale && Math.abs(x-(c.x+c.w))<18/S.view.scale) mode='e';
+      }
+      // if click outside crop, start new crop
+      if(!hit && (x<c.x||x>c.x+c.w||y<c.y||y>c.y+c.h)){
+        mode='create';
+        S.crop={x:Math.round(x),y:Math.round(y),w:1,h:1};
+        drag={mode,x,y,c:{...S.crop},start:{x:Math.round(x),y:Math.round(y)}};cv.setPointerCapture(e.pointerId);scheduleDraw();return;
+      }
       drag={mode,x,y,c:{...c}};cv.setPointerCapture(e.pointerId);return;
     }
     drag={mode:'pan',x:e.clientX,y:e.clientY,p:{...S.pan}};cv.setPointerCapture(e.pointerId);
@@ -679,6 +701,18 @@ function bindCanvas(){
     if(!drag)return;
     if(drag.mode==='compare'){S.split=clamp((e.clientX-cv.getBoundingClientRect().left)/cv.clientWidth*100,0,100);S.root.querySelector('#proSplit').value=S.split;scheduleDraw();return;}
     if(drag.mode==='pan'){S.pan.x=drag.p.x+(e.clientX-drag.x);S.pan.y=drag.p.y+(e.clientY-drag.y);scheduleDraw();return;}
+    if(drag&&drag.mode==='create'){
+      const im=cur();if(!im||!S.crop)return;
+      const dx=(e.clientX-drag.x)/S.view.scale,dy=(e.clientY-drag.y)/S.view.scale;
+      const sx=drag.start.x,sy=drag.start.y;
+      let x=Math.round(Math.min(sx,sx+dx)),y=Math.round(Math.min(sy,sy+dy));
+      let w=Math.round(Math.abs(dx)),h=Math.round(Math.abs(dy));
+      x=clamp(x,0,im.current.width-1);y=clamp(y,0,im.current.height-1);
+      w=clamp(w,1,im.current.width-x);h=clamp(h,1,im.current.height-y);
+      S.crop={x,y,w,h};
+      const _box=S.root.querySelector('#proControls');if(_box){['x','y','w','h'].forEach(k=>{const i=_box.querySelector(`[data-k=${k}]`);if(i)i.value=Math.round(S.crop[k]);});}
+      scheduleDraw();return;
+    }
     if(S.tool==='crop'&&S.crop&&S.view){
       const dx=(e.clientX-drag.x)/S.view.scale,dy=(e.clientY-drag.y)/S.view.scale,c=drag.c,n={...c};
       if(drag.mode==='move'){n.x=c.x+dx;n.y=c.y+dy;}
@@ -756,12 +790,12 @@ function exportDialog(initialFmt){
   const q=((cmpOp||fmtOp)&&+((cmpOp||fmtOp).v.q)/100)||.9;
   const modal=document.createElement('div');modal.className='pro-modal';
   modal.innerHTML=`<div class="pro-modal__box"><button class="pro-modal__x" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
-    <h2>Export</h2><p class="pro-modal__sub">${S.images.length} image(s) · processed locally</p>
+    <h2><i class="fa-solid fa-download"></i> Export image</h2><p class="pro-modal__sub">${S.images.length} image(s) · processed locally in your browser</p>
     <label class="pro-field"><span>Format</span><select id="exFmt">${['image/png','image/jpeg','image/webp','image/gif','image/bmp'].map(f=>`<option ${f===fmt?'selected':''}>${f}</option>`).join('')}</select></label>
-    <label class="pro-field"><span>Quality <b id="exQv">${Math.round(q*100)}</b>%</span><input type="range" id="exQ" min="10" max="100" value="${Math.round(q*100)}"></label>
-    <label class="pro-field pro-check"><input type="checkbox" id="exAll" ${S.images.length>1?'checked':''}><span>Export all images (ZIP)</span></label>
+    <label class="pro-field"><span>Quality: <b id="exQv">${Math.round(q*100)}</b>%</span><input type="range" id="exQ" min="10" max="100" value="${Math.round(q*100)}"></label>
+    <label class="pro-field pro-check"><input type="checkbox" id="exAll" ${S.images.length>1?'checked':''}><span>Export all images as ZIP</span></label>
     <label class="pro-field pro-check"><input type="checkbox" id="exStrip" ${(cmpOp&&cmpOp.v.strip)?'checked':''}><span>Strip metadata</span></label>
-    <div class="pro-modal__actions"><button class="pro-btn" data-close>Cancel</button><button class="pro-btn pro-btn--primary" id="exGo"><i class="fa-solid fa-download"></i> Download</button></div></div>`;
+    <div class="pro-modal__actions"><button class="pro-btn" data-close>Cancel</button><button class="pro-btn pro-btn--primary" id="exGo"><i class="fa-solid fa-download"></i> Download now</button></div></div>`;
   document.body.appendChild(modal);
   const close=()=>modal.remove();
   modal.querySelector('.pro-modal__x').addEventListener('click',close);
