@@ -372,7 +372,8 @@ function render(root,initialId){
   q('.pro-header').addEventListener('click',e=>{
     const b=e.target.closest('[data-act]');if(!b)return;
     const act=b.dataset.act;
-    if(act==='save')saveProjectDialog();
+    if(act==='save')saveProject();
+    else if(act==='export')directExport('image/png');
     else if(act==='quicksave')saveProject();
     else toolbar(act);
   });
@@ -439,9 +440,20 @@ function togglePanel(which){
   }
   savePrefs();scheduleDraw();
 }
-async function quickExport(fmt){
+function quickExport(fmt){
   if(!cur()){studioStatus('Open an image first','error');return;}
   exportDialog(fmt);
+}
+function directExport(fmt){
+  const im=cur();if(!im){studioStatus('Open an image first','error');return;}
+  (async()=>{
+    try{
+      const ext=fmt.split('/')[1].replace('jpeg','jpg');
+      const blob=await canvasBlob(im.current,fmt,.92);
+      download(blob,(im.name.replace(/\.[^.]+$/,'')||'image')+'.'+ext);
+      studioStatus('Downloaded '+ext.toUpperCase(),'success');
+    }catch(e){studioStatus((fmt.split('/')[1]||'').toUpperCase()+' not supported here — use WebP or PNG','error');}
+  })();
 }
 function shortcutHelp(){
   const m=document.createElement('div');m.className='pro-modal';
