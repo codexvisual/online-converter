@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Security — How Online Converter Protects Your Files</title>
+<meta name="description" content="Learn how Online Converter keeps your files secure: local browser processing, no uploads, no tracking, secure CDN libraries and encrypted connections." />
+<link rel="canonical" href="https://codexvisual.github.io/online-converter/security/" />
+<meta property="og:title" content="Security — Online Converter" />
+<meta property="og:url" content="https://codexvisual.github.io/online-converter/security/" />
+<meta property="og:type" content="website" />
+<link rel="icon" type="image/png" href="/online-converter/assets/favicon.png" />
+<link rel="stylesheet" href="/online-converter/css/style.css" />
+</head>
+<body>
+<header class="header"><div class="container"><a class="brand" href="/online-converter/"><img src="/online-converter/assets/logo-small.png" alt="Online Converter" class="brand-logo"/></a></div></header>
+<main class="container" style="padding:40px 20px;max-width:860px">
+<h1>Security at Online Converter</h1>
+<p class="seo-lead">Security is built into every part of Online Converter. Your files are processed locally in your browser, never uploaded to a server, and never stored by us. This page explains exactly how we protect your data.</p>
+
+<h2>1. Local Processing — Your Files Never Leave Your Device</h2>
+<p>Unlike traditional online converters, Online Converter does not send your documents or images to a remote server. All conversion, compression, editing, OCR and image processing happens directly in your browser using JavaScript, WebAssembly and Canvas. When you close the tab, your files are gone from memory.</p>
+
+<h2>2. No Accounts, No Data Collection</h2>
+<p>We do not require you to create an account, and we do not ask for personal information to use any tool. There is no profile, no upload history, and no file storage on our side. The only data stored is in your own browser's localStorage: theme preference, language, and recently used tools.</p>
+
+<h2>3. Secure Library Delivery</h2>
+<p>Open-source libraries (pdf-lib, pdf.js, JSZip, FileSaver, gifenc, Tesseract.js) are loaded from trusted CDNs (jsDelivr, unpkg) over HTTPS with Subresource Integrity (SRI) hashes. This means the libraries cannot be tampered with in transit — the browser verifies their integrity before executing them.</p>
+
+<h2>4. HTTPS Everywhere</h2>
+<p>The entire site is served over HTTPS. Your connection to the site and to the CDN libraries is encrypted, protecting against eavesdropping and man-in-the-middle attacks.</p>
+
+<h2>5. Password & PDF Security Tools</h2>
+<p>Our Protect PDF and Unlock PDF tools run entirely in your browser. Passwords you enter are used only in local memory to encrypt or decrypt your document. They are never transmitted, logged, or stored. We support standard PDF user and owner passwords.</p>
+
+<h2>6. Third-Party Advertising</h2>
+<p>If ads are displayed, they are served by third-party networks such as Google AdSense. These networks may use cookies to personalize ads, as described in our <a href="cookies/">Cookie Policy</a>. Ads never have access to your files or the content of your documents.</p>
+
+<h2>7. Content Security Practices</h2>
+<ul>
+<li>Filenames are escaped before being displayed in the interface.</li>
+<li>Files are read into memory only when you select them.</li>
+<li>Object URLs are revoked after use to free memory.</li>
+<li>No analytics or tracking scripts observe file contents.</li>
+</ul>
+
+<h2>8. Responsible Use</h2>
+<p>Because processing is local, you are in full control. For maximum safety, keep backups of important files, use strong passwords for protected PDFs, and avoid processing sensitive documents on shared or public computers.</p>
+
+<h2>9. Reporting a Security Issue</h2>
+<p>If you believe you have found a security vulnerability, please email <a href="mailto:support@filofa.com">support@filofa.com</a> with details. We take reports seriously and will respond promptly.</p>
+
+<p><a href="/online-converter/">← Back to all tools</a></p>
+</main>
+<footer class="footer"><div class="container"><div class="footer-copy">© 2026 Online Converter · Developed by <a href="https://filofa.com" target="_blank" rel="noopener">Filofa Technology</a></div></div></footer>
+</body>
+</html>

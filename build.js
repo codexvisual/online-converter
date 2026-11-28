@@ -83,7 +83,7 @@ let sm='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitema
 sm+=`<url><loc>${base}/</loc><priority>1.0</priority></url>\n`;
 sm+=`<url><loc>${base}/studio/</loc><priority>0.9</priority></url>\n`;
 for(const t of data) sm+=`<url><loc>${base}/tools/${t.slug}/</loc><priority>0.7</priority></url>\n`;
-for(const p of ['about','contact','privacy-policy','terms','cookies','blog','press']) sm+=`<url><loc>${base}/${p}/</loc><priority>0.5</priority></url>\n`;
+for(const p of ['about','contact','privacy-policy','terms','security','cookies','blog','press']) sm+=`<url><loc>${base}/${p}/</loc><priority>0.5</priority></url>\n`;
 sm+='</urlset>\n';
 fs.writeFileSync(path.join(OUT,'sitemap.xml'), sm);
 console.log('built', data.length, 'tool pages at root');
