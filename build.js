@@ -172,6 +172,7 @@ let st=homeHtml
   .replace('"url":"https://codexvisual.github.io/online-converter/"','"url":"'+studioUrl+'"')
   .replace(/<main id="app" tabindex="-1">[\s\S]*?<\/main>/, '<main id="app" tabindex="-1"><div class="container" style="padding:32px 20px"><h1>Image Studio</h1><p style="max-width:760px;color:var(--muted)">Free, non-destructive photo editor that runs entirely in your browser. Crop, resize, retouch, filter and export without uploading anything.</p></div></main>')
   .replace('<base href="./" />','<base href="../" />')
+  .replace(/(href|src)="\.\.\//g,'$1="')
   .replace('</body>','<script>window.__INITIAL_STUDIO__=true;</script>\n</body>');
 fs.writeFileSync(path.join(studioDir,'index.html'), st);
 // sitemap
