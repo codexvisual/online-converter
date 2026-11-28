@@ -4577,7 +4577,23 @@ function syncTitle(hash){
   else if(INFO[key]) name=INFO[key].title;
   document.title=name?name+' · '+base:base;
 }
+function cleanUrlFromHash(h){
+  if(!h||h==='#/'||h==='#') return '/';
+  if(h==='#/tools') return '/tools/';
+  if(h==='#/studio'||h.startsWith('#/studio/')) return '/studio/';
+  if(h.startsWith('#/tool/')){ const id=h.replace('#/tool/','').split('/')[0]; return '/tools/'+id+'/'; }
+  const info=h.replace('#/','');
+  if(INFO[info]) return '/'+info+'/';
+  return '/';
+}
 function route(){
+  if(!location.hash && location.pathname && location.pathname!=='/' && !location.pathname.endsWith('index.html')){
+    const p=location.pathname.replace(/\/+$/,'');
+    const seg=p.split('/').filter(Boolean).pop();
+    if(seg && TOOLS.some(t=>t.id===seg)) location.hash='#/tool/'+seg;
+    else if(seg==='studio') location.hash='#/studio';
+    else if(seg==='tools') location.hash='#/tools';
+  }
   const hash=location.hash||'#/'; const app=document.getElementById('app');
   document.querySelectorAll('.nav-has-dropdown.open').forEach(x=>x.classList.remove('open'));
   const menuEl=document.querySelector('.menu'); if(menuEl) menuEl.classList.remove('open');
@@ -4613,8 +4629,16 @@ function onReady(fn){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',fn);
   else fn();
 }
-window.addEventListener('hashchange',route);
-onReady(route);
+function syncCleanUrl(hash){
+  try{
+    const clean=cleanUrlFromHash(hash||location.hash);
+    if(clean && clean!=='/' && (location.pathname!==clean || location.hash)) history.replaceState(null,'',clean);
+  }catch(e){}
+}
+window.addEventListener('hashchange',()=>{ route(); syncCleanUrl(location.hash); });
+window.addEventListener('popstate',()=>{ route(); });
+onReady(()=>{ route(); });
+onReady(()=>{ syncCleanUrl(location.hash); window.__INITIAL_LOAD_DONE=true; });
 
 /* menu */
 onReady(()=>{
@@ -4765,7 +4789,6 @@ onReady(()=>{
       if(t) paintIcon(tile.querySelector('.app-icon'),t.id,t.cat);
     });
   }
-  if(window.__INITIAL_TOOL__){ try{ location.hash='#/tool/'+window.__INITIAL_TOOL__; }catch(e){} }
   if(!window.__BASE_PATH__) window.__BASE_PATH__='';
   if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){
     window.addEventListener('load',()=>{
@@ -4774,7 +4797,7 @@ onReady(()=>{
   }
   // Warm the Image Studio chunk during idle time so the first click is instant.
   if(!window.OCSTUDIO){
-    const warm=()=>{ ensureLocalScript('js/image-studio.js').catch(()=>{}); };
+    const warm=()=>{ ensureLocalScript((window.__BASE_PATH__||'')+'js/image-studio.js').catch(()=>{}); };
     if('requestIdleCallback' in window) requestIdleCallback(warm,{timeout:4000});
     else setTimeout(warm,2500);
   }

@@ -55,7 +55,7 @@ function toolPage(t){
   </div>
 </section>
 </main>
-<script>window.__INITIAL_TOOL__='${t.id}';</script>
+<script>window.__INITIAL_TOOL__='${t.id}'; location.hash='#/tool/${t.id}';</script>
 <script src="${base}js/i18n.js" defer></script>
 <script src="${base}js/app.js" defer></script>
 <script src="${base}js/image-tools.js" defer></script>
