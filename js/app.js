@@ -4588,7 +4588,7 @@ function route(){
     if(window.OCSTUDIO){ window.OCSTUDIO.render(app,sid); }
     else{
       app.innerHTML='<div class="studio-loading"><span class="studio-loading__spin" aria-hidden="true"></span><p>Opening Image Studio…</p></div>';
-      ensureLocalScript('js/image-studio.js')
+      ensureLocalScript((window.__BASE_PATH__||'')+'js/image-studio.js')
         .then(()=>{ if(window.OCSTUDIO) window.OCSTUDIO.render(app,sid); })
         .catch(()=>{ app.innerHTML='<div class="container" style="padding:60px 20px">Image Studio could not be loaded. Please refresh the page.</div>'; });
     }
@@ -4758,13 +4758,15 @@ onReady(()=>{
   const appsGrid=document.querySelector('.apps-grid');
   if(appsGrid){
     const colors=['blue','purple','green','red','orange','yellow','teal','dark','indigo'];
-    appsGrid.innerHTML=TOOLS.map((t,i)=>'<a href="#/tool/'+t.id+'" class="app-tile"><span class="app-icon"><i class="fa-solid '+t.icon+'"></i></span><span>'+escapeHtml(t.name)+'</span></a>').join('');
+    appsGrid.innerHTML=TOOLS.map((t,i)=>'<a href="tools/'+t.id+'/" class="app-tile"><span class="app-icon"><i class="fa-solid '+t.icon+'"></i></span><span>'+escapeHtml(t.name)+'</span></a>').join('');
     appsGrid.querySelectorAll('.app-tile').forEach(tile=>{
-      const id=(tile.getAttribute('href')||'').split('/').pop();
+      const id=(tile.getAttribute('href')||'').split('/').filter(Boolean).pop();
       const t=TOOLS.find(x=>x.id===id);
       if(t) paintIcon(tile.querySelector('.app-icon'),t.id,t.cat);
     });
   }
+  if(window.__INITIAL_TOOL__){ try{ location.hash='#/tool/'+window.__INITIAL_TOOL__; }catch(e){} }
+  if(!window.__BASE_PATH__) window.__BASE_PATH__='';
   if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){
     window.addEventListener('load',()=>{
       navigator.serviceWorker.register('sw.js').catch(()=>{});
