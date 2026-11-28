@@ -227,6 +227,8 @@ body.is-dragging-card *{cursor:grabbing !important}
 .file-move button:hover:not(:disabled){background:#fdecea;color:var(--red);border-color:var(--red)}
 .file-move button:disabled{opacity:.35;cursor:default}
 .file-move .grip{margin-left:auto;color:#c2c6cc;font-size:15px;cursor:grab;padding:2px 4px;touch-action:none}
+.file-rotation{font-size:10.5px;font-weight:800;color:var(--red);background:#fff5f4;border:1px solid rgba(229,50,45,.25);border-radius:999px;padding:2px 7px;margin-left:auto}
+html[data-theme="dark"] .file-rotation{background:#2a1b1b;color:#ff8a80}
 .file-hint{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:2px 4px 0}
 .preview-overlay{position:fixed;inset:0;background:rgba(15,17,21,.72);display:none;align-items:center;justify-content:center;z-index:3000;padding:24px}
 .preview-overlay.show{display:flex}

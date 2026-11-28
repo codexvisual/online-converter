@@ -15,7 +15,7 @@ const CAT_I18N = {'Organize PDF':'cat_organize','Optimize PDF':'cat_optimize','C
 function catLabel(cat){ return t(CAT_I18N[cat]||'filter_all'); }
 
 const TOOLS = [
-  {id:'merge',name:'Merge PDF',desc:'Combine PDFs in the order you want.',icon:'fa-object-group',cat:'Organize PDF',impl:true},
+  {id:'merge',name:'Merge PDF',desc:'Combine PDF, JPG and PNG files in the order you want.',icon:'fa-object-group',cat:'Organize PDF',impl:true},
   {id:'split',name:'Split PDF',desc:'Separate one page or a whole set for easy conversion.',icon:'fa-scissors',cat:'Organize PDF',impl:true},
   {id:'compress',name:'Compress PDF',desc:'Reduce file size while optimizing for maximal quality.',icon:'fa-compress',cat:'Optimize PDF',impl:true},
   {id:'batch',name:'Batch process',desc:'Compress, rotate or watermark many PDFs at once.',icon:'fa-layer-group',cat:'Optimize PDF',impl:true},
@@ -352,7 +352,7 @@ async function thumbUrl(f){
   thumbCache.set(f,url);
   return url;
 }
-function renderFileList(container,files,onChange){
+function renderFileList(container,files,onChange,onRotate){
   container.innerHTML='';
   const multi=files.length>1;
 
@@ -393,8 +393,16 @@ function renderFileList(container,files,onChange){
     const size=document.createElement('span'); size.className='size'; size.textContent=formatBytes(f.size);
     info.appendChild(name); info.appendChild(size); item.appendChild(info);
 
+    const mv=document.createElement('div'); mv.className='file-move';
+    if(onRotate){
+      const rl=document.createElement('button'); rl.type='button'; rl.title='Rotate left'; rl.innerHTML='<i class="fa-solid fa-rotate-left"></i>';
+      rl.addEventListener('click',e=>{ e.stopPropagation(); f._rotation=((f._rotation||0)-90+360)%360; onChange(); });
+      const rr=document.createElement('button'); rr.type='button'; rr.title='Rotate right'; rr.innerHTML='<i class="fa-solid fa-rotate-right"></i>';
+      rr.addEventListener('click',e=>{ e.stopPropagation(); f._rotation=((f._rotation||0)+90)%360; onChange(); });
+      mv.appendChild(rl); mv.appendChild(rr);
+      if(f._rotation){ const deg=document.createElement('span'); deg.className='file-rotation'; deg.textContent=f._rotation+'°'; deg.title='Rotation: '+f._rotation+'°'; mv.appendChild(deg); }
+    }
     if(multi){
-      const mv=document.createElement('div'); mv.className='file-move';
       const up=document.createElement('button'); up.type='button'; up.title='Move earlier'; up.innerHTML='<i class="fa-solid fa-chevron-up"></i>';
       up.disabled=files.indexOf(f)===0;
       up.addEventListener('click',e=>{
@@ -412,8 +420,8 @@ function renderFileList(container,files,onChange){
       const grip=document.createElement('span'); grip.className='grip'; grip.title='Drag to reorder';
       grip.innerHTML='<i class="fa-solid fa-grip-vertical"></i>';
       mv.appendChild(up); mv.appendChild(down); mv.appendChild(grip);
-      item.appendChild(mv);
     }
+    if(mv.children.length) item.appendChild(mv);
     container.appendChild(item);
   });
 
@@ -977,32 +985,64 @@ function renderTool(root,id){
 
 const INITERS = {};
 
+/* Convert an uploaded PDF or image file into a PDFDocument (with optional rotation) */
+async function fileToPdf(file,rotation=0){
+  const {PDFDocument,degrees}=PDFLib;
+  const type=(file.type||'').toLowerCase();
+  const name=(file.name||'').toLowerCase();
+  if(type==='application/pdf'||name.endsWith('.pdf')){
+    const doc=await PDFDocument.load(new Uint8Array(await file.arrayBuffer()));
+    if(rotation) doc.getPages().forEach(p=>p.setRotation(degrees((p.getRotation().angle+rotation)%360)));
+    return doc;
+  }
+  if(type.startsWith('image/')){
+    const doc=await PDFDocument.create();
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    let img;
+    if(type==='image/jpeg'||type==='image/jpg') img=await doc.embedJpg(bytes);
+    else if(type==='image/png') img=await doc.embedPng(bytes);
+    else{
+      const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error('Cannot read image'));fr.readAsDataURL(file);});
+      const el=new Image(); el.src=dataUrl; await el.decode();
+      const c=document.createElement('canvas'); c.width=el.naturalWidth; c.height=el.naturalHeight;
+      c.getContext('2d').drawImage(el,0,0);
+      const jpg=c.toDataURL('image/jpeg',0.92).split(',')[1];
+      img=await doc.embedJpg(Uint8Array.from(atob(jpg),ch=>ch.charCodeAt(0)));
+    }
+    const {width,height}=img.scale(1);
+    const page=doc.addPage([width,height]);
+    page.drawImage(img,{x:0,y:0,width,height});
+    if(rotation) page.setRotation(degrees(rotation%360));
+    return doc;
+  }
+  throw new Error('Unsupported file type: '+(file.name||type));
+}
+
 /* ---------- MERGE ---------- */
 INITERS.merge = function(panel){
   let files=[];
   const list=document.createElement('div'); list.className='file-list';
-  createDropzone(panel,{accept:'application/pdf',multiple:true,onFiles:f=>{files=files.concat(f);rerender();}});
+  createDropzone(panel,{accept:'application/pdf,image/jpeg,image/png,image/webp,image/gif,image/bmp',multiple:true,onFiles:f=>{files=files.concat(f);rerender();}});
   panel.insertBefore(list, panel.querySelector('.status'));
-  function rerender(){ renderFileList(list,files,rerender); }
+  function rerender(){ renderFileList(list,files,rerender,true); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
-  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-object-group"></i> Merge PDF';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-object-group"></i> Merge files';
   btn.addEventListener('click', async()=>{
-    if(files.length<2){setStatus(panel,'Need at least 2 PDF files.','error');return;}
+    if(files.length<2){setStatus(panel,'Need at least 2 files (PDF or images).','error');return;}
     try{
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
       const merged=await PDFDocument.create();
       for(let i=0;i<files.length;i++){
-        const bytes=new Uint8Array(await files[i].arrayBuffer());
-        const doc=await PDFDocument.load(bytes);
+        const doc=await fileToPdf(files[i],files[i]._rotation||0);
         const pages=await merged.copyPages(doc,doc.getPageIndices());
         pages.forEach(p=>merged.addPage(p));
         setProgress(panel,(i+1)/files.length*100);
       }
       const out=await merged.save();
       offerDownload(panel, new Blob([out],{type:'application/pdf'}),'merged.pdf');
-      setStatus(panel,'Merged successfully!','success');
+      setStatus(panel,'Merged '+files.length+' file'+(files.length===1?'':'s')+' successfully!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
   });
