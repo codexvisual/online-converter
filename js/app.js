@@ -4108,7 +4108,8 @@ INITERS.translate = function(panel){
 
   const prev=document.createElement('div'); prev.className='translate-preview'; prev.hidden=true;
   prev.innerHTML='<div class="field"><label>Extracted text</label><textarea id="trText" rows="5" readonly></textarea></div>'
-    +'<div class="field"><label>Live translation <small id="trMeta" style="color:var(--muted);font-weight:400"></small></label><textarea id="trOut" rows="9" readonly placeholder="Translation appears here as soon as the PDF is read..."></textarea></div>';
+    +'<div class="field"><label>Live translation <small id="trMeta" style="color:var(--muted);font-weight:400"></small></label><textarea id="trOut" rows="9" readonly placeholder="Translation appears here as soon as the PDF is read..."></textarea></div>'
+    +'<div class="field" id="trSideWrap" style="grid-column:1/-1;display:none"><label>Side-by-side comparison</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div id="trLeft" style="white-space:pre-wrap;max-height:340px;overflow:auto;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:13px;line-height:1.6"></div><div id="trRight" style="white-space:pre-wrap;max-height:340px;overflow:auto;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:13px;line-height:1.6"></div></div></div>';
   panel.insertBefore(prev,panel.querySelector('.status'));
 
   function label(code){ const l=LANGS.find(x=>x[0]===code); return l?l[1]:code; }
@@ -4192,7 +4193,10 @@ INITERS.translate = function(panel){
     const from=panel.querySelector('#trFrom').value, to=panel.querySelector('#trTo').value;
     const outBox=prev.querySelector('#trOut');
     if(from===to){
-      outBox.value=raw; prev.querySelector('#trMeta').textContent='(same language — original text)';
+      outBox.value=raw;
+      prev.querySelector('#trMeta').textContent='(same language — original text)';
+      prev.querySelector('#trLeft').textContent=raw;
+      prev.querySelector('#trRight').textContent=raw;
       setStatus(panel,'Source and target language are the same.','info');
       return;
     }
@@ -4202,7 +4206,10 @@ INITERS.translate = function(panel){
     const done=groups.map(g=>new Array(g.length).fill(null));
     const rebuild=()=>done.map(arr=>arr.filter(Boolean).join(' ')).filter(Boolean).join('\n\n');
     prev.hidden=false;
-    outBox.value=''; prev.querySelector('#trMeta').textContent='('+label(from)+' → '+label(to)+', '+flat.length+' segments)';
+    outBox.value='';
+    prev.querySelector('#trLeft').textContent=raw;
+    prev.querySelector('#trRight').textContent='';
+    prev.querySelector('#trMeta').textContent='('+label(from)+' → '+label(to)+', '+flat.length+' segments)';
     showProgress(panel,true);
     setStatus(panel,'Translating live preview…','info');
     let cursor=0, finished=0;
@@ -4214,7 +4221,9 @@ INITERS.translate = function(panel){
         if(my!==job)return;
         done[item.gi][item.pi]=text;
         finished++;
-        outBox.value=rebuild();
+        const built=rebuild();
+        outBox.value=built;
+        prev.querySelector('#trRight').textContent=built;
         setProgress(panel,Math.round(finished/flat.length*100));
       }
     }
@@ -4297,7 +4306,17 @@ INITERS.translate = function(panel){
     try{await navigator.clipboard.writeText(v);toast('Translation copied','success');}
     catch(e){setStatus(panel,'Copy failed — select the text manually.','error');}
   });
-  actions.appendChild(btn); actions.appendChild(copyBtn);
+  const viewBtn=document.createElement('button'); viewBtn.className='btn btn-ghost'; viewBtn.innerHTML='<i class="fa-solid fa-columns"></i> Side-by-side';
+  let sideShown=false;
+  viewBtn.addEventListener('click',()=>{
+    sideShown=!sideShown;
+    prev.querySelector('#trSideWrap').style.display=sideShown?'':'none';
+    const fields=prev.querySelectorAll(':scope > .field');
+    fields[0].style.display=sideShown?'none':'';
+    fields[1].style.display=sideShown?'none':'';
+    viewBtn.innerHTML=sideShown?'<i class="fa-solid fa-columns"></i> Single view':'<i class="fa-solid fa-columns"></i> Side-by-side';
+  });
+  actions.appendChild(btn); actions.appendChild(copyBtn); actions.appendChild(viewBtn);
   panel.insertBefore(actions,panel.querySelector('.status'));
 
   opts.querySelector('#trSwap').addEventListener('click',()=>{
