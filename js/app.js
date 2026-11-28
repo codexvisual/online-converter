@@ -1631,6 +1631,7 @@ INITERS.rotate = function(panel){
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-rotate"></i> Rotate PDF';
   btn.addEventListener('click', async()=>{
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    if(!rotation){setStatus(panel,'Choose an angle first — click 90° left/right or drag the dial.','error');return;}
     try{
       showProgress(panel,true);
       const {PDFDocument,degrees}=PDFLib;
@@ -2511,6 +2512,7 @@ INITERS['pdf-to-excel'] = function(panel){
       const pages=parseRanges(panel.querySelector('#xlPages').value.trim(),pdf.numPages).flat();
       const wb=XLSX.utils.book_new();
       let preview='';
+      const allRows=[];
       for(const [pi,pno] of pages.entries()){
         const tc=await (await pdf.getPage(pno)).getTextContent();
         const rows=[];
@@ -2540,12 +2542,23 @@ INITERS['pdf-to-excel'] = function(panel){
           });
         }
         if(marks) rows.unshift(['--- Page '+pno+' ---']);
-        const ws=XLSX.utils.aoa_to_sheet(rows);
-        const maxCols=Math.max(1,...rows.map(r=>r.length));
-        ws['!cols']=Array.from({length:maxCols},()=>({wch:24}));
-        XLSX.utils.book_append_sheet(wb,ws,perPage?('Page '+pno):'PDF');
+        if(perPage){
+          const ws=XLSX.utils.aoa_to_sheet(rows);
+          const maxCols=Math.max(1,...rows.map(r=>r.length));
+          ws['!cols']=Array.from({length:maxCols},()=>({wch:24}));
+          XLSX.utils.book_append_sheet(wb,ws,'Page '+pno);
+        }else{
+          if(pi>0) allRows.push(['']);
+          for(const r of rows) allRows.push(r);
+        }
         if(pi===0) preview=rows.slice(0,12).map(r=>r.join(' | ')).join('\n');
         setProgress(panel,15+80*(pi+1)/pages.length);
+      }
+      if(!perPage){
+        const ws=XLSX.utils.aoa_to_sheet(allRows);
+        const maxCols=Math.max(1,...allRows.map(r=>r.length));
+        ws['!cols']=Array.from({length:maxCols},()=>({wch:24}));
+        XLSX.utils.book_append_sheet(wb,ws,'PDF');
       }
       const xlsxArray=XLSX.write(wb,{bookType:'xlsx',type:'array'});
       offerDownload(panel,new Blob([xlsxArray],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'converted.xlsx');
@@ -2753,7 +2766,8 @@ INITERS['word-to-pdf'] = function(panel){
       const orient=panel.querySelector('#w2pOri').value;
       const margin=parseInt(panel.querySelector('#w2pMargin').value)||10;
       const opt={margin, filename:'converted.pdf', image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'pt',format:pageSize,orientation:orient}};
-      await html2pdf().set(opt).from(result.value).save();
+      const blob=await html2pdf().set(opt).from(result.value).outputPdf('blob');
+      offerDownload(panel,blob,'converted.pdf');
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -2792,7 +2806,8 @@ INITERS['excel-to-pdf'] = function(panel){
       const margin=parseInt(panel.querySelector('#e2pMargin').value)||10;
       const opt={margin, filename:'converted.pdf', html2canvas:{scale:2}, jsPDF:{unit:'pt',format:pageSize,orientation:orient}};
       await ensureLib('html2pdf');
-      await html2pdf().set(opt).from(html).save();
+      const blob=await html2pdf().set(opt).from(html).outputPdf('blob');
+      offerDownload(panel,blob,'converted.pdf');
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -2814,11 +2829,15 @@ INITERS['ppt-to-pdf'] = function(panel){
   btn.addEventListener('click', async()=>{
     if(!files.length){setStatus(panel,'Select a PPTX first.','error');return;}
     try{
-      showProgress(panel,true);
+      showProgress(panel,true); setStatus(panel,'Converting slides…','info');
       const bytes=new Uint8Array(await files[0].arrayBuffer());
       let pdfBytes=null;
       try{
-        const {Ream}=await import('https://unpkg.com/reamkit@1.36.1/dist/esm/index.js?module');
+        const mod=await Promise.race([
+          import('https://unpkg.com/reamkit@1.36.1/dist/esm/index.js?module'),
+          new Promise((_,rej)=>setTimeout(()=>rej(new Error('renderer timeout')),8000))
+        ]);
+        const {Ream}=mod;
         const doc=Ream.parse(bytes);
         pdfBytes=await doc.convert('pdf');
       }catch(err){
@@ -2871,10 +2890,16 @@ async function pptxFallbackPdf(bytes){
 INITERS['html-to-pdf'] = function(panel){
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML=`
+    <div class="field" style="grid-column:1/-1"><label for="htmlFile">Or upload an HTML file</label><input id="htmlFile" type="file" accept=".htm,.html,text/html" /></div>
     <div class="field" style="grid-column:1/-1"><label>HTML content</label><textarea id="htmlIn" style="width:100%;min-height:160px;padding:10px;border:1px solid var(--border);border-radius:10px"></textarea></div>
     <div class="field"><label for="h2pSize">Page size</label><select id="h2pSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select></div>
     <div class="field"><label for="h2pMargin">Margin (pt)</label><input id="h2pMargin" type="number" value="10" min="0" max="60" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
+  opts.querySelector('#htmlFile').addEventListener('change',async e=>{
+    const f=e.target.files&&e.target.files[0]; if(!f) return;
+    try{ opts.querySelector('#htmlIn').value=await f.text(); setStatus(panel,'Loaded '+f.name+' — click Convert to PDF.','success'); }
+    catch(err){ setStatus(panel,'Could not read that file.','error'); }
+  });
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-pdf"></i> Convert to PDF';
   btn.addEventListener('click', async()=>{
@@ -2886,7 +2911,8 @@ INITERS['html-to-pdf'] = function(panel){
       const margin=parseInt(panel.querySelector('#h2pMargin').value)||10;
       const opt={margin, filename:'converted.pdf', html2canvas:{scale:2}, jsPDF:{unit:'pt',format:pageSize}};
       await ensureLib('html2pdf');
-      await html2pdf().set(opt).from(html).save();
+      const blob=await html2pdf().set(opt).from(html).outputPdf('blob');
+      offerDownload(panel,blob,'converted.pdf');
       setStatus(panel,'Converted!','success');
     }catch(e){setStatus(panel,e.message,'error');}
     finally{showProgress(panel,false);}
@@ -4245,7 +4271,7 @@ INITERS.grayscale = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const opts=document.createElement('div'); opts.className='options';
-  opts.innerHTML='<div class="field"><label for="gsScale">Scale</label><select id="gsScale"><option value="1.5">1.5x</option><option value="2" selected>2x</option><option value="3">3x</option></select></div>';
+  opts.innerHTML='<div class="field"><label for="gsScale">Render quality (page size is preserved)</label><select id="gsScale"><option value="1.5">1.5x</option><option value="2" selected>2x</option><option value="3">3x</option></select></div>';
   panel.insertBefore(opts,panel.querySelector('.status'));
   const actions=document.createElement('div'); actions.className='actions';
   const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-circle-half-stroke"></i> Convert to grayscale';
@@ -4260,6 +4286,7 @@ INITERS.grayscale = function(panel){
       const cv=document.createElement('canvas');
       for(let n=1;n<=pdf.numPages;n++){
         const page=await pdf.getPage(n);
+        const base=page.getViewport({scale:1});
         const vp=page.getViewport({scale});
         cv.width=vp.width; cv.height=vp.height;
         const ctx=cv.getContext('2d');
@@ -4269,8 +4296,8 @@ INITERS.grayscale = function(panel){
         ctx.putImageData(d,0,0);
         const blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',0.9));
         const img=await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
-        const p=doc.addPage([vp.width,vp.height]);
-        p.drawImage(img,{x:0,y:0,width:vp.width,height:vp.height});
+        const p=doc.addPage([base.width,base.height]);
+        p.drawImage(img,{x:0,y:0,width:base.width,height:base.height});
         setProgress(panel,n/pdf.numPages*100);
       }
       offerDownload(panel,new Blob([await doc.save()],{type:'application/pdf'}),'grayscale.pdf');
