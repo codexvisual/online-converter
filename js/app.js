@@ -1083,9 +1083,9 @@ INITERS.merge = function(panel){
   rerender();
   const opts=document.createElement('div'); opts.className='options';
   opts.innerHTML='<div class="field"><label>Page size / alignment</label><select id="mgSize">'
-    +'<option value="a4" selected>A4 — fit &amp; center all pages</option>'
+    +'<option value="first" selected>Auto — match first page</option>'
+    +'<option value="a4">A4 — fit &amp; center all pages</option>'
     +'<option value="letter">Letter — fit &amp; center all pages</option>'
-    +'<option value="first">Match first document</option>'
     +'<option value="original">Keep original sizes</option></select></div>'
     +'<div class="field"><label>Margin (pt)</label><input id="mgMargin" type="number" min="0" max="120" value="24" /></div>';
   panel.insertBefore(opts, panel.querySelector('.status'));
@@ -1096,19 +1096,21 @@ INITERS.merge = function(panel){
     try{
       showProgress(panel,true);
       const {PDFDocument}=PDFLib;
-      const mode=(panel.querySelector('#mgSize')||{}).value||'a4';
+      const mode=(panel.querySelector('#mgSize')||{}).value||'first';
       const margin=(panel.querySelector('#mgMargin')||{}).value||24;
       let target=null;
       const merged=await PDFDocument.create();
       for(let i=0;i<files.length;i++){
         let doc=await fileToPdf(files[i],files[i]._rotation||0);
-        if(mode!=='original'){
-          if(mode==='first'){
-            if(!target){ const s=doc.getPage(0).getSize(); target=[s.width,s.height]; }
-            doc=await normalizePageSize(doc,target,margin);
+        if(mode==='first'){
+          if(i===0){
+            const fp=doc.getPage(0), s=fp.getSize(), rot=(fp.getRotation().angle||0)%360;
+            target=(rot===90||rot===270)?[s.height,s.width]:[s.width,s.height];
           }else{
-            doc=await normalizePageSize(doc,mode,margin);
+            doc=await normalizePageSize(doc,target,margin);
           }
+        }else if(mode!=='original'){
+          doc=await normalizePageSize(doc,mode,margin);
         }
         const pages=await merged.copyPages(doc,doc.getPageIndices());
         pages.forEach(p=>merged.addPage(p));
