@@ -44,10 +44,13 @@ function toolPage(t){
 <div id="app"></div>
 <div class="ad-slot" aria-label="Advertisement" style="min-height:90px;margin:24px auto;max-width:880px"></div>
 <section class="seo-block container" style="padding:40px 20px;max-width:880px">
+  <p class="seo-lead">${esc(t.longDesc)}</p>
   <h2>How to Use ${esc(t.title)}</h2>
   <ol>${t.howToSteps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
   <h2>Key Features &amp; Privacy Guarantee</h2>
   <ul>${t.features.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>
+  <h2>Tips &amp; Best Practices</h2>
+  <ul>${(t.tips||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ul>
   <h2>Frequently Asked Questions</h2>
   ${t.faqs.map(f=>`<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('\n  ')}
   <h2>Related Tools</h2>
@@ -80,7 +83,7 @@ let sm='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitema
 sm+=`<url><loc>${base}/</loc><priority>1.0</priority></url>\n`;
 sm+=`<url><loc>${base}/studio/</loc><priority>0.9</priority></url>\n`;
 for(const t of data) sm+=`<url><loc>${base}/tools/${t.slug}/</loc><priority>0.7</priority></url>\n`;
-for(const p of ['about','contact','privacy-policy','terms']) sm+=`<url><loc>${base}/${p}/</loc><priority>0.5</priority></url>\n`;
+for(const p of ['about','contact','privacy-policy','terms','cookies','blog','press']) sm+=`<url><loc>${base}/${p}/</loc><priority>0.5</priority></url>\n`;
 sm+='</urlset>\n';
 fs.writeFileSync(path.join(OUT,'sitemap.xml'), sm);
 console.log('built', data.length, 'tool pages at root');

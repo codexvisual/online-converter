@@ -1,5 +1,4 @@
 /* Online Converter — centralized tool registry (SEO + metadata) */
-/* Adding a tool here auto-generates its SEO page + sitemap entry. */
 window.TOOLS_CONFIG = [
   {
     "id": "merge",
@@ -16,17 +15,25 @@ window.TOOLS_CONFIG = [
       "organize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Merge PDF is a free, browser-based tool that lets you combine pdf, jpg and png files in the order you want — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
-      "Upload your PDF files using the dropzone.",
-      "Choose page ranges or order as needed.",
+      "Upload your PDF files using the dropzone or drag-and-drop.",
+      "Reorder, select, or set page ranges as needed.",
       "Click Process and download the result."
     ],
     "features": [
-      "Reorder, merge, split, or extract pages in seconds.",
+      "Reorder, merge, split, extract or remove pages in seconds.",
       "Works entirely in your browser — files never leave your device.",
-      "No sign-up, no watermarks, no file size limits."
+      "No sign-up, no watermarks, no file size limits.",
+      "Batch-friendly and instant."
+    ],
+    "tips": [
+      "Keep a backup of important PDFs before editing.",
+      "Use page ranges like \"1-3,5,7-9\" for precise selection.",
+      "For large files, close other tabs to free memory."
     ],
     "faqs": [
       {
@@ -44,6 +51,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I process multiple files?",
         "a": "Yes, most tools support batch processing."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load the app works offline."
       }
     ]
   },
@@ -62,17 +73,25 @@ window.TOOLS_CONFIG = [
       "organize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Split PDF is a free, browser-based tool that lets you separate one page or a whole set for easy conversion — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
-      "Upload your PDF files using the dropzone.",
-      "Choose page ranges or order as needed.",
+      "Upload your PDF files using the dropzone or drag-and-drop.",
+      "Reorder, select, or set page ranges as needed.",
       "Click Process and download the result."
     ],
     "features": [
-      "Reorder, merge, split, or extract pages in seconds.",
+      "Reorder, merge, split, extract or remove pages in seconds.",
       "Works entirely in your browser — files never leave your device.",
-      "No sign-up, no watermarks, no file size limits."
+      "No sign-up, no watermarks, no file size limits.",
+      "Batch-friendly and instant."
+    ],
+    "tips": [
+      "Keep a backup of important PDFs before editing.",
+      "Use page ranges like \"1-3,5,7-9\" for precise selection.",
+      "For large files, close other tabs to free memory."
     ],
     "faqs": [
       {
@@ -90,6 +109,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I process multiple files?",
         "a": "Yes, most tools support batch processing."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load the app works offline."
       }
     ]
   },
@@ -108,8 +131,10 @@ window.TOOLS_CONFIG = [
       "optimize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Compress PDF is a free, browser-based tool that lets you reduce file size while optimizing for maximal quality — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload the PDF you want to optimize.",
       "Pick a compression level or target size.",
@@ -118,7 +143,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Shrink PDF size without visible quality loss.",
       "Local processing keeps your documents private.",
-      "Batch-friendly and instant."
+      "Batch-friendly and instant.",
+      "Adjust quality vs size trade-off."
+    ],
+    "tips": [
+      "Try \"Recommended\" first, then increase compression if needed.",
+      "Images dominate PDF size — lower image quality for big savings.",
+      "Remove unused pages before compressing."
     ],
     "faqs": [
       {
@@ -136,6 +167,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Does it work offline?",
         "a": "Yes, after the first load it works offline."
+      },
+      {
+        "q": "Can I set a target file size?",
+        "a": "Yes, some tools let you specify a target size in KB."
       }
     ]
   },
@@ -154,8 +189,10 @@ window.TOOLS_CONFIG = [
       "optimize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Batch process is a free, browser-based tool that lets you compress, rotate or watermark many pdfs at once — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload the PDF you want to optimize.",
       "Pick a compression level or target size.",
@@ -164,7 +201,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Shrink PDF size without visible quality loss.",
       "Local processing keeps your documents private.",
-      "Batch-friendly and instant."
+      "Batch-friendly and instant.",
+      "Adjust quality vs size trade-off."
+    ],
+    "tips": [
+      "Try \"Recommended\" first, then increase compression if needed.",
+      "Images dominate PDF size — lower image quality for big savings.",
+      "Remove unused pages before compressing."
     ],
     "faqs": [
       {
@@ -182,6 +225,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Does it work offline?",
         "a": "Yes, after the first load it works offline."
+      },
+      {
+        "q": "Can I set a target file size?",
+        "a": "Yes, some tools let you specify a target size in KB."
       }
     ]
   },
@@ -200,17 +247,25 @@ window.TOOLS_CONFIG = [
       "convert from pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF to Word is a free, browser-based tool that lets you convert pdfs to editable docx documents — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Select output format and quality.",
       "Click Convert and download."
     ],
     "features": [
-      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text and more.",
+      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text, CSV, Markdown and more.",
       "Client-side conversion — your files stay private.",
-      "No upload to any server."
+      "No upload to any server.",
+      "Batch support for multiple files."
+    ],
+    "tips": [
+      "For text-heavy PDFs, use text extraction for best results.",
+      "Scanned PDFs need OCR first.",
+      "Lower image quality for smaller output files."
     ],
     "faqs": [
       {
@@ -228,6 +283,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is there a file size limit?",
         "a": "No hard limit, depends on device memory."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after libraries are cached."
       }
     ]
   },
@@ -246,17 +305,25 @@ window.TOOLS_CONFIG = [
       "convert from pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF to Excel is a free, browser-based tool that lets you convert pdfs to xlsx spreadsheets — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Select output format and quality.",
       "Click Convert and download."
     ],
     "features": [
-      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text and more.",
+      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text, CSV, Markdown and more.",
       "Client-side conversion — your files stay private.",
-      "No upload to any server."
+      "No upload to any server.",
+      "Batch support for multiple files."
+    ],
+    "tips": [
+      "For text-heavy PDFs, use text extraction for best results.",
+      "Scanned PDFs need OCR first.",
+      "Lower image quality for smaller output files."
     ],
     "faqs": [
       {
@@ -274,6 +341,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is there a file size limit?",
         "a": "No hard limit, depends on device memory."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after libraries are cached."
       }
     ]
   },
@@ -292,17 +363,25 @@ window.TOOLS_CONFIG = [
       "convert from pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF to PowerPoint is a free, browser-based tool that lets you convert pdfs to pptx slides — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Select output format and quality.",
       "Click Convert and download."
     ],
     "features": [
-      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text and more.",
+      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text, CSV, Markdown and more.",
       "Client-side conversion — your files stay private.",
-      "No upload to any server."
+      "No upload to any server.",
+      "Batch support for multiple files."
+    ],
+    "tips": [
+      "For text-heavy PDFs, use text extraction for best results.",
+      "Scanned PDFs need OCR first.",
+      "Lower image quality for smaller output files."
     ],
     "faqs": [
       {
@@ -320,6 +399,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is there a file size limit?",
         "a": "No hard limit, depends on device memory."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after libraries are cached."
       }
     ]
   },
@@ -338,17 +421,25 @@ window.TOOLS_CONFIG = [
       "convert from pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF to JPG is a free, browser-based tool that lets you convert each pdf page to a jpg image — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Select output format and quality.",
       "Click Convert and download."
     ],
     "features": [
-      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text and more.",
+      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text, CSV, Markdown and more.",
       "Client-side conversion — your files stay private.",
-      "No upload to any server."
+      "No upload to any server.",
+      "Batch support for multiple files."
+    ],
+    "tips": [
+      "For text-heavy PDFs, use text extraction for best results.",
+      "Scanned PDFs need OCR first.",
+      "Lower image quality for smaller output files."
     ],
     "faqs": [
       {
@@ -366,6 +457,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is there a file size limit?",
         "a": "No hard limit, depends on device memory."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after libraries are cached."
       }
     ]
   },
@@ -384,17 +479,25 @@ window.TOOLS_CONFIG = [
       "convert from pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF to PDF/A is a free, browser-based tool that lets you convert pdf to pdf/a for long-term archiving — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Select output format and quality.",
       "Click Convert and download."
     ],
     "features": [
-      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text and more.",
+      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text, CSV, Markdown and more.",
       "Client-side conversion — your files stay private.",
-      "No upload to any server."
+      "No upload to any server.",
+      "Batch support for multiple files."
+    ],
+    "tips": [
+      "For text-heavy PDFs, use text extraction for best results.",
+      "Scanned PDFs need OCR first.",
+      "Lower image quality for smaller output files."
     ],
     "faqs": [
       {
@@ -412,6 +515,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is there a file size limit?",
         "a": "No hard limit, depends on device memory."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after libraries are cached."
       }
     ]
   },
@@ -430,17 +537,25 @@ window.TOOLS_CONFIG = [
       "convert from pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF to HTML is a free, browser-based tool that lets you convert pdfs to web pages — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Select output format and quality.",
       "Click Convert and download."
     ],
     "features": [
-      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text and more.",
+      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text, CSV, Markdown and more.",
       "Client-side conversion — your files stay private.",
-      "No upload to any server."
+      "No upload to any server.",
+      "Batch support for multiple files."
+    ],
+    "tips": [
+      "For text-heavy PDFs, use text extraction for best results.",
+      "Scanned PDFs need OCR first.",
+      "Lower image quality for smaller output files."
     ],
     "faqs": [
       {
@@ -458,6 +573,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is there a file size limit?",
         "a": "No hard limit, depends on device memory."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after libraries are cached."
       }
     ]
   },
@@ -476,17 +595,25 @@ window.TOOLS_CONFIG = [
       "convert to pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Word to PDF is a free, browser-based tool that lets you convert docx documents to pdf — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload images or documents.",
       "Adjust page size and margins.",
       "Click Convert and download the PDF."
     ],
     "features": [
-      "Turn images, Word, Excel, HTML and more into PDF.",
+      "Turn images, Word, Excel, PowerPoint, HTML and more into PDF.",
       "Private, local processing.",
-      "No limits or watermarks."
+      "No limits or watermarks.",
+      "Custom page sizes supported."
+    ],
+    "tips": [
+      "Use A4 for documents, Letter for US business docs.",
+      "Set margins to 0 for full-bleed images.",
+      "Combine multiple images into one PDF."
     ],
     "faqs": [
       {
@@ -504,6 +631,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Are files uploaded?",
         "a": "No, everything stays in your browser."
+      },
+      {
+        "q": "Can I combine multiple images?",
+        "a": "Yes, add multiple images and convert to one PDF."
       }
     ]
   },
@@ -522,17 +653,25 @@ window.TOOLS_CONFIG = [
       "convert to pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Excel to PDF is a free, browser-based tool that lets you convert xlsx spreadsheets to pdf — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload images or documents.",
       "Adjust page size and margins.",
       "Click Convert and download the PDF."
     ],
     "features": [
-      "Turn images, Word, Excel, HTML and more into PDF.",
+      "Turn images, Word, Excel, PowerPoint, HTML and more into PDF.",
       "Private, local processing.",
-      "No limits or watermarks."
+      "No limits or watermarks.",
+      "Custom page sizes supported."
+    ],
+    "tips": [
+      "Use A4 for documents, Letter for US business docs.",
+      "Set margins to 0 for full-bleed images.",
+      "Combine multiple images into one PDF."
     ],
     "faqs": [
       {
@@ -550,6 +689,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Are files uploaded?",
         "a": "No, everything stays in your browser."
+      },
+      {
+        "q": "Can I combine multiple images?",
+        "a": "Yes, add multiple images and convert to one PDF."
       }
     ]
   },
@@ -568,17 +711,25 @@ window.TOOLS_CONFIG = [
       "convert to pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PowerPoint to PDF is a free, browser-based tool that lets you convert pptx slides to pdf — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload images or documents.",
       "Adjust page size and margins.",
       "Click Convert and download the PDF."
     ],
     "features": [
-      "Turn images, Word, Excel, HTML and more into PDF.",
+      "Turn images, Word, Excel, PowerPoint, HTML and more into PDF.",
       "Private, local processing.",
-      "No limits or watermarks."
+      "No limits or watermarks.",
+      "Custom page sizes supported."
+    ],
+    "tips": [
+      "Use A4 for documents, Letter for US business docs.",
+      "Set margins to 0 for full-bleed images.",
+      "Combine multiple images into one PDF."
     ],
     "faqs": [
       {
@@ -596,6 +747,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Are files uploaded?",
         "a": "No, everything stays in your browser."
+      },
+      {
+        "q": "Can I combine multiple images?",
+        "a": "Yes, add multiple images and convert to one PDF."
       }
     ]
   },
@@ -614,17 +769,25 @@ window.TOOLS_CONFIG = [
       "convert to pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "JPG to PDF is a free, browser-based tool that lets you convert images to pdf — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload images or documents.",
       "Adjust page size and margins.",
       "Click Convert and download the PDF."
     ],
     "features": [
-      "Turn images, Word, Excel, HTML and more into PDF.",
+      "Turn images, Word, Excel, PowerPoint, HTML and more into PDF.",
       "Private, local processing.",
-      "No limits or watermarks."
+      "No limits or watermarks.",
+      "Custom page sizes supported."
+    ],
+    "tips": [
+      "Use A4 for documents, Letter for US business docs.",
+      "Set margins to 0 for full-bleed images.",
+      "Combine multiple images into one PDF."
     ],
     "faqs": [
       {
@@ -642,6 +805,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Are files uploaded?",
         "a": "No, everything stays in your browser."
+      },
+      {
+        "q": "Can I combine multiple images?",
+        "a": "Yes, add multiple images and convert to one PDF."
       }
     ]
   },
@@ -660,17 +827,25 @@ window.TOOLS_CONFIG = [
       "convert to pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "HTML to PDF is a free, browser-based tool that lets you convert web pages to pdf — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload images or documents.",
       "Adjust page size and margins.",
       "Click Convert and download the PDF."
     ],
     "features": [
-      "Turn images, Word, Excel, HTML and more into PDF.",
+      "Turn images, Word, Excel, PowerPoint, HTML and more into PDF.",
       "Private, local processing.",
-      "No limits or watermarks."
+      "No limits or watermarks.",
+      "Custom page sizes supported."
+    ],
+    "tips": [
+      "Use A4 for documents, Letter for US business docs.",
+      "Set margins to 0 for full-bleed images.",
+      "Combine multiple images into one PDF."
     ],
     "faqs": [
       {
@@ -688,6 +863,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Are files uploaded?",
         "a": "No, everything stays in your browser."
+      },
+      {
+        "q": "Can I combine multiple images?",
+        "a": "Yes, add multiple images and convert to one PDF."
       }
     ]
   },
@@ -706,17 +885,25 @@ window.TOOLS_CONFIG = [
       "organize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Scan to PDF is a free, browser-based tool that lets you capture scans and save as pdf — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
-      "Upload your PDF files using the dropzone.",
-      "Choose page ranges or order as needed.",
+      "Upload your PDF files using the dropzone or drag-and-drop.",
+      "Reorder, select, or set page ranges as needed.",
       "Click Process and download the result."
     ],
     "features": [
-      "Reorder, merge, split, or extract pages in seconds.",
+      "Reorder, merge, split, extract or remove pages in seconds.",
       "Works entirely in your browser — files never leave your device.",
-      "No sign-up, no watermarks, no file size limits."
+      "No sign-up, no watermarks, no file size limits.",
+      "Batch-friendly and instant."
+    ],
+    "tips": [
+      "Keep a backup of important PDFs before editing.",
+      "Use page ranges like \"1-3,5,7-9\" for precise selection.",
+      "For large files, close other tabs to free memory."
     ],
     "faqs": [
       {
@@ -734,6 +921,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I process multiple files?",
         "a": "Yes, most tools support batch processing."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load the app works offline."
       }
     ]
   },
@@ -752,8 +943,10 @@ window.TOOLS_CONFIG = [
       "edit pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Edit PDF is a free, browser-based tool that lets you add text, images and shapes to your pdf — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Add text, images, watermarks or page numbers.",
@@ -762,7 +955,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit PDFs directly in the browser.",
       "Non-destructive, local processing.",
-      "Free and private."
+      "Free and private.",
+      "Undo/redo supported."
+    ],
+    "tips": [
+      "Save a copy before editing.",
+      "Use the preview to check placement.",
+      "Watermarks work best at 30-50% opacity."
     ],
     "faqs": [
       {
@@ -780,6 +979,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I add page numbers?",
         "a": "Yes, use the Page Numbers tool."
+      },
+      {
+        "q": "Can I rotate pages?",
+        "a": "Yes, use the Rotate tool."
       }
     ]
   },
@@ -798,8 +1001,10 @@ window.TOOLS_CONFIG = [
       "edit pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Rotate PDF is a free, browser-based tool that lets you rotate pdf pages — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Add text, images, watermarks or page numbers.",
@@ -808,7 +1013,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit PDFs directly in the browser.",
       "Non-destructive, local processing.",
-      "Free and private."
+      "Free and private.",
+      "Undo/redo supported."
+    ],
+    "tips": [
+      "Save a copy before editing.",
+      "Use the preview to check placement.",
+      "Watermarks work best at 30-50% opacity."
     ],
     "faqs": [
       {
@@ -826,6 +1037,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I add page numbers?",
         "a": "Yes, use the Page Numbers tool."
+      },
+      {
+        "q": "Can I rotate pages?",
+        "a": "Yes, use the Rotate tool."
       }
     ]
   },
@@ -844,8 +1059,10 @@ window.TOOLS_CONFIG = [
       "edit pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Page numbers is a free, browser-based tool that lets you add page numbers to pdfs — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Add text, images, watermarks or page numbers.",
@@ -854,7 +1071,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit PDFs directly in the browser.",
       "Non-destructive, local processing.",
-      "Free and private."
+      "Free and private.",
+      "Undo/redo supported."
+    ],
+    "tips": [
+      "Save a copy before editing.",
+      "Use the preview to check placement.",
+      "Watermarks work best at 30-50% opacity."
     ],
     "faqs": [
       {
@@ -872,6 +1095,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I add page numbers?",
         "a": "Yes, use the Page Numbers tool."
+      },
+      {
+        "q": "Can I rotate pages?",
+        "a": "Yes, use the Rotate tool."
       }
     ]
   },
@@ -890,8 +1117,10 @@ window.TOOLS_CONFIG = [
       "edit pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Watermark is a free, browser-based tool that lets you stamp text or image over pdf pages — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Add text, images, watermarks or page numbers.",
@@ -900,7 +1129,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit PDFs directly in the browser.",
       "Non-destructive, local processing.",
-      "Free and private."
+      "Free and private.",
+      "Undo/redo supported."
+    ],
+    "tips": [
+      "Save a copy before editing.",
+      "Use the preview to check placement.",
+      "Watermarks work best at 30-50% opacity."
     ],
     "faqs": [
       {
@@ -918,6 +1153,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I add page numbers?",
         "a": "Yes, use the Page Numbers tool."
+      },
+      {
+        "q": "Can I rotate pages?",
+        "a": "Yes, use the Rotate tool."
       }
     ]
   },
@@ -936,8 +1175,10 @@ window.TOOLS_CONFIG = [
       "edit pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Crop PDF is a free, browser-based tool that lets you crop pdf pages — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Add text, images, watermarks or page numbers.",
@@ -946,7 +1187,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit PDFs directly in the browser.",
       "Non-destructive, local processing.",
-      "Free and private."
+      "Free and private.",
+      "Undo/redo supported."
+    ],
+    "tips": [
+      "Save a copy before editing.",
+      "Use the preview to check placement.",
+      "Watermarks work best at 30-50% opacity."
     ],
     "faqs": [
       {
@@ -964,6 +1211,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I add page numbers?",
         "a": "Yes, use the Page Numbers tool."
+      },
+      {
+        "q": "Can I rotate pages?",
+        "a": "Yes, use the Rotate tool."
       }
     ]
   },
@@ -982,8 +1233,10 @@ window.TOOLS_CONFIG = [
       "pdf security",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Sign PDF is a free, browser-based tool that lets you sign pdf documents — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Set a password or unlock with the existing one.",
@@ -992,7 +1245,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Protect or unlock PDFs locally.",
       "Passwords never leave your device.",
-      "Strong encryption support."
+      "Strong encryption support.",
+      "Owner and user passwords supported."
+    ],
+    "tips": [
+      "Use a strong, unique password.",
+      "Store passwords in a password manager.",
+      "Test opening the protected file before sharing."
     ],
     "faqs": [
       {
@@ -1010,6 +1269,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is it free?",
         "a": "Yes."
+      },
+      {
+        "q": "Does it support owner passwords?",
+        "a": "Yes, set both user and owner passwords."
       }
     ]
   },
@@ -1028,8 +1291,10 @@ window.TOOLS_CONFIG = [
       "pdf security",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Unlock PDF is a free, browser-based tool that lets you remove pdf password — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Set a password or unlock with the existing one.",
@@ -1038,7 +1303,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Protect or unlock PDFs locally.",
       "Passwords never leave your device.",
-      "Strong encryption support."
+      "Strong encryption support.",
+      "Owner and user passwords supported."
+    ],
+    "tips": [
+      "Use a strong, unique password.",
+      "Store passwords in a password manager.",
+      "Test opening the protected file before sharing."
     ],
     "faqs": [
       {
@@ -1056,6 +1327,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is it free?",
         "a": "Yes."
+      },
+      {
+        "q": "Does it support owner passwords?",
+        "a": "Yes, set both user and owner passwords."
       }
     ]
   },
@@ -1074,8 +1349,10 @@ window.TOOLS_CONFIG = [
       "pdf security",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Protect PDF is a free, browser-based tool that lets you encrypt pdf with a password — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Set a password or unlock with the existing one.",
@@ -1084,7 +1361,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Protect or unlock PDFs locally.",
       "Passwords never leave your device.",
-      "Strong encryption support."
+      "Strong encryption support.",
+      "Owner and user passwords supported."
+    ],
+    "tips": [
+      "Use a strong, unique password.",
+      "Store passwords in a password manager.",
+      "Test opening the protected file before sharing."
     ],
     "faqs": [
       {
@@ -1102,6 +1385,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is it free?",
         "a": "Yes."
+      },
+      {
+        "q": "Does it support owner passwords?",
+        "a": "Yes, set both user and owner passwords."
       }
     ]
   },
@@ -1120,17 +1407,25 @@ window.TOOLS_CONFIG = [
       "organize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Organize PDF is a free, browser-based tool that lets you sort, delete and rotate pages — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
-      "Upload your PDF files using the dropzone.",
-      "Choose page ranges or order as needed.",
+      "Upload your PDF files using the dropzone or drag-and-drop.",
+      "Reorder, select, or set page ranges as needed.",
       "Click Process and download the result."
     ],
     "features": [
-      "Reorder, merge, split, or extract pages in seconds.",
+      "Reorder, merge, split, extract or remove pages in seconds.",
       "Works entirely in your browser — files never leave your device.",
-      "No sign-up, no watermarks, no file size limits."
+      "No sign-up, no watermarks, no file size limits.",
+      "Batch-friendly and instant."
+    ],
+    "tips": [
+      "Keep a backup of important PDFs before editing.",
+      "Use page ranges like \"1-3,5,7-9\" for precise selection.",
+      "For large files, close other tabs to free memory."
     ],
     "faqs": [
       {
@@ -1148,6 +1443,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I process multiple files?",
         "a": "Yes, most tools support batch processing."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load the app works offline."
       }
     ]
   },
@@ -1166,8 +1465,10 @@ window.TOOLS_CONFIG = [
       "optimize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Repair PDF is a free, browser-based tool that lets you recover data from damaged pdf — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload the PDF you want to optimize.",
       "Pick a compression level or target size.",
@@ -1176,7 +1477,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Shrink PDF size without visible quality loss.",
       "Local processing keeps your documents private.",
-      "Batch-friendly and instant."
+      "Batch-friendly and instant.",
+      "Adjust quality vs size trade-off."
+    ],
+    "tips": [
+      "Try \"Recommended\" first, then increase compression if needed.",
+      "Images dominate PDF size — lower image quality for big savings.",
+      "Remove unused pages before compressing."
     ],
     "faqs": [
       {
@@ -1194,6 +1501,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Does it work offline?",
         "a": "Yes, after the first load it works offline."
+      },
+      {
+        "q": "Can I set a target file size?",
+        "a": "Yes, some tools let you specify a target size in KB."
       }
     ]
   },
@@ -1212,8 +1523,10 @@ window.TOOLS_CONFIG = [
       "pdf security",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Compare PDF is a free, browser-based tool that lets you show differences between two pdfs — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Set a password or unlock with the existing one.",
@@ -1222,7 +1535,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Protect or unlock PDFs locally.",
       "Passwords never leave your device.",
-      "Strong encryption support."
+      "Strong encryption support.",
+      "Owner and user passwords supported."
+    ],
+    "tips": [
+      "Use a strong, unique password.",
+      "Store passwords in a password manager.",
+      "Test opening the protected file before sharing."
     ],
     "faqs": [
       {
@@ -1240,6 +1559,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is it free?",
         "a": "Yes."
+      },
+      {
+        "q": "Does it support owner passwords?",
+        "a": "Yes, set both user and owner passwords."
       }
     ]
   },
@@ -1258,8 +1581,10 @@ window.TOOLS_CONFIG = [
       "edit pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF Metadata is a free, browser-based tool that lets you view and edit pdf title, author, subject and keywords — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Add text, images, watermarks or page numbers.",
@@ -1268,7 +1593,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit PDFs directly in the browser.",
       "Non-destructive, local processing.",
-      "Free and private."
+      "Free and private.",
+      "Undo/redo supported."
+    ],
+    "tips": [
+      "Save a copy before editing.",
+      "Use the preview to check placement.",
+      "Watermarks work best at 30-50% opacity."
     ],
     "faqs": [
       {
@@ -1286,6 +1617,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I add page numbers?",
         "a": "Yes, use the Page Numbers tool."
+      },
+      {
+        "q": "Can I rotate pages?",
+        "a": "Yes, use the Rotate tool."
       }
     ]
   },
@@ -1304,8 +1639,10 @@ window.TOOLS_CONFIG = [
       "edit pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Flatten PDF is a free, browser-based tool that lets you flatten form fields and annotations into the page — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Add text, images, watermarks or page numbers.",
@@ -1314,7 +1651,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit PDFs directly in the browser.",
       "Non-destructive, local processing.",
-      "Free and private."
+      "Free and private.",
+      "Undo/redo supported."
+    ],
+    "tips": [
+      "Save a copy before editing.",
+      "Use the preview to check placement.",
+      "Watermarks work best at 30-50% opacity."
     ],
     "faqs": [
       {
@@ -1332,6 +1675,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I add page numbers?",
         "a": "Yes, use the Page Numbers tool."
+      },
+      {
+        "q": "Can I rotate pages?",
+        "a": "Yes, use the Rotate tool."
       }
     ]
   },
@@ -1350,8 +1697,10 @@ window.TOOLS_CONFIG = [
       "edit pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF to Grayscale is a free, browser-based tool that lets you convert a pdf to grayscale (black & white) — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Add text, images, watermarks or page numbers.",
@@ -1360,7 +1709,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit PDFs directly in the browser.",
       "Non-destructive, local processing.",
-      "Free and private."
+      "Free and private.",
+      "Undo/redo supported."
+    ],
+    "tips": [
+      "Save a copy before editing.",
+      "Use the preview to check placement.",
+      "Watermarks work best at 30-50% opacity."
     ],
     "faqs": [
       {
@@ -1378,6 +1733,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I add page numbers?",
         "a": "Yes, use the Page Numbers tool."
+      },
+      {
+        "q": "Can I rotate pages?",
+        "a": "Yes, use the Rotate tool."
       }
     ]
   },
@@ -1396,17 +1755,25 @@ window.TOOLS_CONFIG = [
       "convert from pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF to Text is a free, browser-based tool that lets you extract all text from a pdf as a txt file — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Select output format and quality.",
       "Click Convert and download."
     ],
     "features": [
-      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text and more.",
+      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text, CSV, Markdown and more.",
       "Client-side conversion — your files stay private.",
-      "No upload to any server."
+      "No upload to any server.",
+      "Batch support for multiple files."
+    ],
+    "tips": [
+      "For text-heavy PDFs, use text extraction for best results.",
+      "Scanned PDFs need OCR first.",
+      "Lower image quality for smaller output files."
     ],
     "faqs": [
       {
@@ -1424,6 +1791,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is there a file size limit?",
         "a": "No hard limit, depends on device memory."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after libraries are cached."
       }
     ]
   },
@@ -1442,17 +1813,25 @@ window.TOOLS_CONFIG = [
       "convert from pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF to CSV is a free, browser-based tool that lets you extract text into a csv spreadsheet — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Select output format and quality.",
       "Click Convert and download."
     ],
     "features": [
-      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text and more.",
+      "Convert PDF to Word, Excel, PowerPoint, JPG, PNG, text, CSV, Markdown and more.",
       "Client-side conversion — your files stay private.",
-      "No upload to any server."
+      "No upload to any server.",
+      "Batch support for multiple files."
+    ],
+    "tips": [
+      "For text-heavy PDFs, use text extraction for best results.",
+      "Scanned PDFs need OCR first.",
+      "Lower image quality for smaller output files."
     ],
     "faqs": [
       {
@@ -1470,6 +1849,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is there a file size limit?",
         "a": "No hard limit, depends on device memory."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after libraries are cached."
       }
     ]
   },
@@ -1488,17 +1871,25 @@ window.TOOLS_CONFIG = [
       "organize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Add blank pages is a free, browser-based tool that lets you insert blank pages into a pdf — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
-      "Upload your PDF files using the dropzone.",
-      "Choose page ranges or order as needed.",
+      "Upload your PDF files using the dropzone or drag-and-drop.",
+      "Reorder, select, or set page ranges as needed.",
       "Click Process and download the result."
     ],
     "features": [
-      "Reorder, merge, split, or extract pages in seconds.",
+      "Reorder, merge, split, extract or remove pages in seconds.",
       "Works entirely in your browser — files never leave your device.",
-      "No sign-up, no watermarks, no file size limits."
+      "No sign-up, no watermarks, no file size limits.",
+      "Batch-friendly and instant."
+    ],
+    "tips": [
+      "Keep a backup of important PDFs before editing.",
+      "Use page ranges like \"1-3,5,7-9\" for precise selection.",
+      "For large files, close other tabs to free memory."
     ],
     "faqs": [
       {
@@ -1516,6 +1907,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I process multiple files?",
         "a": "Yes, most tools support batch processing."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load the app works offline."
       }
     ]
   },
@@ -1534,17 +1929,25 @@ window.TOOLS_CONFIG = [
       "organize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Remove blank pages is a free, browser-based tool that lets you detect and delete blank pages automatically — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
-      "Upload your PDF files using the dropzone.",
-      "Choose page ranges or order as needed.",
+      "Upload your PDF files using the dropzone or drag-and-drop.",
+      "Reorder, select, or set page ranges as needed.",
       "Click Process and download the result."
     ],
     "features": [
-      "Reorder, merge, split, or extract pages in seconds.",
+      "Reorder, merge, split, extract or remove pages in seconds.",
       "Works entirely in your browser — files never leave your device.",
-      "No sign-up, no watermarks, no file size limits."
+      "No sign-up, no watermarks, no file size limits.",
+      "Batch-friendly and instant."
+    ],
+    "tips": [
+      "Keep a backup of important PDFs before editing.",
+      "Use page ranges like \"1-3,5,7-9\" for precise selection.",
+      "For large files, close other tabs to free memory."
     ],
     "faqs": [
       {
@@ -1562,6 +1965,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I process multiple files?",
         "a": "Yes, most tools support batch processing."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load the app works offline."
       }
     ]
   },
@@ -1580,8 +1987,10 @@ window.TOOLS_CONFIG = [
       "edit pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Resize pages is a free, browser-based tool that lets you resize all pages to a4, letter, legal or a3 — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Add text, images, watermarks or page numbers.",
@@ -1590,7 +1999,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit PDFs directly in the browser.",
       "Non-destructive, local processing.",
-      "Free and private."
+      "Free and private.",
+      "Undo/redo supported."
+    ],
+    "tips": [
+      "Save a copy before editing.",
+      "Use the preview to check placement.",
+      "Watermarks work best at 30-50% opacity."
     ],
     "faqs": [
       {
@@ -1608,6 +2023,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I add page numbers?",
         "a": "Yes, use the Page Numbers tool."
+      },
+      {
+        "q": "Can I rotate pages?",
+        "a": "Yes, use the Rotate tool."
       }
     ]
   },
@@ -1626,8 +2045,10 @@ window.TOOLS_CONFIG = [
       "edit pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Header & footer is a free, browser-based tool that lets you add header and footer text to every page — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Add text, images, watermarks or page numbers.",
@@ -1636,7 +2057,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit PDFs directly in the browser.",
       "Non-destructive, local processing.",
-      "Free and private."
+      "Free and private.",
+      "Undo/redo supported."
+    ],
+    "tips": [
+      "Save a copy before editing.",
+      "Use the preview to check placement.",
+      "Watermarks work best at 30-50% opacity."
     ],
     "faqs": [
       {
@@ -1654,6 +2081,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I add page numbers?",
         "a": "Yes, use the Page Numbers tool."
+      },
+      {
+        "q": "Can I rotate pages?",
+        "a": "Yes, use the Rotate tool."
       }
     ]
   },
@@ -1672,17 +2103,25 @@ window.TOOLS_CONFIG = [
       "organize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Remove pages is a free, browser-based tool that lets you delete selected pages from a pdf — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
-      "Upload your PDF files using the dropzone.",
-      "Choose page ranges or order as needed.",
+      "Upload your PDF files using the dropzone or drag-and-drop.",
+      "Reorder, select, or set page ranges as needed.",
       "Click Process and download the result."
     ],
     "features": [
-      "Reorder, merge, split, or extract pages in seconds.",
+      "Reorder, merge, split, extract or remove pages in seconds.",
       "Works entirely in your browser — files never leave your device.",
-      "No sign-up, no watermarks, no file size limits."
+      "No sign-up, no watermarks, no file size limits.",
+      "Batch-friendly and instant."
+    ],
+    "tips": [
+      "Keep a backup of important PDFs before editing.",
+      "Use page ranges like \"1-3,5,7-9\" for precise selection.",
+      "For large files, close other tabs to free memory."
     ],
     "faqs": [
       {
@@ -1700,6 +2139,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I process multiple files?",
         "a": "Yes, most tools support batch processing."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load the app works offline."
       }
     ]
   },
@@ -1718,17 +2161,25 @@ window.TOOLS_CONFIG = [
       "organize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Extract pages is a free, browser-based tool that lets you save selected pages as a new pdf — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
-      "Upload your PDF files using the dropzone.",
-      "Choose page ranges or order as needed.",
+      "Upload your PDF files using the dropzone or drag-and-drop.",
+      "Reorder, select, or set page ranges as needed.",
       "Click Process and download the result."
     ],
     "features": [
-      "Reorder, merge, split, or extract pages in seconds.",
+      "Reorder, merge, split, extract or remove pages in seconds.",
       "Works entirely in your browser — files never leave your device.",
-      "No sign-up, no watermarks, no file size limits."
+      "No sign-up, no watermarks, no file size limits.",
+      "Batch-friendly and instant."
+    ],
+    "tips": [
+      "Keep a backup of important PDFs before editing.",
+      "Use page ranges like \"1-3,5,7-9\" for precise selection.",
+      "For large files, close other tabs to free memory."
     ],
     "faqs": [
       {
@@ -1746,6 +2197,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I process multiple files?",
         "a": "Yes, most tools support batch processing."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load the app works offline."
       }
     ]
   },
@@ -1764,8 +2219,10 @@ window.TOOLS_CONFIG = [
       "pdf intelligence",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF Summarize is a free, browser-based tool that lets you get a quick summary of a pdf document — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Run OCR, summarize, translate or redact.",
@@ -1774,7 +2231,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Extract text, OCR, summarize, translate and redact.",
       "Runs in your browser.",
-      "Privacy-first."
+      "Privacy-first.",
+      "Multiple languages supported."
+    ],
+    "tips": [
+      "OCR works best on high-resolution scans.",
+      "Redact carefully — check all pages.",
+      "Summaries are extractive; review before sharing."
     ],
     "faqs": [
       {
@@ -1792,6 +2255,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is it free?",
         "a": "Yes."
+      },
+      {
+        "q": "Can I redact sensitive info?",
+        "a": "Yes, use the Redact tool to black out text."
       }
     ]
   },
@@ -1810,8 +2277,10 @@ window.TOOLS_CONFIG = [
       "pdf intelligence",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Translate PDF is a free, browser-based tool that lets you translate pdf text into another language — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Run OCR, summarize, translate or redact.",
@@ -1820,7 +2289,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Extract text, OCR, summarize, translate and redact.",
       "Runs in your browser.",
-      "Privacy-first."
+      "Privacy-first.",
+      "Multiple languages supported."
+    ],
+    "tips": [
+      "OCR works best on high-resolution scans.",
+      "Redact carefully — check all pages.",
+      "Summaries are extractive; review before sharing."
     ],
     "faqs": [
       {
@@ -1838,6 +2313,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is it free?",
         "a": "Yes."
+      },
+      {
+        "q": "Can I redact sensitive info?",
+        "a": "Yes, use the Redact tool to black out text."
       }
     ]
   },
@@ -1856,8 +2335,10 @@ window.TOOLS_CONFIG = [
       "optimize pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "OCR PDF is a free, browser-based tool that lets you make scanned pdfs searchable with ocr — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload the PDF you want to optimize.",
       "Pick a compression level or target size.",
@@ -1866,7 +2347,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Shrink PDF size without visible quality loss.",
       "Local processing keeps your documents private.",
-      "Batch-friendly and instant."
+      "Batch-friendly and instant.",
+      "Adjust quality vs size trade-off."
+    ],
+    "tips": [
+      "Try \"Recommended\" first, then increase compression if needed.",
+      "Images dominate PDF size — lower image quality for big savings.",
+      "Remove unused pages before compressing."
     ],
     "faqs": [
       {
@@ -1884,6 +2371,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Does it work offline?",
         "a": "Yes, after the first load it works offline."
+      },
+      {
+        "q": "Can I set a target file size?",
+        "a": "Yes, some tools let you specify a target size in KB."
       }
     ]
   },
@@ -1902,8 +2393,10 @@ window.TOOLS_CONFIG = [
       "pdf intelligence",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF to Markdown is a free, browser-based tool that lets you convert pdf text to clean markdown — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Run OCR, summarize, translate or redact.",
@@ -1912,7 +2405,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Extract text, OCR, summarize, translate and redact.",
       "Runs in your browser.",
-      "Privacy-first."
+      "Privacy-first.",
+      "Multiple languages supported."
+    ],
+    "tips": [
+      "OCR works best on high-resolution scans.",
+      "Redact carefully — check all pages.",
+      "Summaries are extractive; review before sharing."
     ],
     "faqs": [
       {
@@ -1930,6 +2429,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is it free?",
         "a": "Yes."
+      },
+      {
+        "q": "Can I redact sensitive info?",
+        "a": "Yes, use the Redact tool to black out text."
       }
     ]
   },
@@ -1948,8 +2451,10 @@ window.TOOLS_CONFIG = [
       "pdf security",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Redact PDF is a free, browser-based tool that lets you permanently hide sensitive content in pdfs — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Set a password or unlock with the existing one.",
@@ -1958,7 +2463,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Protect or unlock PDFs locally.",
       "Passwords never leave your device.",
-      "Strong encryption support."
+      "Strong encryption support.",
+      "Owner and user passwords supported."
+    ],
+    "tips": [
+      "Use a strong, unique password.",
+      "Store passwords in a password manager.",
+      "Test opening the protected file before sharing."
     ],
     "faqs": [
       {
@@ -1976,6 +2487,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Is it free?",
         "a": "Yes."
+      },
+      {
+        "q": "Does it support owner passwords?",
+        "a": "Yes, set both user and owner passwords."
       }
     ]
   },
@@ -1994,8 +2509,10 @@ window.TOOLS_CONFIG = [
       "edit pdf",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "PDF Forms is a free, browser-based tool that lets you fill and save editable pdf form fields — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your PDF.",
       "Add text, images, watermarks or page numbers.",
@@ -2004,7 +2521,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit PDFs directly in the browser.",
       "Non-destructive, local processing.",
-      "Free and private."
+      "Free and private.",
+      "Undo/redo supported."
+    ],
+    "tips": [
+      "Save a copy before editing.",
+      "Use the preview to check placement.",
+      "Watermarks work best at 30-50% opacity."
     ],
     "faqs": [
       {
@@ -2022,6 +2545,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I add page numbers?",
         "a": "Yes, use the Page Numbers tool."
+      },
+      {
+        "q": "Can I rotate pages?",
+        "a": "Yes, use the Rotate tool."
       }
     ]
   },
@@ -2040,8 +2567,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Compress IMAGE is a free, browser-based tool that lets you compress jpg, png, svg and gif images while saving space and maintaining quality — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2050,7 +2579,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2068,6 +2603,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2086,8 +2625,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Resize IMAGE is a free, browser-based tool that lets you define dimensions by percent or pixel and resize your images — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2096,7 +2637,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2114,6 +2661,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2132,8 +2683,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Crop IMAGE is a free, browser-based tool that lets you crop images with a visual rectangle editor or exact pixels — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2142,7 +2695,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2160,6 +2719,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2178,8 +2741,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Convert to JPG is a free, browser-based tool that lets you turn png, gif, tif, psd, svg, webp, heic and raw images into jpg — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2188,7 +2753,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2206,6 +2777,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2224,8 +2799,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Convert from JPG is a free, browser-based tool that lets you turn jpg images into png or animated gif — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2234,7 +2811,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2252,6 +2835,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2270,8 +2857,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Photo editor is a free, browser-based tool that lets you spice up pictures with filters, text, frames and stickers — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2280,7 +2869,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2298,6 +2893,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2316,8 +2915,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Upscale Image is a free, browser-based tool that lets you enlarge images with high-quality resampling while keeping detail — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2326,7 +2927,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2344,6 +2951,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2362,8 +2973,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Remove background is a free, browser-based tool that lets you remove plain image backgrounds instantly and save a transparent png — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2372,7 +2985,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2390,6 +3009,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2408,8 +3031,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Watermark IMAGE is a free, browser-based tool that lets you stamp text or an image over your pictures with custom opacity and position — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2418,7 +3043,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2436,6 +3067,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2454,8 +3089,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Meme generator is a free, browser-based tool that lets you caption meme images or your own pictures in seconds — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2464,7 +3101,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2482,6 +3125,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2500,8 +3147,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Rotate IMAGE is a free, browser-based tool that lets you rotate many images at once by 90, 180 or 270 degrees — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2510,7 +3159,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2528,6 +3183,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2546,8 +3205,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "HTML to IMAGE is a free, browser-based tool that lets you convert html snippets into jpg, png or svg images — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2556,7 +3217,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2574,6 +3241,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2592,8 +3263,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Blur face is a free, browser-based tool that lets you blur faces, licence plates or any selected region to hide private information — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2602,7 +3275,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2620,6 +3299,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2638,8 +3321,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Image to Base64 is a free, browser-based tool that lets you convert any image into a base64 data url and copy it instantly — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2648,7 +3333,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2666,6 +3357,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2684,8 +3379,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Base64 to Image is a free, browser-based tool that lets you turn base64 data back into a downloadable image file — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2694,7 +3391,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2712,6 +3415,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2730,8 +3437,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Image Color Picker is a free, browser-based tool that lets you pick exact colours from an image and sample its dominant palette — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2740,7 +3449,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2758,6 +3473,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2776,8 +3495,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Metadata Viewer is a free, browser-based tool that lets you inspect image details and strip embedded exif metadata — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2786,7 +3507,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2804,6 +3531,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2822,8 +3553,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "SVG Optimizer is a free, browser-based tool that lets you minify svg files by removing comments, metadata and redundant whitespace — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2832,7 +3565,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2850,6 +3589,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2868,8 +3611,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Format Detector is a free, browser-based tool that lets you detect real image formats from file signatures, not extensions — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2878,7 +3623,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2896,6 +3647,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2914,8 +3669,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Image Border is a free, browser-based tool that lets you add frames, padding and rounded corners with a live preview — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2924,7 +3681,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2942,6 +3705,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -2960,8 +3727,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Favicon Generator is a free, browser-based tool that lets you create a full set of favicon png sizes from any image — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -2970,7 +3739,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -2988,6 +3763,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   },
@@ -3006,8 +3785,10 @@ window.TOOLS_CONFIG = [
       "image tools",
       "free online tool",
       "client-side",
-      "private"
+      "private",
+      "no upload"
     ],
+    "longDesc": "Contact Sheet is a free, browser-based tool that lets you arrange many images into a labelled contact sheet — without uploading your files anywhere. All processing happens locally in your browser using modern web technologies, so your documents and images stay completely private.",
     "howToSteps": [
       "Upload your image.",
       "Adjust the settings for the chosen tool.",
@@ -3016,7 +3797,13 @@ window.TOOLS_CONFIG = [
     "features": [
       "Edit, convert, compress and optimize images locally.",
       "No upload, no tracking.",
-      "Supports JPG, PNG, WebP, GIF, BMP, SVG."
+      "Supports JPG, PNG, WebP, GIF, BMP, SVG.",
+      "Batch processing supported."
+    ],
+    "tips": [
+      "Use WebP for web, PNG for transparency, JPG for photos.",
+      "Keep originals as backups.",
+      "For print, use 300 DPI or higher."
     ],
     "faqs": [
       {
@@ -3034,6 +3821,10 @@ window.TOOLS_CONFIG = [
       {
         "q": "Can I batch process?",
         "a": "Yes, most tools support multiple images."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes, after the first load."
       }
     ]
   }
