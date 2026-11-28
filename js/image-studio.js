@@ -234,7 +234,7 @@ function drawCrop(c,ox,oy,s){
 
 /* ---------------- UI ---------------- */
 const MENUS={
-  file:[['Open images','open'],['Open project (JSON)','openproject'],['Save project (JSON)','save'],['Quick save (default name)','quicksave'],['Export…','export']],
+  file:[['Open images','open'],['Open project (JSON)','openproject'],['Save image (PNG/JPG/WebP)…','saveimage'],['Save project (JSON)','saveproject'],['Quick save project (default name)','quicksave'],['Export…','export']],
   edit:[['Undo','undo'],['Redo','redo'],['Reset all edits','reset']],
   view:[['Fit to screen','fit'],['Actual size','actual'],['Grid','grid'],['Rulers','rulers'],['Smart guides','guides'],['Fullscreen','fullscreen'],['Hide left panel','drawer'],['Hide right panel','props']],
   exportquick:[['PNG — best quality','q:image/png'],['JPG — smallest','q:image/jpeg'],['WebP — balanced','q:image/webp'],['GIF — 256 colours','q:image/gif'],['BMP — uncompressed','q:image/bmp'],['Full export options…','export']],
@@ -354,7 +354,8 @@ function render(root,initialId){
     const a=e.target.closest('[data-menu-act]');if(a){const act=a.dataset.menuAct;closeMenus();
       if(act==='open')q('#proInput').click();
       else if(act==='openproject')q('#proProjectInput').click();
-      else if(act==='save')saveProjectDialog();
+      else if(act==='saveproject')saveProjectDialog();
+      else if(act==='saveimage')exportDialog();
       else if(act==='quicksave')saveProject();
       else if(act==='shortcuts')shortcutHelp();
       else if(act==='about')studioStatus('Image Studio · non-destructive canvas editor · all processing stays in your browser','success');
@@ -372,7 +373,9 @@ function render(root,initialId){
   q('.pro-header').addEventListener('click',e=>{
     const b=e.target.closest('[data-act]');if(!b)return;
     const act=b.dataset.act;
-    if(act==='save')saveProject();
+    if(act==='save')directExport('image/png');
+    else if(act==='saveproject')saveProjectDialog();
+    else if(act==='saveimage')exportDialog();
     else if(act==='export')exportDialog();
     else if(act==='quicksave')saveProject();
     else toolbar(act);
