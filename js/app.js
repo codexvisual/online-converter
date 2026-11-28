@@ -327,24 +327,30 @@ function waitForCore(name,ms=12000){
   if(window[name]) return Promise.resolve();
   return new Promise(res=>{const t0=Date.now();const iv=setInterval(()=>{if(window[name]||Date.now()-t0>ms){clearInterval(iv);res();}},100);});
 }
-/* Reflow every page of a PDF onto A4/Letter pages, centered and fitted with margins */
+/* Reflow every page onto a target page size using canvas rasterization (reliable across pdf-lib builds) */
 async function normalizePageSize(source,target,margin=24){
   const {PDFDocument}=PDFLib;
   const out=await PDFDocument.create();
   const dims=Array.isArray(target)?target:(target==='letter'?[612,792]:[595.28,841.89]);
   const [pw,ph]=dims;
   const m=Math.max(0,Math.min(120,Number(margin)||0));
-  for(let i=0;i<source.getPageCount();i++){
-    const src=source.getPage(i);
+  const srcBytes=await source.save();
+  const pdf=await pdfjsLib.getDocument({data:srcBytes,useWorkerFetch:false,isEvalSupported:false}).promise;
+  for(let i=1;i<=pdf.numPages;i++){
+    const pg=await pdf.getPage(i);
+    const base=pg.getViewport({scale:1});
+    const scale=Math.max(1,Math.min(2,1800/Math.max(base.width,base.height)));
+    const vp=pg.getViewport({scale});
+    const canvas=document.createElement('canvas');
+    canvas.width=vp.width; canvas.height=vp.height;
+    await pg.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+    const jpg=canvas.toDataURL('image/jpeg',0.92).split(',')[1];
+    const img=await out.embedJpg(Uint8Array.from(atob(jpg),ch=>ch.charCodeAt(0)));
     const page=out.addPage(dims);
-    const [embedded]=await out.embedPdf(source,[i]);
-    let {width,height}=src.getSize();
-    const rot=(src.getRotation().angle||0)%360;
-    if(rot===90||rot===270){ const t=width; width=height; height=t; }
     const availW=Math.max(10,pw-2*m), availH=Math.max(10,ph-2*m);
-    const scale=Math.min(availW/width,availH/height);
-    const w=width*scale, h=height*scale;
-    page.drawPage(embedded,{x:(pw-w)/2,y:(ph-h)/2,width:w,height:h});
+    const s=Math.min(availW/vp.width,availH/vp.height);
+    const w=vp.width*s, h=vp.height*s;
+    page.drawImage(img,{x:(pw-w)/2,y:(ph-h)/2,width:w,height:h});
   }
   return out;
 }
@@ -1139,10 +1145,12 @@ INITERS.split = function(panel){
     <div class="field"><label>Mode</label>
       <select id="splitMode">
         <option value="all">All pages (one PDF per page)</option>
+        <option value="jpg">All pages (one JPG per page)</option>
         <option value="ranges">Page ranges</option>
         <option value="every">Every N pages</option>
       </select>
     </div>
+    <div class="field"><label>JPG scale (for JPG mode)</label><select id="splitScale"><option value="1">1x</option><option value="1.5" selected>1.5x</option><option value="2">2x</option></select></div>
     <div class="field"><label>Ranges (e.g. 1-3,4,5-7)</label><input id="splitRanges" placeholder="1-3,4" /></div>
     <div class="field"><label>Every N pages</label><input id="splitEvery" type="number" value="2" min="1" /></div>`;
   panel.insertBefore(opts,panel.querySelector('.status'));
@@ -1170,6 +1178,22 @@ INITERS.split = function(panel){
         }
         const blob=await zip.generateAsync({type:'blob'});
         offerDownload(panel, blob,'split_every.zip');
+      } else if(mode==='jpg'){
+        const pdf=await pdfjsLib.getDocument({data:bytes,useWorkerFetch:false,isEvalSupported:false}).promise;
+        const scale=parseFloat(panel.querySelector('#splitScale').value)||1.5;
+        const zip=new JSZip();
+        for(let i=1;i<=pdf.numPages;i++){
+          const pg=await pdf.getPage(i);
+          const vp=pg.getViewport({scale});
+          const canvas=document.createElement('canvas');
+          canvas.width=vp.width; canvas.height=vp.height;
+          await pg.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+          const jpg=await new Promise(res=>canvas.toBlob(res,'image/jpeg',0.92));
+          zip.file('page_'+i+'.jpg',jpg);
+          setProgress(panel,i/pdf.numPages*100);
+        }
+        const blob=await zip.generateAsync({type:'blob'});
+        offerDownload(panel,blob,'split_jpg.zip');
       } else if(mode==='all'){
         const zip=new JSZip();
         for(let i=0;i<total;i++){
