@@ -3,29 +3,68 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Blog — Online Converter Tips & Guides</title>
-<meta name="description" content="Guides and tips for working with PDFs and images in your browser — privacy, conversion, compression and more." />
+<title>Blog — PDF &amp; Image Guides | Online Converter</title>
+<meta name="description" content="Practical, privacy-first guides for PDFs and images: compress without losing quality, choose the right image format, merge documents and more." />
 <link rel="canonical" href="https://codexvisual.github.io/online-converter/blog/" />
 <meta property="og:title" content="Blog — Online Converter" />
+<meta property="og:description" content="Practical, privacy-first guides for PDFs and images." />
 <meta property="og:url" content="https://codexvisual.github.io/online-converter/blog/" />
 <meta property="og:type" content="website" />
-<link rel="icon" type="image/png" href="/online-converter/assets/favicon.png" />
-<link rel="stylesheet" href="/online-converter/css/style.css" />
+<link rel="icon" type="image/png" href="../assets/favicon.png" />
+<link rel="stylesheet" href="../css/style.css" />
 </head>
 <body>
-<header class="header"><div class="container"><a class="brand" href="/online-converter/"><img src="/online-converter/assets/logo-small.png" alt="Online Converter" class="brand-logo"/></a></div></header>
+<header class="header"><div class="container"><a class="brand" href="../"><img src="../assets/logo-small.png" alt="Online Converter" class="brand-logo"/></a></div></header>
 <main class="container" style="padding:40px 20px;max-width:820px">
 <h1>Online Converter Blog</h1>
-<p>Practical guides for handling PDFs and images privately, directly in your browser.</p>
+<p class="seo-lead">Practical guides for handling PDFs and images privately, directly in your browser. No sign-up, no uploads, no nonsense.</p>
+
 <h2>How to Compress a PDF Without Losing Quality</h2>
-<p>Learn how to reduce PDF file size by adjusting image quality and resolution. Our client-side compressor processes files locally, so your documents never leave your device.</p>
-<h2>JPG vs PNG vs WebP: Which Image Format to Use</h2>
-<p>Choose the right image format: JPG for photos, PNG for transparency and graphics, and WebP for the best balance of size and quality on the web.</p>
+<p>PDF files grow quickly. A scan at 600 DPI, a slide deck full of photos, or a document with embedded fonts can easily pass 20&nbsp;MB — too large for most email inboxes and slow to open on mobile. The good news is that most of that weight is usually unnecessary, and you can remove it without making the text unreadable.</p>
+<p>There are two different kinds of compression, and choosing the right one matters more than any slider:</p>
+<ul>
+<li><strong>Lossless (structure) compression</strong> rewrites the PDF's internal objects and object streams. Text, vectors and images stay pixel-identical, but the file can shrink by 10–40%. This is the safe default for contracts, invoices, academic papers and anything that will be printed.</li>
+<li><strong>Lossy (image) compression</strong> re-encodes the page images at a lower resolution and quality. Files can drop by 70–90%, but small text may soften. This is the right choice for scanned documents and photo-heavy brochures that only need to be read on screen.</li>
+</ul>
+<p>Start with lossless compression. If the result is still too large, switch to lossy and compare a page side by side before sending. A useful rule of thumb: 150 DPI is plenty for on-screen reading, 200–300 DPI for office printing, and 600 DPI only for archival scans of fine print.</p>
+<p>If our <a href="../tools/compress/">Compress PDF tool</a> reports that your file is already optimised, that is not a failure — it means re-encoding would make the file larger, so the original is returned unchanged.</p>
+
+<h2>JPG vs PNG vs WebP: Which Image Format Should You Use?</h2>
+<p>Every format is a trade-off between size, quality and features. Picking the wrong one is the most common reason a page feels slow or a screenshot looks blurry.</p>
+<ul>
+<li><strong>JPG</strong> is best for photographs and anything with smooth gradients. It is small and universally supported, but it has no transparency and loses a little detail every time you re-save it.</li>
+<li><strong>PNG</strong> is best for screenshots, logos, icons and images with transparency. It is lossless, so text stays razor sharp, but photographic PNGs can be five to ten times larger than the equivalent JPG.</li>
+<li><strong>WebP</strong> is the modern web format: roughly 25–35% smaller than JPG at the same visual quality, with transparency and animation support. Every current browser handles it.</li>
+<li><strong>AVIF</strong> compresses even further, but encoding is slow and older software may not open the files — better for websites than for sharing.</li>
+</ul>
+<p>For a website, export photos as WebP and keep a JPG fallback. For email attachments and documents, JPG is still the safest. For design assets and screenshots, PNG wins. You can convert JPGs to PNG or WebP with our <a href="../tools/jpg-to-image/">image converter</a> or edit and export in <a href="../studio/">Image Studio</a>.</p>
+
 <h2>Why Browser-Based Tools Are More Private</h2>
-<p>Traditional online converters upload your files to a server. Browser-based tools process everything locally, keeping sensitive documents and images on your device.</p>
+<p>Traditional online converters work the same way: you upload a file, a server processes it, you download the result. That model has three problems. First, your document leaves your device — for a contract, a medical record or an ID scan, that is a real privacy decision. Second, the file sits on someone else's disk, and retention policies are often vague. Third, every upload costs bandwidth and time.</p>
+<p>Modern browsers can do the same work locally. JavaScript engines are fast enough to parse PDFs, render pages to canvas, encode images and even run OCR. When processing happens in your tab, the file never crosses the network, so there is nothing to store, log or leak.</p>
+<p>You can verify this yourself: open your browser's developer tools, switch to the Network tab, and process a file. A local tool makes no upload request. That is the standard we hold ourselves to — and it is why Online Converter works offline after the first visit.</p>
+
 <h2>How to Merge PDF Files in the Right Order</h2>
-<p>A step-by-step guide to combining multiple PDFs, images and documents into a single file — with tips on ordering pages correctly.</p>
-<p><a href="/online-converter/">← Back to all tools</a></p>
+<p>Merging is simple in principle and surprisingly easy to get wrong. A few habits prevent most mistakes:</p>
+<ol>
+<li><strong>Name your files with a numeric prefix</strong> (01-cover.pdf, 02-report.pdf, 03-appendix.pdf) before you start. Drag-and-drop ordering is fast, but names make the intended sequence obvious to anyone reviewing the result.</li>
+<li><strong>Check page orientation.</strong> Mixing portrait and landscape pages is fine, but a rotated scan will look wrong in the merged document. Use the rotate control on each file first.</li>
+<li><strong>Decide about page size.</strong> If your sources differ (A4 and Letter, for example), choose whether pages should keep their original size or be scaled to match the first page. Scaling keeps the document visually consistent; keeping originals preserves exact dimensions.</li>
+<li><strong>Add bookmarks and page numbers afterwards</strong> if the document is long. A merged 200-page file without a table of contents is hard to navigate.</li>
+</ol>
+<p>Ready to try it? Open the <a href="../tools/merge/">Merge PDF tool</a>, drop your files in, and reorder them before merging. Everything happens on your device.</p>
+
+<h2>Five Small Habits That Keep Documents Safe</h2>
+<p>Privacy is mostly a set of small, repeatable habits rather than a single product choice.</p>
+<ul>
+<li>Remove metadata before sharing — author names, software versions and GPS coordinates often travel with a file without anyone noticing. Our <a href="../tools/metadata/">metadata tool</a> shows what is inside.</li>
+<li>Redact properly. Drawing a black box over text does not delete it; the text is still selectable underneath. Use a real <a href="../tools/redact/">redaction tool</a> that removes the content.</li>
+<li>Prefer tools that work offline when handling sensitive files. If a tool needs a network request to function, ask why.</li>
+<li>Keep an untouched copy of the original. Compression and conversion should always produce a new file, never overwrite the source.</li>
+<li>Check the file size before emailing. A 25&nbsp;MB limit is common, and a compressed PDF is usually a better experience for the recipient anyway.</li>
+</ul>
+
+<p><a href="../">← Back to all tools</a></p>
 </main>
 <footer class="footer"><div class="container"><div class="footer-copy">© 2026 Online Converter · Developed by <a href="https://filofa.com" target="_blank" rel="noopener">Filofa Technology</a></div></div></footer>
 </body>

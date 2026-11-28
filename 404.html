@@ -4,16 +4,57 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Page Not Found — Online Converter</title>
+<meta name="description" content="The page you are looking for could not be found. Browse all 66 free PDF and image tools on Online Converter." />
 <meta name="robots" content="noindex" />
-<link rel="icon" type="image/png" href="/online-converter/assets/favicon.png" />
-<link rel="stylesheet" href="/online-converter/css/style.css" />
+<meta name="theme-color" content="#E5322D" />
+<style>
+  :root{--ink:#16181d;--muted:#5b6270;--brand:#e5322d;--bg:#f6f7f9;--card:#fff;--border:#e3e6ec}
+  @media (prefers-color-scheme:dark){:root{--ink:#eef1f6;--muted:#a2aab8;--bg:#111318;--card:#191c22;--border:#2a2f38}}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;flex-direction:column;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Inter,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{width:100%;max-width:720px;margin:0 auto;padding:24px 20px;flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center}
+  .brand{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:17px;color:var(--ink);text-decoration:none;justify-content:center;margin-bottom:28px}
+  .dot{width:32px;height:32px;border-radius:9px;background:var(--brand);display:inline-block}
+  .code{font-size:72px;line-height:1;font-weight:800;color:var(--brand);margin:0 0 8px}
+  h1{font-size:24px;margin:0 0 12px}
+  p{color:var(--muted);line-height:1.65;margin:0 auto 22px;max-width:520px}
+  .btn{display:inline-block;padding:12px 22px;border-radius:10px;background:var(--brand);color:#fff;text-decoration:none;font-weight:700}
+  .btn:hover{filter:brightness(1.08)}
+  .links{display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:center;margin-top:26px}
+  .links a{color:var(--muted);text-decoration:none;font-size:14px}
+  .links a:hover{color:var(--brand)}
+  footer{border-top:1px solid var(--border);padding:18px 20px;text-align:center;font-size:12.5px;color:var(--muted)}
+  footer a{color:inherit}
+</style>
 </head>
 <body>
-<header class="header"><div class="container"><a class="brand" href="/online-converter/"><img src="/online-converter/assets/logo-small.png" alt="Online Converter" class="brand-logo"/></a></div></header>
-<main class="container" style="padding:60px 20px;text-align:center">
-<h1>404 — Page Not Found</h1>
-<p>The page you're looking for doesn't exist or has moved.</p>
-<p><a href="/online-converter/" class="btn btn-primary">Go to all tools</a></p>
-</main>
+<div class="wrap">
+  <a class="brand" href="/" id="brandLink"><span class="dot" aria-hidden="true"></span>Online Converter</a>
+  <p class="code" aria-hidden="true">404</p>
+  <h1>Page Not Found</h1>
+  <p>The page you are looking for doesn’t exist or has moved. All 66 tools are still available from the home page.</p>
+  <p><a class="btn" href="/" id="homeLink">Go to all tools</a></p>
+  <div class="links">
+    <a href="/tools/merge/">Merge PDF</a>
+    <a href="/tools/compress/">Compress PDF</a>
+    <a href="/tools/pdf-to-jpg/">PDF to JPG</a>
+    <a href="/studio/">Image Studio</a>
+    <a href="/contact/">Contact</a>
+  </div>
+</div>
+<footer>© 2026 Online Converter · Developed by <a href="https://filofa.com" target="_blank" rel="noopener">Filofa Technology</a></footer>
+<script>
+  // Works both at a domain root (cPanel) and under /online-converter/ (GitHub Pages).
+  (function(){
+    var p = location.pathname, base = '/';
+    var i = p.indexOf('/online-converter/');
+    if (i === 0) base = '/online-converter/';
+    document.getElementById('brandLink').setAttribute('href', base);
+    document.getElementById('homeLink').setAttribute('href', base);
+    document.querySelectorAll('.links a').forEach(function(a){
+      a.setAttribute('href', base + a.getAttribute('href').replace(/^\//, ''));
+    });
+  })();
+</script>
 </body>
 </html>

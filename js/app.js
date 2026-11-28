@@ -1140,7 +1140,7 @@ function renderTools(root){
   root.innerHTML='';
   const sec=document.createElement('section');
   sec.className='section container';
-  sec.innerHTML='<h2>'+t('all_tools')+'</h2>';
+  sec.innerHTML='<h1>'+t('all_tools')+'</h1>';
   CATEGORIES.forEach(cat=>{
     const tools=TOOLS.filter(t=>t.cat===cat);
     if(!tools.length)return;
@@ -4573,11 +4573,12 @@ function syncTitle(hash){
   const base='Online Converter — Free PDF Toolkit';
   const m=(hash||'').match(/^#\/tool\/([^/?#]+)/);
   const key=(hash||'').replace('#/','');
-  let name='';
-  if(m){ const tool=TOOLS.find(x=>x.id===m[1]); if(tool) name=tool.name; }
+  let name='', suffix='';
+  if(m){ const tool=TOOLS.find(x=>x.id===m[1]); if(tool){ name=tool.name; suffix=' — Free Online Tool'; } }
   else if(hash==='#/tools') name=t('all_tools');
+  else if(hash==='#/studio'||(hash||'').startsWith('#/studio/')) name='Image Studio — Free Online Photo Editor';
   else if(INFO[key]) name=INFO[key].title;
-  document.title=name?name+' · '+base:base;
+  document.title=name?name+suffix+' | Online Converter':base;
 }
 function route(){
   if(!location.hash && location.pathname && location.pathname!=='/' && !location.pathname.endsWith('index.html')){
@@ -4778,7 +4779,7 @@ onReady(()=>{
   if(!window.__BASE_PATH__) window.__BASE_PATH__='';
   if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){
     window.addEventListener('load',()=>{
-      navigator.serviceWorker.register('sw.js').catch(()=>{});
+      navigator.serviceWorker.register((window.__BASE_PATH__||'')+'sw.js').catch(()=>{});
     });
   }
   // Warm the Image Studio chunk during idle time so the first click is instant.

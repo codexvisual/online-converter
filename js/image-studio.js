@@ -273,7 +273,7 @@ function render(root,initialId){
   S.grid=!!p.grid;S.rulers=!!p.rulers;S.guides=!!p.guides;
   root.innerHTML=`<section class="pro-studio ${S.drawerOpen?'':'hide-drawer'} ${S.propsOpen?'':'hide-props'} ${S.grid?'show-grid':''} ${S.rulers?'show-rulers':''} ${S.guides?'show-guides':''}">
     <header class="pro-header">
-      <div class="pro-brand"><span class="pro-logo"><i class="fa-solid fa-layer-group"></i></span><div><strong>Image Studio</strong><small>Non-destructive · browser-only</small></div></div>
+      <div class="pro-brand"><span class="pro-logo"><i class="fa-solid fa-layer-group"></i></span><div><h1>Image Studio</h1><small>Non-destructive · browser-only</small></div></div>
       <nav class="pro-menu" aria-label="Application menu">
         ${Object.keys(MENUS).map(k=>`<div class="pro-menu-wrap"><button type="button" class="pro-menu-btn" data-menu="${k}">${MENU_LABELS[k]||k.charAt(0).toUpperCase()+k.slice(1)}</button><div class="pro-menu-pop" data-pop="${k}" hidden>${MENUS[k].map(([label,act])=>`<button type="button" data-menu-act="${act}">${label}</button>`).join('')}</div></div>`).join('')}
       </nav>
