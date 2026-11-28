@@ -158,6 +158,8 @@ html[data-theme="dark"] .card:hover{box-shadow:0 20px 44px -14px rgba(0,0,0,.75)
 .cat-title span::after{content:'';position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:30px;height:2.5px;border-radius:2px;background:var(--red)}
 @media (max-width:900px){
   .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .options{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .form-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
   .card{padding:22px 16px 18px;gap:10px;min-height:186px}
   .card .icon{width:50px;height:50px;border-radius:15px;font-size:20px}
   .card h3{font-size:14.5px;min-height:1.35em}
@@ -174,6 +176,11 @@ html[data-theme="dark"] .card:hover{box-shadow:0 20px 44px -14px rgba(0,0,0,.75)
   .hero h1{font-size:28px}
   .cat-title::before,.cat-title::after{flex:0 0 20px}
   .cat-title span{white-space:normal}
+}
+@media (max-width:420px){
+  .file-list{grid-template-columns:1fr;gap:10px}
+  .file-thumb{height:190px}
+  .apps-grid{grid-template-columns:repeat(2,1fr)}
 }
 .tool-page{padding:32px 0 64px}
 .tool-header{display:flex;align-items:center;gap:16px;margin-bottom:24px}
@@ -333,7 +340,7 @@ body.is-dragging-card *{cursor:grabbing !important}
 .download-box{margin-top:16px}
 .download-link{display:inline-flex;align-items:center;gap:9px;padding:12px 18px;border-radius:10px;background:#188038;color:#fff;font-weight:700;font-size:15px}
 .download-link:hover{background:#137333;color:#fff}
-.options{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0}
+.options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
 .field{display:flex;flex-direction:column;gap:6px}
 .field label{font-size:13px;font-weight:600;color:var(--muted)}
 .field input,.field select{padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px}
@@ -632,6 +639,9 @@ html[data-theme="dark"] .to-top{box-shadow:0 10px 24px rgba(0,0,0,.6)}
   .footer-col:last-child{border-bottom:0}
   .footer-nav{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}
   .footer-nav a{font-size:13px;justify-content:flex-start}
+  .file-list{grid-template-columns:1fr;gap:10px}
+  .file-thumb{height:190px}
+  .apps-grid{grid-template-columns:repeat(2,1fr)}
 }
 
 /* ============ Accessibility / i18n / feedback / smart drop ============ */
