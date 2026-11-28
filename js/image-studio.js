@@ -162,7 +162,7 @@ function faceBlur(s,radius){
 }
 
 /* ---------------- state ---------------- */
-const S={images:[],active:0,tool:'crop',zoom:1,pan:{x:0,y:0},compare:false,split:50,crop:null,root:null,canvas:null,statusEl:null};
+const S={images:[],active:0,tool:'resize',zoom:1,pan:{x:0,y:0},compare:false,split:50,crop:null,root:null,canvas:null,statusEl:null};
 const cur=()=>S.images[S.active];
 const defsFor=id=>T.find(t=>t.id===id);
 
@@ -224,16 +224,20 @@ function drawCrop(c,ox,oy,s){
   c.globalCompositeOperation='destination-out';c.fillRect(x,y,w,h);
   c.globalCompositeOperation='source-over';
   c.strokeStyle='#fff';c.lineWidth=1.5;c.setLineDash([7,5]);c.strokeRect(x,y,w,h);
-  c.strokeStyle='#e5322d';c.lineWidth=2;c.setLineDash([]);
-  [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([px,py])=>{c.fillStyle='#e5322d';c.fillRect(px-5,py-5,10,10);});c.restore();
+  c.setLineDash([]);
+  // rule of thirds
+  c.strokeStyle='rgba(255,255,255,.35)';c.lineWidth=1;
+  for(let i=1;i<3;i++){c.beginPath();c.moveTo(x+w*i/3,y);c.lineTo(x+w*i/3,y+h);c.stroke();c.beginPath();c.moveTo(x,y+h*i/3);c.lineTo(x+w,y+h*i/3);c.stroke();}
+  c.strokeStyle='#e5322d';c.lineWidth=2;
+  [[x,y],[x+w,y],[x,y+h],[x+w,y+h],[x+w/2,y],[x,y+h/2],[x+w,y+h/2],[x+w/2,y+h]].forEach(([px,py])=>{c.fillStyle='#e5322d';c.fillRect(px-5,py-5,10,10);});c.restore();
 }
 
 /* ---------------- UI ---------------- */
 const MENUS={
-  file:[['Open images','open'],['Open project (JSON)','openproject'],['Save project (JSON)','save'],['Export…','export']],
+  file:[['Open images','open'],['Open project (JSON)','openproject'],['Save project (JSON)','save'],['Quick save (default name)','quicksave'],['Export…','export']],
   edit:[['Undo','undo'],['Redo','redo'],['Reset all edits','reset']],
   view:[['Fit to screen','fit'],['Actual size','actual'],['Grid','grid'],['Rulers','rulers'],['Smart guides','guides'],['Fullscreen','fullscreen'],['Hide left panel','drawer'],['Hide right panel','props']],
-  exportquick:[['PNG — best quality','q:image/png'],['JPG — smallest','q:image/jpeg'],['WebP — balanced','q:image/webp'],['GIF — 256 colours','q:image/gif'],['Full export options…','export']],
+  exportquick:[['PNG — best quality','q:image/png'],['JPG — smallest','q:image/jpeg'],['WebP — balanced','q:image/webp'],['GIF — 256 colours','q:image/gif'],['BMP — uncompressed','q:image/bmp'],['Full export options…','export']],
   help:[['Keyboard shortcuts','shortcuts'],['About Image Studio','about']]
 };
 const MENU_LABELS={exportquick:'Quick export'};
@@ -330,7 +334,7 @@ function render(root,initialId){
   q('#proTools').innerHTML=CATS.map(cat=>`<div class="pro-group" data-group="${cat}"><div class="pro-group-t">${cat}</div>${T.filter(t=>t.cat===cat).map(t=>`<button type="button" class="pro-tool" data-tool="${t.id}" title="${escS(t.label)}"><i class="fa-solid ${t.icon}"></i><span>${escS(t.label)}</span></button>`).join('')}</div>`).join('');
   q('#proTools').querySelectorAll('.pro-tool').forEach(b=>b.addEventListener('click',()=>selectTool(b.dataset.tool)));
   // popular quick tools
-  const popular=['crop','resize','remove-bg','compress','text','watermark'];
+  const popular=['resize','crop','remove-bg','compress','text','watermark'];
   q('#proPopular').innerHTML=popular.map(id=>{const d=defsFor(id);return d?`<button type="button" class="pro-pop" data-tool="${id}" title="${escS(d.label)}"><i class="fa-solid ${d.icon}"></i>${escS(d.label)}</button>`:'';}).join('');
   q('#proPopular').querySelectorAll('.pro-pop').forEach(b=>b.addEventListener('click',()=>selectTool(b.dataset.tool)));
   // tool search
@@ -350,7 +354,8 @@ function render(root,initialId){
     const a=e.target.closest('[data-menu-act]');if(a){const act=a.dataset.menuAct;closeMenus();
       if(act==='open')q('#proInput').click();
       else if(act==='openproject')q('#proProjectInput').click();
-      else if(act==='save')saveProject();
+      else if(act==='save')saveProjectDialog();
+      else if(act==='quicksave')saveProject();
       else if(act==='shortcuts')shortcutHelp();
       else if(act==='about')studioStatus('Image Studio · non-destructive canvas editor · all processing stays in your browser','success');
       else if(act.startsWith('q:'))quickExport(act.slice(2));
@@ -367,7 +372,8 @@ function render(root,initialId){
   q('.pro-header').addEventListener('click',e=>{
     const b=e.target.closest('[data-act]');if(!b)return;
     const act=b.dataset.act;
-    if(act==='save')saveProject();
+    if(act==='save')saveProjectDialog();
+    else if(act==='quicksave')saveProject();
     else toolbar(act);
   });
   const railClick=e=>{const b=e.target.closest('[data-cat]');if(!b)return;
@@ -418,7 +424,7 @@ function render(root,initialId){
   document.addEventListener('paste',pasteHandler);
   document.addEventListener('keydown',keyHandler);
   window.addEventListener('resize',scheduleDraw);
-  selectTool(initialId&&defsFor(initialId)?initialId:'crop');
+  selectTool(initialId&&defsFor(initialId)?initialId:'resize');
   updateStatus();
 }
 
@@ -449,11 +455,29 @@ function shortcutHelp(){
   document.body.appendChild(m);
   const close=()=>m.remove();m.querySelector('.pro-modal__x').addEventListener('click',close);m.addEventListener('click',e=>{if(e.target===m)close();});
 }
-function saveProject(){
+function saveProject(name){
   if(!S.images.length){studioStatus('Open an image first','error');return;}
+  const fn=(name||'image-studio-project').trim().replace(/[^a-z0-9._-]+/gi,'-')||'image-studio-project';
   const data=S.images.map(im=>({name:im.name,base:im.base.toDataURL('image/png'),ops:im.ops}));
-  download(new Blob([JSON.stringify({app:'Image Studio',version:1,images:data},null,2)],{type:'application/json'}),'image-studio-project.json');
-  studioStatus('Project saved','success');
+  download(new Blob([JSON.stringify({app:'Image Studio',version:1,images:data},null,2)],{type:'application/json'}),fn+'.json');
+  studioStatus('Project saved as '+fn+'.json','success');
+}
+function saveProjectDialog(){
+  if(!S.images.length){studioStatus('Open an image first','error');return;}
+  const m=document.createElement('div');m.className='pro-modal';
+  m.innerHTML=`<div class="pro-modal__box"><button class="pro-modal__x" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    <h2>Save project</h2><p class="pro-modal__sub">${S.images.length} image(s) · JSON project file</p>
+    <label class="pro-field"><span>File name</span><input type="text" id="svName" value="image-studio-project" /></label>
+    <div class="pro-modal__actions"><button class="pro-btn" data-close>Cancel</button><button class="pro-btn pro-btn--primary" id="svGo"><i class="fa-solid fa-floppy-disk"></i> Save</button></div></div>`;
+  document.body.appendChild(m);
+  const close=()=>m.remove();
+  m.querySelector('.pro-modal__x').addEventListener('click',close);
+  m.querySelector('[data-close]').addEventListener('click',close);
+  m.addEventListener('click',e=>{if(e.target===m)close();});
+  const go=()=>{saveProject(m.querySelector('#svName').value);close();};
+  m.querySelector('#svGo').addEventListener('click',go);
+  m.querySelector('#svName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go();}});
+  setTimeout(()=>{const i=m.querySelector('#svName');i.focus();i.select();},50);
 }
 function pasteHandler(e){
   if(!S.root||!document.body.contains(S.root))return;
@@ -476,17 +500,23 @@ function keyHandler(e){
 async function addFiles(list){
   const f=(list||[]).filter(x=>x&&(x.type.startsWith('image/')||/\.(svg|heic|tif|tiff|psd)$/i.test(x.name)));
   if(!f.length)return;
+  const wasEmpty=S.images.length===0;
+  studioStatus('Loading image…','info');
   for(const file of f){
     try{
+      if(file.size>50*1024*1024){studioStatus(file.name+' is too large (max 50 MB)','error');continue;}
       let bmp;
       if(window.OCIMG&&window.OCIMG.decodeAny) bmp=await window.OCIMG.decodeAny(file);
       if(!bmp) bmp=await createImageBitmap(file);
-      const cv=mk(bmp.width||1,bmp.height||1);cv.getContext('2d').drawImage(bmp,0,0);
+      const maxDim=4096;
+      let w=bmp.width||1,h=bmp.height||1;
+      if(w>maxDim||h>maxDim){const sc=Math.min(maxDim/w,maxDim/h);w=Math.round(w*sc);h=Math.round(h*sc);}
+      const cv=mk(w,h);const c=cv.getContext('2d');c.imageSmoothingQuality='high';c.drawImage(bmp,0,0,w,h);
       if(bmp.close)bmp.close();
       S.images.push({name:file.name,size:file.size,base:cv,ops:[],redo:[],temp:null,current:cv});
     }catch(e){ studioStatus('Could not open '+file.name+' — '+(e.message||e),'error'); }
   }
-  if(S.images.length){S.active=S.images.length-1;S.root.querySelector('#proHint').hidden=true;renderGallery();rerender();}
+  if(S.images.length){S.active=S.images.length-1;S.root.querySelector('#proHint').hidden=true;renderGallery();rerender();if(wasEmpty)selectTool('resize');studioStatus(S.images.length+' image(s) ready','success');}
 }
 
 function renderGallery(){
@@ -587,8 +617,14 @@ function bindControls(box,d){
   });
   if(d.id==='detect'&&im){const out=box.querySelector('#proDetect');if(out)out.textContent=(im.name.split('.').pop()||'?').toUpperCase()+' · '+im.current.width+'×'+im.current.height+' · '+fmtBytes(im.size);}
   // crop geometry from current image
-  if(d.id==='crop'){S.crop={x:0,y:0,w:im?im.current.width:100,h:im?im.current.height:100};box.querySelectorAll('[data-k]').forEach(el=>el.addEventListener('change',()=>{
-    if(!S.crop)return;['x','y','w','h'].forEach(k=>{const i=box.querySelector(`[data-k=${k}]`);if(i)S.crop[k]=+i.value||0;});draw();}));studioStatus('Drag on the canvas to adjust the crop');}
+  if(d.id==='crop'){S.crop={x:0,y:0,w:im?im.current.width:100,h:im?im.current.height:100};const syncCropInputs=()=>{['x','y','w','h'].forEach(k=>{const i=box.querySelector(`[data-k=${k}]`);if(i)i.value=Math.round(S.crop[k]);});};syncCropInputs();
+    box.querySelectorAll('[data-k]').forEach(el=>el.addEventListener('change',()=>{
+    if(!S.crop)return;['x','y','w','h'].forEach(k=>{const i=box.querySelector(`[data-k=${k}]`);if(i)S.crop[k]=+i.value||0;});
+    const ratio=box.querySelector('[data-k=ratio]')&&box.querySelector('[data-k=ratio]').value;
+    if(ratio&&ratio!=='free'&&im){
+      const [a,b]=ratio.split(':').map(Number);if(a&&b){const nh=Math.round(S.crop.w*b/a);if(nh>=1&&nh<=im.current.height-S.crop.y)S.crop.h=nh;}
+    }
+    syncCropInputs();draw();}));studioStatus('Drag on the canvas to adjust the crop — handles resize, drag moves');}
   if(d.id==='resize'&&im){box.querySelector('[data-k=w]').value=im.current.width;box.querySelector('[data-k=h]').value=im.current.height;
     box.querySelector('[data-k=w]').addEventListener('input',()=>{if(box.querySelector('[data-k=lock]').checked&&im){const r=im.current.height/im.current.width;box.querySelector('[data-k=h]').value=Math.round(+box.querySelector('[data-k=w]').value*r);}});
   }
@@ -642,6 +678,7 @@ function bindCanvas(){
       else{if(drag.mode.includes('e'))n.w=c.w+dx;if(drag.mode.includes('s'))n.h=c.h+dy;if(drag.mode.includes('w')){n.x=c.x+dx;n.w=c.w-dx;}if(drag.mode.includes('n')){n.y=c.y+dy;n.h=c.h-dy;}}
       const im=cur();if(im){n.x=clamp(n.x,0,im.current.width-1);n.y=clamp(n.y,0,im.current.height-1);n.w=clamp(n.w,1,im.current.width-n.x);n.h=clamp(n.h,1,im.current.height-n.y);}
       S.crop=n;scheduleDraw();
+      const _box=S.root.querySelector('#proControls');if(_box){['x','y','w','h'].forEach(k=>{const i=_box.querySelector(`[data-k=${k}]`);if(i)i.value=Math.round(n[k]);});}
     }
   });
   const end=e=>{
