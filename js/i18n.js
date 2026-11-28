@@ -5,7 +5,7 @@
   const DICTS = {
     en: {
       nav_merge: 'Merge PDF', nav_split: 'Split PDF', nav_compress: 'Compress PDF',
-      nav_convert: 'Convert PDF', nav_all: 'All PDF tools', nav_login: 'Login', nav_signup: 'Sign up',
+      nav_convert: 'Convert PDF', nav_all: 'All PDF tools', nav_other: 'All Tools', nav_login: 'Login', nav_signup: 'Sign up',
       hero_title: 'Every tool you need to work with PDFs in one place',
       hero_desc: 'Every tool you need to use PDFs, at your fingertips. All are 100% FREE and easy to use! Merge, split, compress, convert, rotate, unlock and watermark PDFs with just a few clicks.',
       search_tools: 'Search tools... (Ctrl + K)', recent: 'Recently used',
@@ -31,7 +31,7 @@
     },
     bn: {
       nav_merge: 'PDF মার্জ', nav_split: 'PDF স্প্লিট', nav_compress: 'PDF কম্প্রেস',
-      nav_convert: 'PDF কনভার্ট', nav_all: 'সব PDF টুল', nav_login: 'লগইন', nav_signup: 'সাইন আপ',
+      nav_convert: 'PDF কনভার্ট', nav_all: 'সব PDF টুল', nav_other: 'সব টুল', nav_login: 'লগইন', nav_signup: 'সাইন আপ',
       hero_title: 'PDF-এর জন্য দরকারি সব টুল এক জায়গায়',
       hero_desc: 'PDF ব্যবহারের জন্য যা কিছু দরকার, সব আপনার হাতে। সবগুলো ১০০% ফ্রি এবং ব্যবহার করা সহজ! কয়েক ক্লিকে মার্জ, স্প্লিট, কম্প্রেস, কনভার্ট, ঘোরান, আনলক ও ওয়াটারমার্ক করুন।',
       search_tools: 'টুল খুঁজুন... (Ctrl + K)', recent: 'সাম্প্রতিক ব্যবহৃত',
@@ -57,7 +57,7 @@
     },
     es: {
       nav_merge: 'Combinar PDF', nav_split: 'Dividir PDF', nav_compress: 'Comprimir PDF',
-      nav_convert: 'Convertir PDF', nav_all: 'Todas las herramientas', nav_login: 'Iniciar sesión', nav_signup: 'Registrarse',
+      nav_convert: 'Convertir PDF', nav_all: 'Todas las herramientas', nav_other: 'Todas las herramientas', nav_login: 'Iniciar sesión', nav_signup: 'Registrarse',
       hero_title: 'Todas las herramientas que necesitas para PDF en un solo lugar',
       hero_desc: 'Todo lo que necesitas para usar PDF al alcance de tu mano. ¡Todo es 100% GRATIS y fácil de usar! Combinar, dividir, comprimir, convertir, rotar, desbloquear y marcar con agua.',
       search_tools: 'Buscar herramientas... (Ctrl + K)', recent: 'Usadas recientemente',
@@ -83,7 +83,7 @@
     },
     hi: {
       nav_merge: 'PDF मर्ज', nav_split: 'PDF स्प्लिट', nav_compress: 'PDF कंप्रेस',
-      nav_convert: 'PDF कन्वर्ट', nav_all: 'सभी PDF टूल', nav_login: 'लॉगिन', nav_signup: 'साइन अप',
+      nav_convert: 'PDF कन्वर्ट', nav_all: 'सभी PDF टूल', nav_other: 'सभी टूल', nav_login: 'लॉगिन', nav_signup: 'साइन अप',
       hero_title: 'PDF के लिए ज़रूरी सभी टूल एक जगह',
       hero_desc: 'PDF इस्तेमाल करने के लिए आपको जो कुछ चाहिए, सब आपके हाथ में। सब 100% फ्री और इस्तेमाल में आसान! मर्ज, स्प्लिट, कंप्रेस, कन्वर्ट, घुमाएँ, अनलॉक और वॉटरमार्क करें।',
       search_tools: 'टूल खोजें... (Ctrl + K)', recent: 'हाल ही में इस्तेमाल',
@@ -109,7 +109,7 @@
     },
     ar: {
       nav_merge: 'دمج PDF', nav_split: 'تقسيم PDF', nav_compress: 'ضغط PDF',
-      nav_convert: 'تحويل PDF', nav_all: 'كل أدوات PDF', nav_login: 'تسجيل الدخول', nav_signup: 'إنشاء حساب',
+      nav_convert: 'تحويل PDF', nav_all: 'كل أدوات PDF', nav_other: 'كل الأدوات', nav_login: 'تسجيل الدخول', nav_signup: 'إنشاء حساب',
       hero_title: 'كل الأدوات التي تحتاجها للعمل مع PDF في مكان واحد',
       hero_desc: 'كل ما تحتاجه لاستخدام ملفات PDF بين يديك. كل الأدوات مجانية 100% وسهلة الاستخدام! ادمج وقسّم واضغط وحوّل وأدر وافتح القفل وأضف علامة مائية.',
       search_tools: 'ابحث عن الأدوات... (Ctrl + K)', recent: 'المستخدم مؤخرًا',

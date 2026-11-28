@@ -6,8 +6,8 @@ Developed by [Filofa Technology](https://filofa.com).
 
 ## Features
 
-- 42 PDF tools across Organize, Optimize, Convert, Edit and Security
-- Merge, split, compress, rotate, crop, organize and repair PDFs
+- 44 PDF tools across Organize, Optimize, Convert, Edit and Security
+- Merge, split, extract, compress, rotate, crop, organize and repair PDFs
 - Convert PDF to Word, Excel, PowerPoint, JPG, HTML, PDF/A, text, CSV, Markdown, OCR and translation
 - Convert Word, Excel, PowerPoint, images and HTML to PDF
 - Add page numbers, watermarks, signatures, headers/footers and metadata
@@ -29,7 +29,7 @@ Developed by [Filofa Technology](https://filofa.com).
 
 - Static HTML, CSS and vanilla JavaScript — no build step, no server
 - pdf-lib, pdf.js, JSZip, FileSaver
-- docx, SheetJS, PptxGenJS, Mammoth, html2pdf.js, Tesseract.js (lazy-loaded)
+- docx, SheetJS, PptxGenJS, Mammoth, html2pdf.js, Tesseract.js (lazy-loaded with CDN fallback)
 
 ## Run locally
 

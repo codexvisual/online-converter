@@ -43,7 +43,7 @@ const TOOLS = [
   {id:'repair',name:'Repair PDF',desc:'Recover data from damaged PDF.',icon:'fa-wrench',cat:'Organize PDF',impl:true},
   {id:'compare',name:'Compare PDF',desc:'Show differences between two PDFs.',icon:'fa-code-compare',cat:'Organize PDF',impl:true},
   {id:'metadata',name:'PDF Metadata',desc:'View and edit PDF title, author, subject and keywords.',icon:'fa-tags',cat:'Edit PDF',impl:true},
-  {id:'flatten',name:'Flatten PDF',desc:'Flatten form fields and annotations into the page.',icon:'fa-layer-minus',cat:'Edit PDF',impl:true},
+  {id:'flatten',name:'Flatten PDF',desc:'Flatten form fields and annotations into the page.',icon:'fa-clone',cat:'Edit PDF',impl:true},
   {id:'grayscale',name:'PDF to Grayscale',desc:'Convert a PDF to grayscale (black & white).',icon:'fa-circle-half-stroke',cat:'Edit PDF',impl:true},
   {id:'pdf-to-text',name:'PDF to Text',desc:'Extract all text from a PDF as a TXT file.',icon:'fa-file-lines',cat:'Convert from PDF',impl:true},
   {id:'pdf-to-csv',name:'PDF to CSV',desc:'Extract text into a CSV spreadsheet.',icon:'fa-file-csv',cat:'Convert from PDF',impl:true},
@@ -52,6 +52,7 @@ const TOOLS = [
   {id:'resize-pages',name:'Resize pages',desc:'Resize all pages to A4, Letter, Legal or A3.',icon:'fa-expand',cat:'Edit PDF',impl:true},
   {id:'header-footer',name:'Header & footer',desc:'Add header and footer text to every page.',icon:'fa-align-center',cat:'Edit PDF',impl:true},
   {id:'remove-pages',name:'Remove pages',desc:'Delete selected pages from a PDF.',icon:'fa-file-circle-minus',cat:'Organize PDF',impl:true},
+  {id:'extract-pages',name:'Extract pages',desc:'Save selected pages as a new PDF.',icon:'fa-file-export',cat:'Organize PDF',impl:true},
   {id:'summarize',name:'PDF Summarize',desc:'Get a quick summary of a PDF document.',icon:'fa-wand-magic-sparkles',cat:'Organize PDF',impl:true},
   {id:'translate',name:'Translate PDF',desc:'Translate PDF text into another language.',icon:'fa-language',cat:'Organize PDF',impl:true},
   {id:'ocr',name:'OCR PDF',desc:'Make scanned PDFs searchable with OCR.',icon:'fa-file-circle-check',cat:'Convert from PDF',impl:true},
@@ -288,22 +289,32 @@ function createDropzone(panel,{accept,multiple,onFiles}){
 }
 
 const LIB_URLS={
-  docx:'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.iife.js',
-  XLSX:'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
-  PptxGenJS:'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
-  mammoth:'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js',
-  html2pdf:'https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js',
-  Tesseract:'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
+  docx:['https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.iife.js','https://unpkg.com/docx@8.5.0/build/index.iife.js'],
+  XLSX:['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js','https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'],
+  PptxGenJS:['https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js','https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'],
+  mammoth:['https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js','https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js'],
+  html2pdf:['https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js','https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js'],
+  Tesseract:['https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js','https://unpkg.com/tesseract.js@5/dist/tesseract.min.js'],
 };
 const libPromises={};
-function ensureLib(name){
+function ensureLib(name,ms=20000){
   if(window[name]) return Promise.resolve();
   if(!libPromises[name]) libPromises[name]=new Promise((resolve,reject)=>{
-    const sc=document.createElement('script');
-    sc.src=LIB_URLS[name]; sc.async=true;
-    sc.onload=()=>resolve();
-    sc.onerror=()=>{ delete libPromises[name]; reject(new Error('Could not load '+name+' library. Check your connection.')); };
-    document.head.appendChild(sc);
+    const urls=Array.isArray(LIB_URLS[name])?LIB_URLS[name]:[LIB_URLS[name]];
+    let idx=0;
+    const tryNext=()=>{
+      if(window[name]){ resolve(); return; }
+      if(idx>=urls.length){ delete libPromises[name]; reject(new Error('Could not load '+name+' library. Check your connection.')); return; }
+      const sc=document.createElement('script');
+      let done=false;
+      const timer=setTimeout(()=>{ if(done)return; done=true; sc.onload=null; sc.onerror=null; try{sc.remove();}catch(e){} tryNext(); },ms);
+      const cleanup=()=>{ done=true; clearTimeout(timer); sc.onload=null; sc.onerror=null; };
+      sc.src=urls[idx++]; sc.async=true;
+      sc.onload=()=>{ if(done)return; cleanup(); if(window[name]) resolve(); else { try{sc.remove();}catch(e){} tryNext(); } };
+      sc.onerror=()=>{ if(done)return; cleanup(); try{sc.remove();}catch(e){} tryNext(); };
+      document.head.appendChild(sc);
+    };
+    tryNext();
   });
   return libPromises[name];
 }
@@ -1788,9 +1799,12 @@ INITERS['pdf-to-word'] = function(panel){
 
   let cachedPages=[]; // [{lines:[{text,size,font,bold}]}]
   let fullText='';
+  let extractJob=null;
 
-  async function extract(){
-    if(!files.length) return;
+  function extract(){
+    if(!files.length) return Promise.resolve();
+    if(extractJob) return extractJob;
+    extractJob=(async()=>{
     try{
       setStatus(panel,'Reading PDF…','success');
       const bytes=new Uint8Array(await files[0].arrayBuffer());
@@ -1813,6 +1827,9 @@ INITERS['pdf-to-word'] = function(panel){
       preview.querySelector('#wPreview').value=linesToText(cachedPages[0]||{lines:[]});
       setStatus(panel,'Extracted '+cachedPages.length+' page(s). Choose options and convert.','success');
     }catch(e){ setStatus(panel,e.message,'error'); }
+    finally{ extractJob=null; }
+    })();
+    return extractJob;
   }
   function extractLines(items){
     const rows=[];
@@ -3031,6 +3048,54 @@ INITERS['remove-pages'] = function(panel){
   panel.insertBefore(actions,panel.querySelector('.status'));
 };
 
+/* ---------- EXTRACT PAGES ---------- */
+INITERS['extract-pages'] = function(panel){
+  let files=[];
+  const list=document.createElement('div'); list.className='file-list';
+  createDropzone(panel,{accept:'application/pdf',multiple:false,onFiles:f=>{files=[f[0]];rerender();}});
+  panel.insertBefore(list,panel.querySelector('.status'));
+  function rerender(){ renderFileList(list,files,rerender); }
+  rerender();
+  const opts=document.createElement('div'); opts.className='options';
+  opts.innerHTML='<div class="field"><label>Pages to extract (e.g. 2,4-6)</label><input id="exPages" placeholder="1,3,5-7" /></div>';
+  panel.insertBefore(opts,panel.querySelector('.status'));
+  const actions=document.createElement('div'); actions.className='actions';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-file-export"></i> Extract pages';
+  btn.addEventListener('click',async()=>{
+    if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
+    const raw=panel.querySelector('#exPages').value.trim();
+    if(!raw){setStatus(panel,'Enter page numbers to extract.','error');return;}
+    try{
+      showProgress(panel,true);
+      const {PDFDocument}=PDFLib;
+      const src=await PDFDocument.load(new Uint8Array(await files[0].arrayBuffer()));
+      const total=src.getPageCount();
+      const wanted=[];
+      for(const tok of raw.split(',').map(s=>s.trim()).filter(Boolean)){
+        if(tok.includes('-')){
+          let [a,b]=tok.split('-').map(n=>parseInt(n));
+          if(!Number.isFinite(a)||!Number.isFinite(b)) continue;
+          if(a>b){const t=a;a=b;b=t;}
+          for(let i=Math.max(1,a);i<=Math.min(total,b);i++) wanted.push(i);
+        } else {
+          const n=parseInt(tok);
+          if(n>=1&&n<=total) wanted.push(n);
+        }
+      }
+      const pages=[...new Set(wanted)];
+      if(!pages.length){setStatus(panel,'No valid pages in that range.','error');return;}
+      const out=await PDFDocument.create();
+      const copied=await out.copyPages(src,pages.map(n=>n-1));
+      copied.forEach(p=>out.addPage(p));
+      offerDownload(panel,new Blob([await out.save()],{type:'application/pdf'}),'extracted-pages.pdf');
+      setStatus(panel,'Extracted '+pages.length+' page(s).','success');
+    }catch(e){setStatus(panel,e.message,'error');}
+    finally{showProgress(panel,false);}
+  });
+  actions.appendChild(btn);
+  panel.insertBefore(actions,panel.querySelector('.status'));
+};
+
 /* ---------- PDF TO MARKDOWN ---------- */
 INITERS['pdf-to-markdown'] = function(panel){
   let files=[];
@@ -3616,7 +3681,7 @@ INITERS.flatten = function(panel){
   function rerender(){ renderFileList(list,files,rerender); }
   rerender();
   const actions=document.createElement('div'); actions.className='actions';
-  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-layer-minus"></i> Flatten PDF';
+  const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.innerHTML='<i class="fa-solid fa-clone"></i> Flatten PDF';
   btn.addEventListener('click',async()=>{
     if(!files.length){setStatus(panel,'Select a PDF first.','error');return;}
     try{
