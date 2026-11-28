@@ -209,3 +209,8 @@ html[data-theme="dark"] .pro-tool.active{background:#3a1f1d;border-color:#7f3b35
 @media (prefers-reduced-motion:reduce){
   .pro-studio *{transition:none!important;animation:none!important}
 }
+
+/* Lazy-load placeholder shown while the studio chunk downloads */
+.studio-loading{min-height:calc(100vh - var(--header-h) - 40px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);font-size:14px}
+.studio-loading__spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--red);animation:studioSpin .8s linear infinite}
+@keyframes studioSpin{to{transform:rotate(360deg)}}

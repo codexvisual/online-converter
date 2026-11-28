@@ -4587,6 +4587,7 @@ function route(){
     const sid=hash.startsWith('#/studio/')?hash.split('/')[2].split('?')[0]:'';
     if(window.OCSTUDIO){ window.OCSTUDIO.render(app,sid); }
     else{
+      app.innerHTML='<div class="studio-loading"><span class="studio-loading__spin" aria-hidden="true"></span><p>Opening Image Studio…</p></div>';
       ensureLocalScript('js/image-studio.js')
         .then(()=>{ if(window.OCSTUDIO) window.OCSTUDIO.render(app,sid); })
         .catch(()=>{ app.innerHTML='<div class="container" style="padding:60px 20px">Image Studio could not be loaded. Please refresh the page.</div>'; });
@@ -4768,5 +4769,11 @@ onReady(()=>{
     window.addEventListener('load',()=>{
       navigator.serviceWorker.register('sw.js').catch(()=>{});
     });
+  }
+  // Warm the Image Studio chunk during idle time so the first click is instant.
+  if(!window.OCSTUDIO){
+    const warm=()=>{ ensureLocalScript('js/image-studio.js').catch(()=>{}); };
+    if('requestIdleCallback' in window) requestIdleCallback(warm,{timeout:4000});
+    else setTimeout(warm,2500);
   }
 });

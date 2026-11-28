@@ -42,10 +42,10 @@ def({id:'flip-v',cat:'Basic',label:'Flip vertical',icon:'fa-arrows-up-down',cont
 def({id:'canvas',cat:'Basic',label:'Canvas size',icon:'fa-table-cells',controls:[N('w','Width',800),N('h','Height',600),C('bg','Background','#ffffff')],
  apply:(s,v)=>{const w=clamp(+v.w||s.width,1,12000),h=clamp(+v.h||s.height,1,12000),cv=mk(w,h),c=cv.getContext('2d');c.fillStyle=v.bg||'#fff';c.fillRect(0,0,w,h);c.drawImage(s,(w-s.width)/2,(h-s.height)/2);return cv;}});
 
-def({id:'compress',cat:'Optimize',label:'Compress & quality',icon:'fa-compress',controls:[R('q','Quality',10,100,80),SEL('fmt','Format',['image/jpeg','image/png','image/webp','image/avif'],'image/jpeg'),X('strip','Strip metadata',true)],apply:s=>s});
+def({id:'compress',cat:'Optimize',label:'Compress & quality',icon:'fa-compress',controls:[R('q','Quality',10,100,80),SEL('fmt','Format',['image/jpeg','image/png','image/webp'],'image/jpeg'),X('strip','Strip metadata',true)],apply:s=>s});
 def({id:'metadata',cat:'Optimize',label:'Metadata',icon:'fa-tags',controls:[X('strip','Remove EXIF / metadata',true)],apply:s=>s});
 
-def({id:'format',cat:'Convert',label:'Convert format',icon:'fa-file-image',controls:[SEL('fmt','Output',['image/jpeg','image/png','image/webp','image/gif','image/bmp','image/avif'],'image/png'),R('q','Quality',10,100,90)],apply:s=>s});
+def({id:'format',cat:'Convert',label:'Convert format',icon:'fa-file-image',controls:[SEL('fmt','Output',['image/jpeg','image/png','image/webp','image/gif','image/bmp'],'image/png'),R('q','Quality',10,100,90)],apply:s=>s});
 def({id:'to-base64',cat:'Convert',label:'Image to Base64',icon:'fa-code',controls:[],apply:s=>s});
 
 def({id:'brightness',cat:'Adjust',label:'Brightness',icon:'fa-sun',controls:[R('v','Brightness',-100,100,0)],apply:(s,v)=>filtered(s,`brightness(${1+ +v.v/100})`)});
@@ -233,7 +233,7 @@ const MENUS={
   file:[['Open images','open'],['Open project (JSON)','openproject'],['Save project (JSON)','save'],['Export…','export']],
   edit:[['Undo','undo'],['Redo','redo'],['Reset all edits','reset']],
   view:[['Fit to screen','fit'],['Actual size','actual'],['Grid','grid'],['Rulers','rulers'],['Smart guides','guides'],['Fullscreen','fullscreen'],['Hide left panel','drawer'],['Hide right panel','props']],
-  exportquick:[['PNG — best quality','q:image/png'],['JPG — smallest','q:image/jpeg'],['WebP — balanced','q:image/webp'],['GIF — animation','q:image/gif'],['Full export options…','export']],
+  exportquick:[['PNG — best quality','q:image/png'],['JPG — smallest','q:image/jpeg'],['WebP — balanced','q:image/webp'],['GIF — 256 colours','q:image/gif'],['Full export options…','export']],
   help:[['Keyboard shortcuts','shortcuts'],['About Image Studio','about']]
 };
 const MENU_LABELS={exportquick:'Quick export'};
@@ -363,6 +363,12 @@ function render(root,initialId){
   q('.pro-contextbar').addEventListener('click',e=>{
     const p=e.target.closest('[data-panel]');if(p){togglePanel(p.dataset.panel);return;}
     const b=e.target.closest('[data-act]');if(b)toolbar(b.dataset.act);
+  });
+  q('.pro-header').addEventListener('click',e=>{
+    const b=e.target.closest('[data-act]');if(!b)return;
+    const act=b.dataset.act;
+    if(act==='save')saveProject();
+    else toolbar(act);
   });
   const railClick=e=>{const b=e.target.closest('[data-cat]');if(!b)return;
     S.drawerOpen=true;root.querySelector('.pro-studio').classList.remove('hide-drawer');savePrefs();
@@ -707,7 +713,7 @@ function exportDialog(){
   const modal=document.createElement('div');modal.className='pro-modal';
   modal.innerHTML=`<div class="pro-modal__box"><button class="pro-modal__x" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     <h2>Export</h2><p class="pro-modal__sub">${S.images.length} image(s) · processed locally</p>
-    <label class="pro-field"><span>Format</span><select id="exFmt">${['image/png','image/jpeg','image/webp','image/gif','image/bmp','image/avif'].map(f=>`<option ${f===fmt?'selected':''}>${f}</option>`).join('')}</select></label>
+    <label class="pro-field"><span>Format</span><select id="exFmt">${['image/png','image/jpeg','image/webp','image/gif','image/bmp'].map(f=>`<option ${f===fmt?'selected':''}>${f}</option>`).join('')}</select></label>
     <label class="pro-field"><span>Quality <b id="exQv">${Math.round(q*100)}</b>%</span><input type="range" id="exQ" min="10" max="100" value="${Math.round(q*100)}"></label>
     <label class="pro-field pro-check"><input type="checkbox" id="exAll" ${S.images.length>1?'checked':''}><span>Export all images (ZIP)</span></label>
     <label class="pro-field pro-check"><input type="checkbox" id="exStrip" ${(cmpOp&&cmpOp.v.strip)?'checked':''}><span>Strip metadata</span></label>
@@ -734,7 +740,45 @@ function exportDialog(){
   });
 }
 function canvasBlob(cv,type,q){
-  return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('Unsupported format')),type,q));
+  if(type==='image/bmp')return Promise.resolve(encodeBMP(cv));
+  if(type==='image/gif')return encodeGIF(cv);
+  return new Promise((res,rej)=>cv.toBlob(b=>{
+    if(!b)return rej(new Error('Unsupported format'));
+    if(b.type&&b.type!==type)return rej(new Error(type.split('/')[1].toUpperCase()+' export is not supported by this browser'));
+    res(b);
+  },type,q));
+}
+function encodeBMP(cv){
+  const w=cv.width,h=cv.height;
+  const data=cv.getContext('2d',{willReadFrequently:true}).getImageData(0,0,w,h).data;
+  const rowSize=Math.floor((24*w+31)/32)*4;
+  const size=54+rowSize*h;
+  const buf=new ArrayBuffer(size),view=new DataView(buf),bytes=new Uint8Array(buf);
+  bytes[0]=0x42;bytes[1]=0x4d;
+  view.setUint32(2,size,true);view.setUint32(10,54,true);
+  view.setUint32(14,40,true);view.setInt32(18,w,true);view.setInt32(22,-h,true);
+  view.setUint16(26,1,true);view.setUint16(28,24,true);view.setUint32(34,rowSize*h,true);
+  for(let y=0;y<h;y++){
+    let o=54+y*rowSize;
+    for(let x=0;x<w;x++){
+      const i=(y*w+x)*4;
+      bytes[o++]=data[i+2];bytes[o++]=data[i+1];bytes[o++]=data[i];
+    }
+  }
+  return new Blob([buf],{type:'image/bmp'});
+}
+let gifencPromise=null;
+function encodeGIF(cv){
+  if(!gifencPromise)gifencPromise=import('https://cdn.jsdelivr.net/npm/gifenc@1.0.3/dist/gifenc.esm.js');
+  return gifencPromise.then(g=>{
+    const {width:w,height:h}=cv;
+    const rgba=cv.getContext('2d',{willReadFrequently:true}).getImageData(0,0,w,h).data;
+    const pal=g.quantize(rgba,256,'rgb565');
+    const enc=g.GIFEncoder();
+    enc.writeFrame(g.applyPalette(rgba,pal),w,h,{palette:pal,delay:100});
+    enc.finish();
+    return new Blob([enc.bytes()],{type:'image/gif'});
+  }).catch(e=>{gifencPromise=null;throw new Error('GIF encoder could not load. Check your connection.');});
 }
 function download(blob,name){
   const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),15000);
